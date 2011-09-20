@@ -17,14 +17,16 @@ public:
 	~DefineIdentifierDefinition(void);
 
 	void PushParameter(const string& inParameter);
-	void PushTokenString(const string& inTokenString);
+	void SetTokenStrings(const string& inTokenStrings);
 
 	ITokenProvider* CreateTokenProvider(PreProcessor* inTokenSource);
+	ITokenProvider* CreateNoSpaceEntityProvider(PreProcessor* inTokenSource);
 
 private:
 	StringList mParameters;
-	StringList mTokenStrings;
+	string mTokenStrings;
 
 	bool ScanParameter(StringList& inTokens,PreProcessor* inTokenSource,bool& outStopEncountered);
+	ITokenProvider* CreateProvider(PreProcessor* inTokenSource,const StringList& inTokenStrings);
 
 };

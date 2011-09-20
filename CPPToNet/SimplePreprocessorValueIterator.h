@@ -17,9 +17,11 @@ public:
 
 	virtual bool IsFinished();
 	virtual BoolAndString GetNextToken();
+	virtual BoolAndString GetNextNoSpaceEntity();
+	virtual string GetStringTillEndOfLine();
 
 private:
+	StringList mTokenStrings;
 
-	const StringList& mTokenStrings;
 	StringList::const_iterator mItTokenStrings;
 };

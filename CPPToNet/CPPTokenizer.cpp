@@ -164,12 +164,10 @@ BoolAndString CPPTokenizer::GetNextToken()
 
 
 					result.second = tokenBuffer.ToString();
-					// special case for #define. if #define is the instruction than the next token may be a macro identifier token which
+					// #define. if #define is the instruction than the next token may be a macro identifier token which
 					// must have paranthesis included in order to identify it as a macro, as opposed to the paranthesis belonging already to the
-					// string to replace the identifier. so down a flag here
 					if(scDefine == result.second)
 						mNextTokenCanIncludeParanthesis = true;
-
 					mNotEncounteredTokensForLine = false;
 					break;
 				}
@@ -694,3 +692,93 @@ bool CPPTokenizer::IsEntityBreaker(Byte inCharacter,bool inCanIncludeParanthesis
 	return result;
 }
 
+string CPPTokenizer::GetStringTillEndOfLine()
+{
+	stringstream aStream;
+
+	Byte buffer = 0;
+
+	if(!mStream)
+		return "";
+
+	// skip till hitting first non space, or segment end
+	while(mStream->NotEnded())
+	{
+		if(GetNextByteForToken(buffer) != eSuccess)
+			break;
+
+		if(buffer == '\n' || buffer == '\r')
+		{
+			SaveTokenBuffer(buffer);
+			break;
+		}
+
+		aStream.put(buffer);
+	}
+
+	return aStream.str();
+}
+
+BoolAndString CPPTokenizer::GetNextNoSpaceEntity()
+{
+	BoolAndString result;
+	Byte buffer;
+	OutputStringBufferStream tokenBuffer;
+	
+	if(!mStream || (!mStream->NotEnded() && mTokenBuffer.size() == 0))
+	{
+		result.first = false;
+		return result;
+	}
+
+
+	do
+	{
+		SkipAnySpaceTillToken();
+		if(!mStream->NotEnded())
+		{
+			result.first = false;
+			break;
+		}
+
+		while(mStream->NotEnded())
+		{
+			if(GetNextByteForToken(buffer) != eSuccess)
+			{	
+				result.first = false;
+				break;
+			}
+			else if(IsWhiteSpace(buffer))
+			{
+				SaveTokenBuffer(buffer); // save the token for next read, even if white space. this will enable tokenizing also newlines
+				break;
+			}
+			else
+				tokenBuffer.Write(&buffer,1);
+		}
+		result.second = tokenBuffer.ToString();
+	} while(false);
+
+	return result;
+}
+
+void CPPTokenizer::SkipAnySpaceTillToken()
+{
+	Byte buffer = 0;
+
+	if(!mStream)
+		return;
+
+	// skip till hitting first non space, or segment end
+	while(mStream->NotEnded())
+	{
+		if(GetNextByteForToken(buffer) != eSuccess)
+			break;
+
+		if(!IsWhiteSpace(buffer))
+		{
+			SaveTokenBuffer(buffer);
+			break;
+		}
+	}	
+}

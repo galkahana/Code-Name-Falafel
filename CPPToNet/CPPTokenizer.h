@@ -65,6 +65,9 @@ public:
 	// call this when changing underlying stream position
 	void ResetReadState();
 
+
+	string GetStringTillEndOfLine();
+	BoolAndString GetNextNoSpaceEntity();
 private:
 	Hummus::IByteReader* mStream;
 
@@ -81,6 +84,7 @@ private:
 	void SaveTokenBuffer(Hummus::Byte inToSave);
 	bool IsEntityBreaker(Hummus::Byte inCharacter,bool inCanIncludeParanthesis);
 	void PutBackToken(const string& inToken);
+	void SkipAnySpaceTillToken();
 
 
 };

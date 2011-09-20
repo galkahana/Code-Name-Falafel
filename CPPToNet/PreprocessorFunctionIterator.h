@@ -21,8 +21,11 @@ public:
 	void ComposeExpression(const StringList& inOriginalTokens);
 
 	// this is the actual iterator
-	bool IsFinished();
-	BoolAndString GetNextToken();
+	virtual bool IsFinished();
+	virtual BoolAndString GetNextToken();
+	virtual BoolAndString GetNextNoSpaceEntity();
+	virtual string GetStringTillEndOfLine(); 
+
 
 private:
 

@@ -29,10 +29,10 @@ namespace Hummus
 	{
 	public:
 		InputByteArrayStream();
-		InputByteArrayStream(Byte* inByteArray,LongFilePositionType inArrayLength);
+		InputByteArrayStream(const Byte* inByteArray,LongFilePositionType inArrayLength);
 		~InputByteArrayStream(void);
 
-		void Assign(Byte* inByteArray,LongFilePositionType inArrayLength);
+		void Assign(const Byte* inByteArray,LongFilePositionType inArrayLength);
 
 		// IByteReaderWithPosition implementation
 		virtual LongBufferSizeType Read(Byte* inBuffer,LongBufferSizeType inBufferSize);
@@ -44,7 +44,7 @@ namespace Hummus
 
 	private:
 
-		Byte* mByteArray;
+		const Byte* mByteArray;
 		LongFilePositionType mArrayLength;
 		LongFilePositionType mCurrentPosition;
 

@@ -23,6 +23,7 @@
 
 #include "CPPTokenizer.h"
 #include "PreTokenizerDecoder.h"
+#include "WindowsPath.h"
 
 #include <string>
 #include <list>
@@ -44,8 +45,11 @@ typedef list<string> StringList;
 typedef pair<bool,string> BoolAndString;
 typedef map<string,DefineIdentifierDefinition*> StringToDefineIdentifierDefinitionMap;
 typedef list<ITokenProvider*> ITokenProviderList;
+typedef set<ITokenProvider*> ITokenProviderSet;
 typedef set<string> StringSet;
 typedef map<ITokenProvider*,string> ITokenProviderToStringMap;
+typedef pair<bool,BoolAndString> BoolAndBoolAndString;
+typedef list<WindowsPath> WindowsPathList;
 
 class PreProcessor
 {
@@ -58,7 +62,7 @@ public:
 	// provide the following:
 	// 1. Stream to read the code from
 	// 2. List of defined preprocessor definitions
-	// 3. include folders list
+	// 3. include folders list (ordered by priority, where the first folder is the first one to look at)
 	void Setup(Hummus::IByteReader* inSourceStream,
 			   const string& inSourceFileName,
 			   const StringList& inPreprocessorDefinitions,
@@ -79,6 +83,9 @@ private:
 	StringSet mUsedDefines;
 	ITokenProviderToStringMap mIdentifierTokens;
 	string mSourceFileName;
+	ITokenProviderList mIncludeProvidersStack;
+	WindowsPath mSourceFileFolderPath;
+	WindowsPathList mIncludeFolders;
 
 	bool IsNewLineToken(const string& inToken);
 	bool DefineIdentifierReplacement();
@@ -93,5 +100,19 @@ private:
 	BoolAndString FirePreprocessorError();
 	bool IncludeFile();
 	void SkipToNextLine();
+	BoolAndBoolAndString HandlePredefinedMacros(const string& inToken);
+
+	// this method is similar to GetNextToken, only it uses GetNextNoSpaceEntity, which does a more limited
+	// tokenization - just of the next entity till the next space. this is used in the context of #include interpretation
+	// which both forms ("XXXXX" <XXXXXXX>) don't follow regular tokenization rules.
+	// Also, assuming that not in a define context
+	BoolAndString GetNextNoSpaceEntity();
+
+	// used in the context of define for reading the string till end of line, either from tokenizer, or from subordinate tokenizers
+	string GetStringTillEndOfLine();
+
+	BoolAndString FindFile(string inIncludeString,bool inIsDoubleQuoteSearch);
+
+	void Reset();
 
 };

@@ -118,7 +118,7 @@ EStatusCode PreTokenizerDecoder::GetNextByte(Byte& outByte)
 		return (mSourceStream->Read(&outByte,1) != 1) ? eFailure:eSuccess;
 }
 
-unsigned long PreTokenizerDecoder::GetCurrentLineIndex()
+unsigned long PreTokenizerDecoder::GetCurrentLineIndex() const
 {
 	return mCurrentLineIndex;
 }

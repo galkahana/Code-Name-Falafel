@@ -3,6 +3,11 @@
 #include "PreprocessorFunctionIterator.h"
 #include "PreProcessor.h"
 #include "Trace.h"
+#include "InputByteArrayStream.h"
+#include "CPPTokenizer.h"
+#include "PreTokenizerDecoder.h"
+
+using namespace Hummus;
 
 DefineIdentifierDefinition::DefineIdentifierDefinition(void)
 {
@@ -17,16 +22,67 @@ void DefineIdentifierDefinition::PushParameter(const string& inParameter)
 	mParameters.push_back(inParameter);
 }
 
-void DefineIdentifierDefinition::PushTokenString(const string& inTokenString)
+void DefineIdentifierDefinition::SetTokenStrings(const string& inTokenStrings)
 {
-	mTokenStrings.push_back(inTokenString);
+	mTokenStrings = inTokenStrings;
 }
 
 ITokenProvider* DefineIdentifierDefinition::CreateTokenProvider(PreProcessor* inTokenSource)
 {
+	// parse string for tokens, and use as the token strings (this is for all but #include cases)
+	StringList stringList;
+	CPPTokenizer tokenizer;
+	PreTokenizerDecoder decoder;
+	InputByteArrayStream aStream((const Byte*)mTokenStrings.c_str(),mTokenStrings.length());
+
+	decoder.SetStream(&aStream);
+	tokenizer.SetReadStream(&decoder);
+
+	bool notFoundEnd = true;
+	BoolAndString readResult;
+
+	while(notFoundEnd)
+	{
+		readResult = tokenizer.GetNextToken();
+		if(!readResult.first)
+			notFoundEnd = true;
+		else
+			stringList.push_back(readResult.second);
+	}
+	return CreateProvider(inTokenSource,stringList);
+}
+
+ITokenProvider* DefineIdentifierDefinition::CreateNoSpaceEntityProvider(PreProcessor* inTokenSource)
+{
+	// parse string for non space enitities, and use as the token strings (this is for the #include cases)
+	StringList stringList;
+	CPPTokenizer tokenizer;
+	PreTokenizerDecoder decoder;
+	InputByteArrayStream aStream((const Byte*)mTokenStrings.c_str(),mTokenStrings.length());
+
+	decoder.SetStream(&aStream);
+	tokenizer.SetReadStream(&decoder);
+
+	bool notFoundEnd = true;
+	BoolAndString readResult;
+
+	while(notFoundEnd)
+	{
+		readResult = tokenizer.GetNextNoSpaceEntity();
+		if(!readResult.first)
+			notFoundEnd = true;
+		else
+			stringList.push_back(readResult.second);
+	}
+	return CreateProvider(inTokenSource,stringList);
+}
+
+
+ITokenProvider* DefineIdentifierDefinition::CreateProvider(PreProcessor* inTokenSource,const StringList& inTokenStrings)
+{
 	if(mParameters.size() == 0)
 	{
-		return new SimplePreprocessorValueIterator(mTokenStrings);
+		return new SimplePreprocessorValueIterator(inTokenStrings);
 	}
 	else
 	{
@@ -85,7 +141,7 @@ ITokenProvider* DefineIdentifierDefinition::CreateTokenProvider(PreProcessor* in
 			}
 
 			// instruct iterator to now compose the full expression, with interpreted parameters
-			iterator->ComposeExpression(mTokenStrings);
+			iterator->ComposeExpression(inTokenStrings);
 		}while(false);
 
 		if(!statusOK)

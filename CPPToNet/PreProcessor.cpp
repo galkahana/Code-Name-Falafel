@@ -4,6 +4,7 @@
 #include "ITokenProvider.h"
 #include "BoxingBase.h"
 #include "IncludeFileTokenProvider.h"
+#include "WindowsFileSystem.h"
 
 using namespace Hummus;
 
@@ -12,6 +13,11 @@ PreProcessor::PreProcessor(void)
 }
 
 PreProcessor::~PreProcessor(void)
+{
+	Reset();
+}
+
+void PreProcessor::Reset()
 {
 	StringToDefineIdentifierDefinitionMap::iterator it = mDefines.begin();
 
@@ -23,6 +29,10 @@ PreProcessor::~PreProcessor(void)
 	for(; itTokenProviders != mTokenSubcontructors.end();++itTokenProviders)
 		delete *itTokenProviders;
 	mTokenSubcontructors.clear();
+
+	mIncludeProvidersStack.clear();
+	mDefines.clear();
+	mIncludeFolders.clear();
 }
 
 void PreProcessor::Setup(IByteReader* inSourceStream,
@@ -30,6 +40,8 @@ void PreProcessor::Setup(IByteReader* inSourceStream,
 					     const StringList& inPreprocessorDefinitions,
 						 const StringList& inIncludeFolders)
 {
+	Reset();
+
 	mPreTokenizationDecoder.SetStream(inSourceStream);
 	mTokenizer.SetReadStream(&mPreTokenizationDecoder);
 
@@ -39,8 +51,12 @@ void PreProcessor::Setup(IByteReader* inSourceStream,
 		mDefines.insert(StringToDefineIdentifierDefinitionMap::value_type(*itDefs,new DefineIdentifierDefinition));
 
 	mSourceFileName = inSourceFileName;
+	mSourceFileFolderPath = WindowsPath(mSourceFileName).GetFolder();
 
-	// TBD on inIncludeFolders
+	StringList::const_iterator itFolders = inIncludeFolders.begin();
+	for(; itFolders != inIncludeFolders.end(); ++ itFolders)
+		mIncludeFolders.push_back(WindowsPath(*itFolders));
+		
 }
 
 BoolAndString PreProcessor::GetNextToken()
@@ -80,29 +96,10 @@ BoolAndString PreProcessor::GetNextToken()
 	}
 
 	// now let's try some predefined macros
-	if(tokenizerResult.second == "__DATE__")
+	BoolAndBoolAndString predefinedMacrosResult = HandlePredefinedMacros(tokenizerResult.second);
+	if(predefinedMacrosResult.first)
 	{
-		return GetDateMacroToken();
-	}
-	else if(tokenizerResult.second == "__FILE__")
-	{
-		return GetFileMacroToken();
-	}
-	else if(tokenizerResult.second == "__LINE__")
-	{
-		return GetLineMacroToken();
-	}
-	else if(tokenizerResult.second == "__STDC__")
-	{
-		return GetSTDCMacroToken();
-	}
-	else if(tokenizerResult.second == "__TIME__")
-	{
-		return GetTimeMacroToken();
-	}
-	else if(tokenizerResult.second == "__TIMESTAMP__")
-	{
-		return GetTimeStampMacroToken();
+		return predefinedMacrosResult.second;
 	}
 	else if(IsNewLineToken(tokenizerResult.second)) // now, regular cases and preprocessor commands
 	{
@@ -140,6 +137,36 @@ BoolAndString PreProcessor::GetNextToken()
 	}
 }
 
+BoolAndBoolAndString PreProcessor::HandlePredefinedMacros(const string& inToken)
+{
+	if(inToken == "__DATE__")
+	{
+		return BoolAndBoolAndString(true,GetDateMacroToken());
+	}
+	else if(inToken == "__FILE__")
+	{
+		return BoolAndBoolAndString(true,GetFileMacroToken());
+	}
+	else if(inToken == "__LINE__")
+	{
+		return BoolAndBoolAndString(true,GetLineMacroToken());
+	}
+	else if(inToken == "__STDC__")
+	{
+		return BoolAndBoolAndString(true,GetSTDCMacroToken());
+	}
+	else if(inToken == "__TIME__")
+	{
+		return BoolAndBoolAndString(true,GetTimeMacroToken());
+	}
+	else if(inToken == "__TIMESTAMP__")
+	{
+		return BoolAndBoolAndString(true,GetTimeStampMacroToken());
+	}
+	else
+		return BoolAndBoolAndString(false,BoolAndString(false,""));
+}
+
 bool PreProcessor::IsNewLineToken(const string& inToken)
 {
 	// new line can be: \r, \n or \r\n. and is the only kind of token to have these chars
@@ -157,7 +184,7 @@ bool PreProcessor::DefineIdentifierReplacement()
 	{
 		// first token is identifier name. note that if this is a function definition
 		// it will look like identifier(<optionally first parameter><optionally also )>
-		readResult = mTokenizer.GetNextToken();
+		readResult = GetNextToken();
 		if(!readResult.first)
 		{
 			TRACE_LOG("PreProcessor::DefineIdentifierReplacement, Error in reading token");
@@ -199,7 +226,7 @@ bool PreProcessor::DefineIdentifierReplacement()
 
 			while(!foundEndParameters)
 			{
-				readResult = mTokenizer.GetNextToken();
+				readResult = GetNextToken();
 				if(readResult.first)
 				{
 					TRACE_LOG("PreProcessor::DefineIdentifierReplacement, Error in reading token for identifier parameters");
@@ -215,23 +242,9 @@ bool PreProcessor::DefineIdentifierReplacement()
 				break;
 		}
 
-		// now read the replacement token strings
-		bool foundEndLine = false;
-
-		while(!foundEndLine)
-		{
-			readResult = mTokenizer.GetNextToken();
-			if(!readResult.first)
-			{
-				TRACE_LOG("PreProcessor::DefineIdentifierReplacement, Error in reading token for identifier token strings");
-				status = false;
-				break;
-			}
-			if(IsNewLineToken(readResult.second))
-				foundEndLine = true;
-			else
-				newDefine->PushTokenString(readResult.second);		
-		}
+		// now grab string till end of line (do not intepret yet, because dependent on reading context
+		newDefine->SetTokenStrings(GetStringTillEndOfLine());
+		
 	}while(false);
 
 	if(!status)
@@ -245,10 +258,23 @@ bool PreProcessor::DefineIdentifierReplacement()
 	return true;
 }
 
+string PreProcessor::GetStringTillEndOfLine()
+{
+	BoolAndString tokenizerResult;
+	
+	// preprocessor implementations are mostly implemented by employing subcontructors
+	// that get tokens according to the matching macro, ifdef section or whatnot.
+	if(DetermineIfHasActiveSubcontructor())
+		return mTokenSubcontructors.back()->GetStringTillEndOfLine();
+	else
+		return mTokenizer.GetStringTillEndOfLine();
+
+}
+
 bool PreProcessor::UndefIdentifierReplacement()
 {
 	// k. this is simple. next identifier should be the symbol and that's it. flush the rest of the tokens till end line
-	BoolAndString tokenResult = mTokenizer.GetNextToken();
+	BoolAndString tokenResult = GetNextToken();
 
 	if(!tokenResult.first)
 	{
@@ -268,7 +294,7 @@ bool PreProcessor::UndefIdentifierReplacement()
 
 	while(!foundEndLine)
 	{
-		tokenResult = mTokenizer.GetNextToken();
+		tokenResult = GetNextToken();
 		if(!tokenResult.first) // a "failure" here is not really a failure - it may be the file end
 			return false;
 		if(IsNewLineToken(tokenResult.second)) 
@@ -286,12 +312,14 @@ bool PreProcessor::DetermineIfHasActiveSubcontructor()
 		if(mTokenSubcontructors.back()->IsFinished())
 		{
 			// see if this is a macro token provider, if so remove related identifier, to allow further usage of it
-			ITokenProviderToStringMap::iterator it = mIdentifierTokens.find(mTokenSubcontructors.back());
-			if(it != mIdentifierTokens.end())
+			ITokenProviderToStringMap::iterator itIdentifier = mIdentifierTokens.find(mTokenSubcontructors.back());
+			if(itIdentifier != mIdentifierTokens.end())
 			{
-				mUsedDefines.erase(it->second);
-				mIdentifierTokens.erase(it);
+				mUsedDefines.erase(itIdentifier->second);
+				mIdentifierTokens.erase(itIdentifier);
 			}
+			if(mIncludeProvidersStack.size() > 0 && mTokenSubcontructors.back() == mIncludeProvidersStack.back())
+				mIncludeProvidersStack.pop_back();
 			delete mTokenSubcontructors.back();
 			mTokenSubcontructors.pop_back();
 		}
@@ -313,12 +341,19 @@ BoolAndString PreProcessor::GetDateMacroToken()
 
 BoolAndString PreProcessor::GetFileMacroToken()
 {
-	return BoolAndString(true,mSourceFileName);
+	return BoolAndString(true,
+			mIncludeProvidersStack.size() > 0 ? 
+				((IncludeFileTokenProvider*)mIncludeProvidersStack.back())->GetSourceFileName() :
+				mSourceFileName);
 }
 
 BoolAndString PreProcessor::GetLineMacroToken()
 {
-	return BoolAndString(true,Long(mPreTokenizationDecoder.GetCurrentLineIndex()).ToString());
+	return BoolAndString(true,Long(
+			mIncludeProvidersStack.size() > 0 ? 
+				((IncludeFileTokenProvider*)mIncludeProvidersStack.back())->GetCurrentLineIndex() :
+				mPreTokenizationDecoder.GetCurrentLineIndex()
+			).ToString());
 }
 
 BoolAndString PreProcessor::GetSTDCMacroToken()
@@ -343,7 +378,7 @@ BoolAndString PreProcessor::GetTimeStampMacroToken()
 BoolAndString PreProcessor::FirePreprocessorError()
 {
 	// k. this means error situation, should return error message as a string. also trace it
-	BoolAndString bufferTokenReader = mTokenizer.GetNextToken();
+	BoolAndString bufferTokenReader = GetNextToken();
 
 	if(bufferTokenReader.first)
 	{
@@ -360,7 +395,7 @@ BoolAndString PreProcessor::FirePreprocessorError()
 
 			while(!foundEndLine)
 			{
-				bufferTokenReader = mTokenizer.GetNextToken();
+				bufferTokenReader = GetNextToken();
 				if(!bufferTokenReader.first) // a "failure" here is not really a failure - it may be the file end
 					return BoolAndString(false,"");
 				if(IsNewLineToken(bufferTokenReader.second))
@@ -383,41 +418,85 @@ BoolAndString PreProcessor::FirePreprocessorError()
 
 bool PreProcessor::IncludeFile()
 {
-	BoolAndString bufferTokenReader = mTokenizer.GetNextToken();
-
-	if(!bufferTokenReader.first)
+	// To read the file name one must read the content after the #include command, that will be either "XXXXX" or <XXXXX>.
+	// note that regualr syntax rules don't follow here. for example, if the file path/name is surrounded by double quotes, it doesn't make it a string.
+	// the pre-processor should simply skip the spaces, get to eitehr < or " and then read anything past that until a matching > or ". then skip till end of line
+	// whatever read is the file path
+	BoolAndString fileNameToken = GetNextNoSpaceEntity();
+	
+	if(!fileNameToken.first)
 	{
-		TRACE_LOG("PreProcessor::IncludeFile, cannot read next token in #include preprocessor command");
+		TRACE_LOG("PreProcessor::IncludeFile, unable to get file name token entity for #include");
 		return false;
 	}
 
-	// Gal: OOPS! gotta read a < as a single token after #include!!!!
-	string fileName;
-
-	if(bufferTokenReader.second.size() > 1 && 
-		((bufferTokenReader.second.at(0) == '\"' && bufferTokenReader.second.at(bufferTokenReader.second.size() - 1) == '\"') ||
-		 (bufferTokenReader.second.at(0) ==  '<' && bufferTokenReader.second.at(bufferTokenReader.second.size() - 1) == '>')))
-		 // must be either <XXXXXXX> or "XXXXXXXX"
+	if(fileNameToken.second.size() < 2 || 
+		(fileNameToken.second.at(0) == '<' && fileNameToken.second.at(fileNameToken.second.length() - 1) != '>') ||
+		(fileNameToken.second.at(0) == '\"' && fileNameToken.second.at(fileNameToken.second.length() - 1) != '\"'))
 	{
-		// string type include
-		fileName = bufferTokenReader.second.substr(1,bufferTokenReader.second.length()-2);
-		SkipToNextLine();
-	}
-	else
-	{
-		TRACE_LOG1("PreProcessor::IncludeFile, unrecognized token after #include - %s",bufferTokenReader.second.c_str());
+		TRACE_LOG1("PreProcessor::IncludeFile, syntax error with file name token for #include - %s",fileNameToken.second.c_str());
 		return false;
 	}
 
-	BoolAndString fileFindResult = FindFile(fileName,bufferTokenReader.second.at(0) == '\"');
+	BoolAndString fileFindResult = FindFile(fileNameToken.second.substr(1,fileNameToken.second.length()-2),fileNameToken.second.at(0) == '\"');
 	if(!fileFindResult.first)
 	{
-		TRACE_LOG1("PreProcessor::IncludeFile, unable to find include file. file name = %s",fileName.c_str());
+		TRACE_LOG1("PreProcessor::IncludeFile, unable to find include file. file name = %s",fileNameToken.second.c_str());
 		return false;
 	}
 
 	mTokenSubcontructors.push_back(new IncludeFileTokenProvider(fileFindResult.second));
+
+	// register include tokenizers for searching purposes
+	mIncludeProvidersStack.push_back(mTokenSubcontructors.back());
 	return true;
+}
+
+BoolAndString PreProcessor::GetNextNoSpaceEntity()
+{
+	BoolAndString tokenizerResult;
+	
+	// preprocessor implementations are mostly implemented by employing subcontructors
+	// that get tokens according to the matching macro, ifdef section or whatnot.
+	if(DetermineIfHasActiveSubcontructor())
+		mTokenSubcontructors.back()->GetNextNoSpaceEntity();
+	else
+		tokenizerResult = mTokenizer.GetNextNoSpaceEntity();
+	
+	if(!tokenizerResult.first)
+		return tokenizerResult;
+
+	// first thing to realize is whether we have an defined identifier here. if this is the case, need to stop and switch context
+	// to idetnfier
+	StringToDefineIdentifierDefinitionMap::iterator itDefine = mDefines.find(tokenizerResult.second);
+	if(itDefine != mDefines.end())
+	{
+		if(mUsedDefines.find(tokenizerResult.second) != mUsedDefines.end())
+		{
+			TRACE_LOG1("PreProcessor::GetNextToken, circular macro usage identified, ingoring macro replacement. identifier = %s",tokenizerResult.second.c_str());
+		}
+		else
+		{
+			// hurrah! define symbol. move control to a symbol definition
+			ITokenProvider* provider = itDefine->second->CreateNoSpaceEntityProvider(this);
+			if(!provider)
+				return BoolAndString(false,"");
+			mTokenSubcontructors.push_back(provider);
+			mUsedDefines.insert(tokenizerResult.second);
+			mIdentifierTokens.insert(ITokenProviderToStringMap::value_type(provider,tokenizerResult.second));
+			return GetNextNoSpaceEntity();
+		}
+	}
+
+	// now let's try some predefined macros
+	BoolAndBoolAndString predefinedMacrosResult = HandlePredefinedMacros(tokenizerResult.second);
+	if(predefinedMacrosResult.first)
+		return predefinedMacrosResult.second;
+	else
+		return tokenizerResult;
+
+	// note that many other cases that are checked in GetNextToken are not checked here. this is because they just don't make sense here,
+	// and should therefore trigger errors, which they will if used as literal tokens
 }
 
 void PreProcessor::SkipToNextLine()
@@ -427,10 +506,53 @@ void PreProcessor::SkipToNextLine()
 
 	while(!foundEndLine)
 	{
-		readResult = mTokenizer.GetNextToken();
+		readResult = GetNextToken();
 		if(!readResult.first)
 			break;
 		if(IsNewLineToken(readResult.second))
 			foundEndLine = true;
 	}
+}
+
+BoolAndString PreProcessor::FindFile(string inIncludeString,bool inIsDoubleQuoteSearch)
+{
+	/* search order is this:
+		for double quotes search in:
+			1. Same directory as file that includes the #include statement
+			2. continue with other files in the current include context
+		then, or for angle brackets start from here:
+			3. the input directories list
+	*/
+
+	ITokenProviderList::reverse_iterator itIncludeStack = mIncludeProvidersStack.rbegin();
+	WindowsPath filePath(inIncludeString);
+	WindowsFileSystem fileSystem;
+	BoolAndString result(false,"");
+
+	if(filePath.IsAbsolute())
+	{
+		return BoolAndString(fileSystem.FileExists(filePath),inIncludeString);
+	}
+
+	do
+	{
+		if(inIsDoubleQuoteSearch)
+		{
+			for(; itIncludeStack != mIncludeProvidersStack.rend() && !result.first;++itIncludeStack)
+				result = fileSystem.GetExistingFilePath(((IncludeFileTokenProvider*)*itIncludeStack)->GetIncludeFileFolder(),filePath);
+			if(result.first)
+				break;
+
+			result = fileSystem.GetExistingFilePath(mSourceFileFolderPath,filePath);
+			if(result.first)
+				break;
+		}
+
+		WindowsPathList::iterator itIncludes = mIncludeFolders.begin();
+		for(; itIncludes != mIncludeFolders.end() && !result.first;++itIncludes)
+			result = fileSystem.GetExistingFilePath(*itIncludes,filePath);
+
+	} while (false);
+
+	return result;
 }

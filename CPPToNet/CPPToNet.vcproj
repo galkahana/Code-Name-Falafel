@@ -379,6 +379,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\IncludeFileTokenProvider.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\IncludeFileTokenProvider.h"
+				>
+			</File>
+			<File
 				RelativePath=".\ITokenProvider.h"
 				>
 			</File>
@@ -414,13 +422,21 @@
 				RelativePath=".\SimplePreprocessorValueIterator.h"
 				>
 			</File>
+			<File
+				RelativePath=".\WindowsFileSystem.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\WindowsFileSystem.h"
+				>
+			</File>
 		</Filter>
 		<File
-			RelativePath=".\IncludeFileTokenProvider.cpp"
+			RelativePath=".\WindowsPath.cpp"
 			>
 		</File>
 		<File
-			RelativePath=".\IncludeFileTokenProvider.h"
+			RelativePath=".\WindowsPath.h"
 			>
 		</File>
 	</Files>

@@ -47,7 +47,7 @@ public:
 	virtual bool NotEnded();
 
 
-	unsigned long GetCurrentLineIndex();
+	unsigned long GetCurrentLineIndex() const;
 
 private:
 

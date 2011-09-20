@@ -1,5 +1,9 @@
 #include "PreprocessorFunctionIterator.h"
+#include "Trace.h"
+
 #include <sstream>
+
+using namespace Hummus;
 
 PreprocessorFunctionIterator::PreprocessorFunctionIterator(void)
 {
@@ -132,3 +136,15 @@ BoolAndString PreprocessorFunctionIterator::GetNextToken()
 	return result;
 }
 
+BoolAndString PreprocessorFunctionIterator::GetNextNoSpaceEntity()
+{
+	// works the same as GetNextToken because the tokens/nospaceentity were determined in the iterator creation
+	return GetNextToken();
+}
+
+string PreprocessorFunctionIterator::GetStringTillEndOfLine()
+{
+	// sort of not supposed to get here for macros replacement, so have some default action	
+	TRACE_LOG("PreprocessorFunctionIterator::GetStringTillEndOfLine, unexpected call");
+	return "";
+}

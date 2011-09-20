@@ -3,6 +3,7 @@
 #include "CPPTokenizer.h"
 #include "PreTokenizerDecoder.h"
 #include "InputFile.h"
+#include "WindowsPath.h"
 
 class IncludeFileTokenProvider : public ITokenProvider
 {
@@ -12,11 +13,19 @@ public:
 
 	virtual bool IsFinished();
 	virtual BoolAndString GetNextToken();
+	virtual BoolAndString GetNextNoSpaceEntity();
+	virtual string GetStringTillEndOfLine();
+
+	const WindowsPath& GetIncludeFileFolder() const;
+	const string& GetSourceFileName() const;
+	unsigned long GetCurrentLineIndex() const;
 
 private:
 
 	InputFile mInputFile;
 	CPPTokenizer mTokenizer;
 	PreTokenizerDecoder mPreTokenizationDecoder;
+	WindowsPath mIncludeFileFolder;
+	string mSourceFileName;
 
 };
