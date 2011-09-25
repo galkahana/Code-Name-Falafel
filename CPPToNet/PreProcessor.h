@@ -50,6 +50,7 @@ typedef set<string> StringSet;
 typedef map<ITokenProvider*,string> ITokenProviderToStringMap;
 typedef pair<bool,BoolAndString> BoolAndBoolAndString;
 typedef list<WindowsPath> WindowsPathList;
+typedef pair<bool,bool> BoolAndBool;
 
 class PreProcessor
 {
@@ -83,9 +84,12 @@ private:
 	StringSet mUsedDefines;
 	ITokenProviderToStringMap mIdentifierTokens;
 	string mSourceFileName;
+	string mSourceFileNameForMacro;
 	ITokenProviderList mIncludeProvidersStack;
 	WindowsPath mSourceFileFolderPath;
 	WindowsPathList mIncludeFolders;
+	StringSet mDontInclude;
+	unsigned long mConditionalIteration;
 
 	bool IsNewLineToken(const string& inToken);
 	bool DefineIdentifierReplacement();
@@ -99,7 +103,6 @@ private:
 	BoolAndString GetTimeStampMacroToken();
 	BoolAndString FirePreprocessorError();
 	bool IncludeFile();
-	void SkipToNextLine();
 	BoolAndBoolAndString HandlePredefinedMacros(const string& inToken);
 
 	// this method is similar to GetNextToken, only it uses GetNextNoSpaceEntity, which does a more limited
@@ -112,7 +115,15 @@ private:
 	string GetStringTillEndOfLine();
 
 	BoolAndString FindFile(string inIncludeString,bool inIsDoubleQuoteSearch);
-
 	void Reset();
+	bool ModifyLineAndfile();
+	void FlushTillEndOfLine();
+	void SetNewFileAndLine(unsigned long inNewLineIndex,const string& inNewFileName);
+	bool ImplementPragmaDirective();
+	BoolAndBool EvaluateConstantExpression(const string& inConditionType);
+	void SetupCondtionalIteration();
+	void ResetConditionalIteration();
+	bool InterpretConditionalTokenization(const string& inConditionalKeyword);
+	bool InterpretConditionalStopper(const string& inConditionalKeyword);
 
 };

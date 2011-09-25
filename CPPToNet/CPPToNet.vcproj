@@ -430,15 +430,15 @@
 				RelativePath=".\WindowsFileSystem.h"
 				>
 			</File>
+			<File
+				RelativePath=".\WindowsPath.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\WindowsPath.h"
+				>
+			</File>
 		</Filter>
-		<File
-			RelativePath=".\WindowsPath.cpp"
-			>
-		</File>
-		<File
-			RelativePath=".\WindowsPath.h"
-			>
-		</File>
 	</Files>
 	<Globals>
 	</Globals>

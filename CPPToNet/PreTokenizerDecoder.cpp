@@ -122,3 +122,9 @@ unsigned long PreTokenizerDecoder::GetCurrentLineIndex() const
 {
 	return mCurrentLineIndex;
 }
+
+
+void PreTokenizerDecoder::SetNewLineIndex(unsigned long inNewLineIndex)
+{
+	mCurrentLineIndex = inNewLineIndex;
+}

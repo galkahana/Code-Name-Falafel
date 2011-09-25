@@ -5,6 +5,9 @@
 #include "BoxingBase.h"
 #include "IncludeFileTokenProvider.h"
 #include "WindowsFileSystem.h"
+#include "SafeBufferMacrosDefs.h"
+
+#include <ctime>
 
 using namespace Hummus;
 
@@ -33,6 +36,8 @@ void PreProcessor::Reset()
 	mIncludeProvidersStack.clear();
 	mDefines.clear();
 	mIncludeFolders.clear();
+	mDontInclude.clear();
+	mConditionalIteration = 0;
 }
 
 void PreProcessor::Setup(IByteReader* inSourceStream,
@@ -51,6 +56,7 @@ void PreProcessor::Setup(IByteReader* inSourceStream,
 		mDefines.insert(StringToDefineIdentifierDefinitionMap::value_type(*itDefs,new DefineIdentifierDefinition));
 
 	mSourceFileName = inSourceFileName;
+	mSourceFileNameForMacro = inSourceFileName;
 	mSourceFileFolderPath = WindowsPath(mSourceFileName).GetFolder();
 
 	StringList::const_iterator itFolders = inIncludeFolders.begin();
@@ -131,7 +137,47 @@ BoolAndString PreProcessor::GetNextToken()
 			return BoolAndString(false,"");
 		return GetNextToken();
 	}
-	else
+	else if(tokenizerResult.second == "#line")
+	{
+		bool status = ModifyLineAndfile();
+		if(!status)
+			return BoolAndString(false,"");
+		return GetNextToken();
+	}
+	else if(tokenizerResult.second == "#")
+	{
+		// the empty pre-processor node. just skip it
+		return GetNextToken();
+	}
+	else if(tokenizerResult.second == "#pragma")
+	{
+		bool status = ImplementPragmaDirective();
+		if(!status)
+			return BoolAndString(false,"");
+		return GetNextToken();
+	}
+	else if(tokenizerResult.second == "#if" || tokenizerResult.second == "#ifdef" || tokenizerResult.second == "#ifndef")
+	{
+		bool status = InterpretConditionalTokenization(tokenizerResult.second);
+		if(!status)
+			return BoolAndString(false,"");
+		return GetNextToken();
+	}
+	else if(tokenizerResult.second == "#else" || tokenizerResult.second == "#elif" || tokenizerResult.second == "#endif")
+	{
+		bool status = InterpretConditionalStopper(tokenizerResult.second);
+		if(!status)
+			return BoolAndString(false,"");
+		return GetNextToken();
+	}
+	else if(tokenizerResult.second.at(0) == '#')
+	{
+		// starts with #, meaning an unimplemented directive
+		TRACE_LOG1("PreProcessor::GetNextToken, unimplemented directive %s, skipping",tokenizerResult.second.c_str());
+		FlushTillEndOfLine();
+		return GetNextToken();
+	}
+	else 
 	{
 		return tokenizerResult;
 	}
@@ -290,17 +336,21 @@ bool PreProcessor::UndefIdentifierReplacement()
 	}
 
 	// now flush everything till end of line
+	FlushTillEndOfLine();
+	return true;
+}
+
+void PreProcessor::FlushTillEndOfLine()
+{
+	BoolAndString tokenResult;
 	bool foundEndLine = false;
 
 	while(!foundEndLine)
 	{
 		tokenResult = GetNextToken();
-		if(!tokenResult.first) // a "failure" here is not really a failure - it may be the file end
-			return false;
-		if(IsNewLineToken(tokenResult.second)) 
+		if(!tokenResult.first || IsNewLineToken(tokenResult.second)) 
 			foundEndLine = true;
 	}
-	return true;
 }
 
 bool PreProcessor::DetermineIfHasActiveSubcontructor()
@@ -334,17 +384,31 @@ void PreProcessor::ResetReadState()
 	mTokenizer.ResetReadState();
 }
 
+const char* scMonthsShortNames[] = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
+
 BoolAndString PreProcessor::GetDateMacroToken()
 {
-	return BoolAndString(true,""); // Gal, Todo
+	// Supposed to be compilation time...well...use the current time.
+	// format is Mmm dd yyyy
+	time_t currentTime;
+	tm structuredLocalTime;
+
+	time(&currentTime);
+	SAFE_LOCAL_TIME(structuredLocalTime,currentTime);
+	
+	char aString[12];
+
+	SAFE_SPRINTF_3(aString,12,"%s %2d %4d",scMonthsShortNames[structuredLocalTime.tm_mon],structuredLocalTime.tm_mday,structuredLocalTime.tm_year + 1900);
+				 
+	return BoolAndString(true,aString); 
 }
 
 BoolAndString PreProcessor::GetFileMacroToken()
 {
 	return BoolAndString(true,
 			mIncludeProvidersStack.size() > 0 ? 
-				((IncludeFileTokenProvider*)mIncludeProvidersStack.back())->GetSourceFileName() :
-				mSourceFileName);
+				((IncludeFileTokenProvider*)mIncludeProvidersStack.back())->GetSourceFileNameForMacro() :
+				mSourceFileNameForMacro);
 }
 
 BoolAndString PreProcessor::GetLineMacroToken()
@@ -367,12 +431,51 @@ BoolAndString PreProcessor::GetSTDCMacroToken()
 
 BoolAndString PreProcessor::GetTimeMacroToken()
 {
-	return BoolAndString(true,""); // Gal, Todo
+	// like in date, i'm using current time here
+	// format is hh:mm:ss
+
+	
+	time_t currentTime;
+	tm structuredLocalTime;
+
+	time(&currentTime);
+	SAFE_LOCAL_TIME(structuredLocalTime,currentTime);
+	
+	char aString[9];
+
+	SAFE_SPRINTF_3(aString,9,"%2d:%2d:%2d",structuredLocalTime.tm_hour,structuredLocalTime.tm_min,structuredLocalTime.tm_sec);
+				 
+	return BoolAndString(true,aString); 
 }
+
+// tm_wday
+
+const char* scDaysShortNames[] = { "Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
+
 
 BoolAndString PreProcessor::GetTimeStampMacroToken()
 {
-	return BoolAndString(true,""); // Gal, Todo
+	// Get last save time of the file at hand (consider includes!)
+	// formatted as Ddd Mmm Date hh:mm:ss yyyy
+
+	tm structuredTime;
+
+	WindowsFileSystem fileSystem;
+
+	structuredTime = fileSystem.GetFileModificationTime(mSourceFileName).second;
+
+	char aString[25];
+
+	SAFE_SPRINTF_7(aString,25,"%s %s %2d %2d:%2d:%2d %4d",scDaysShortNames[structuredTime.tm_wday],
+														  scMonthsShortNames[structuredTime.tm_mon],
+														  structuredTime.tm_mday,
+														  structuredTime.tm_hour,
+														  structuredTime.tm_min,
+														  structuredTime.tm_sec,
+														  structuredTime.tm_year + 1900);
+		
+
+	return BoolAndString(true,aString);
 }
 
 BoolAndString PreProcessor::FirePreprocessorError()
@@ -445,10 +548,15 @@ bool PreProcessor::IncludeFile()
 		return false;
 	}
 
-	mTokenSubcontructors.push_back(new IncludeFileTokenProvider(fileFindResult.second));
+	// make sure to include only if didn't include yet, where #pragma once was used
+	if(mDontInclude.find(fileFindResult.second) == mDontInclude.end())
+	{
 
-	// register include tokenizers for searching purposes
-	mIncludeProvidersStack.push_back(mTokenSubcontructors.back());
+		mTokenSubcontructors.push_back(new IncludeFileTokenProvider(fileFindResult.second));
+
+		// register include tokenizers for searching purposes
+		mIncludeProvidersStack.push_back(mTokenSubcontructors.back());
+	}
 	return true;
 }
 
@@ -499,20 +607,6 @@ BoolAndString PreProcessor::GetNextNoSpaceEntity()
 	// and should therefore trigger errors, which they will if used as literal tokens
 }
 
-void PreProcessor::SkipToNextLine()
-{
-	bool foundEndLine = false;
-	BoolAndString readResult;
-
-	while(!foundEndLine)
-	{
-		readResult = GetNextToken();
-		if(!readResult.first)
-			break;
-		if(IsNewLineToken(readResult.second))
-			foundEndLine = true;
-	}
-}
 
 BoolAndString PreProcessor::FindFile(string inIncludeString,bool inIsDoubleQuoteSearch)
 {
@@ -555,4 +649,219 @@ BoolAndString PreProcessor::FindFile(string inIncludeString,bool inIsDoubleQuote
 	} while (false);
 
 	return result;
+}
+
+bool PreProcessor::ModifyLineAndfile()
+{
+	// get the values of line and file
+	bool status = false;
+	long newLineIndex;
+	string newFileName;
+
+	do
+	{
+		// get the first value, which is mandatory, it needs to be a line number, simply...a positive, and should start with a digit
+		BoolAndString tokenResult = GetNextToken();
+
+		if(!tokenResult.first)
+		{
+			TRACE_LOG("PreProcessor::ModifyLineAndfile, Error in reading token for #line identifier");
+			break;
+		}
+
+		if(tokenResult.second.at(0) < '0' || tokenResult.second.at(0) > '9')
+		{
+			TRACE_LOG1("PreProcessor::ModifyLineAndfile, first parameter for line is not a number, %s. should be a line number",tokenResult.second.c_str());
+			break;
+		}
+
+		// parse the first toke, which is the line number
+		newLineIndex = Long(tokenResult.second);
+
+		// k. new param, file name. note that this is (like #include) is not a regular string, but a filename
+		tokenResult = GetNextNoSpaceEntity();
+		if(!tokenResult.first || IsNewLineToken(tokenResult.second))
+		{
+			status = true;
+			break; // done here
+		}
+		
+		if(tokenResult.second.at(0) != '\"' || tokenResult.second.size() < 2 || tokenResult.second.at(tokenResult.second.length()-1) != '\"')
+		{
+			TRACE_LOG1("PreProcessor::ModifyLineAndfile, syntax error in second parameter for #line. should be a filename in double quotes, %s",tokenResult.second.c_str());
+			break;
+		}
+
+		newFileName = tokenResult.second.substr(1,tokenResult.second.length()-2);
+
+		status = true;
+	}while(false);
+
+	if(status) // that's right - will ignore empty file name
+		SetNewFileAndLine((unsigned long)newLineIndex,newFileName);
+	return status;
+}
+
+void PreProcessor::SetNewFileAndLine(unsigned long inNewLineIndex,const string& inNewFileName)
+{
+	// first, find the right location to set the file name on.
+
+	if(mIncludeProvidersStack.size() > 0)
+	{
+		((IncludeFileTokenProvider*)mIncludeProvidersStack.back())->SetNewFileAndLine(inNewLineIndex,inNewFileName);
+	}
+	else
+	{
+		if(inNewFileName.size() > 0)
+			mSourceFileNameForMacro = inNewFileName;
+		mPreTokenizationDecoder.SetNewLineIndex(inNewLineIndex);
+	}
+}
+
+bool PreProcessor::ImplementPragmaDirective()
+{
+	BoolAndString tokenResult = GetNextToken();
+
+	if(!tokenResult.first)
+	{
+		TRACE_LOG("PreProcessor::ImplementPragmaDirective, unable to read pragma type");
+		return false;
+	}
+
+	if(tokenResult.second == "once")
+	{
+		mDontInclude.insert(mIncludeProvidersStack.size() > 0 ? 
+				((IncludeFileTokenProvider*)mIncludeProvidersStack.back())->GetSourceFileName() :
+				mSourceFileName);
+	}
+	else
+		TRACE_LOG1("PreProcessor::ImplementPragmaDirective, unimplemented pragma %s. The only supported pragma is 'once'",tokenResult.second.c_str());
+
+	FlushTillEndOfLine();
+	return true;
+}
+
+bool PreProcessor::InterpretConditionalTokenization(const string& inConditionalKeyword)
+{
+	BoolAndBool evaluateResult = EvaluateConstantExpression(inConditionalKeyword);
+
+	if(!evaluateResult.first)
+	{
+		TRACE_LOG1(
+			"PreProcessor::InterpretConditionalTokenization, unable to evaluate condition for %s. stopping", 
+			inConditionalKeyword.c_str());
+		return false;
+	}
+
+	// condition evaluated to true, stop here
+	if(evaluateResult.second)
+	{
+		SetupCondtionalIteration();
+		return true;
+	}
+
+	// condition evaluate to false, continue till true condition is found or endif reached
+	bool foundTrue = false;
+	bool status = true;
+
+	while(!foundTrue && status)
+	{
+		BoolAndString tokenizerResult = GetNextToken();
+
+		if(!tokenizerResult.first)
+		{
+			status = false;
+			TRACE_LOG("PreProcessor::InterpretConditionalTokenization, unexpected read error, unable to tokenized skipped condition");
+			break;
+		}
+
+		if(tokenizerResult.second == "#else")
+		{
+			foundTrue = true;
+		}
+		else if(tokenizerResult.second == "#elif")
+		{
+			evaluateResult = EvaluateConstantExpression(inConditionalKeyword);
+			if(!evaluateResult.first)
+			{
+				TRACE_LOG("PreProcessor::InterpretConditionalTokenization, unable to evaluate condition for #elif. stopping");
+				status = false;
+			}
+
+			if(evaluateResult.second)
+				foundTrue = true;
+		}
+		else if(tokenizerResult.second == "#endif")
+		{
+			foundTrue = false;
+			ResetConditionalIteration();
+			break;
+		}
+	}
+
+	if(status && foundTrue)
+		SetupCondtionalIteration();
+	return status;
+}
+
+void PreProcessor::SetupCondtionalIteration()
+{
+	++mConditionalIteration;
+}
+
+void PreProcessor::ResetConditionalIteration()
+{
+	--mConditionalIteration;
+}
+
+bool PreProcessor::InterpretConditionalStopper(const string& inConditionalKeyword)
+{
+	// if not while in condtional scope, then we have an unexpected encounter. this means error
+	if(mConditionalIteration == 0)
+	{
+		TRACE_LOG1("PreProcessor::InterpretConditionalStopper, unexpected condtional keyword while not in conditional state - %s",
+					inConditionalKeyword.c_str());
+		return false;
+	}
+	
+	bool status = true;
+
+	do
+	{
+		// if reached #elif or #else, skip tokens till endif
+		if(inConditionalKeyword == "#elif" || inConditionalKeyword == "else")
+		{
+			bool foundEndif = false;
+
+			while(!foundEndif && status)
+			{
+				BoolAndString tokenizerResult = GetNextToken();
+
+				if(!tokenizerResult.first)
+				{
+					status = false;
+					TRACE_LOG("PreProcessor::InterpretConditionalStopper, unexpected read error, unable to tokenized skipped condition");
+					break;
+				}	
+
+				if(tokenizerResult.second == "#endif")
+					foundEndif = true;
+			}
+		}
+		if(!status)
+			break;
+
+		// so now should be past #endif [either skipped, or reached]
+		ResetConditionalIteration();
+
+	}while(false);
+	return status;
+}
+
+
+BoolAndBool PreProcessor::EvaluateConstantExpression(const string& inConditionType)
+{
+	// TODO, Gal
+
+	return BoolAndBool(false,false);
 }

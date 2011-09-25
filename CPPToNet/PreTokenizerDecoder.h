@@ -49,6 +49,9 @@ public:
 
 	unsigned long GetCurrentLineIndex() const;
 
+	// implementation of #line directive - set the current line index
+	void SetNewLineIndex(unsigned long inNewLineIndex);
+
 private:
 
 	IByteReader* mSourceStream;

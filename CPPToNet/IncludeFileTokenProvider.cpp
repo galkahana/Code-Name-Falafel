@@ -11,6 +11,7 @@ IncludeFileTokenProvider::IncludeFileTokenProvider(const string& inFilePath)
 
 	mIncludeFileFolder = WindowsPath(inFilePath).GetFolder();
 	mSourceFileName = inFilePath;
+	mSourceFileNameForMacro = inFilePath;
 
 }
 
@@ -49,9 +50,20 @@ const string& IncludeFileTokenProvider::GetSourceFileName() const
 	return mSourceFileName;
 }
 
+const string& IncludeFileTokenProvider::GetSourceFileNameForMacro() const
+{
+	return mSourceFileNameForMacro;
+}
+
 unsigned long IncludeFileTokenProvider::GetCurrentLineIndex() const
 {
 	return mPreTokenizationDecoder.GetCurrentLineIndex();
 }
 
 
+void IncludeFileTokenProvider::SetNewFileAndLine(unsigned long inNewLineIndex,const string& inNewFileName)
+{
+	if(inNewFileName.size() > 0)
+		mSourceFileNameForMacro = inNewFileName;
+	mPreTokenizationDecoder.SetNewLineIndex(inNewLineIndex);
+}

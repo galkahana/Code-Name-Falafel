@@ -18,7 +18,10 @@ public:
 
 	const WindowsPath& GetIncludeFileFolder() const;
 	const string& GetSourceFileName() const;
+	const string& GetSourceFileNameForMacro() const;
 	unsigned long GetCurrentLineIndex() const;
+
+	void SetNewFileAndLine(unsigned long inNewLineIndex,const string& inNewFileName);
 
 private:
 
@@ -27,5 +30,6 @@ private:
 	PreTokenizerDecoder mPreTokenizationDecoder;
 	WindowsPath mIncludeFileFolder;
 	string mSourceFileName;
+	string mSourceFileNameForMacro;
 
 };
