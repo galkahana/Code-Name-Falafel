@@ -1,11 +1,11 @@
 #pragma once
-#include "ITokenProvider.h"
+#include "IPreprocessorTokenProvider.h"
 #include "CPPTokenizer.h"
 #include "PreTokenizerDecoder.h"
 #include "InputFile.h"
 #include "WindowsPath.h"
 
-class IncludeFileTokenProvider : public ITokenProvider
+class IncludeFileTokenProvider : public IPreprocessorTokenProvider
 {
 public:
 	IncludeFileTokenProvider(const string& inIncludeFilePath);

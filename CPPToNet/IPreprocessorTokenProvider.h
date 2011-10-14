@@ -7,10 +7,10 @@ using namespace std;
 typedef pair<bool,string> BoolAndString;
 
 
-class ITokenProvider
+class IPreprocessorTokenProvider
 {
 public:
-	virtual ~ITokenProvider(){}
+	virtual ~IPreprocessorTokenProvider(){}
 
 	virtual bool IsFinished() = 0;
 	virtual BoolAndString GetNextToken() = 0;

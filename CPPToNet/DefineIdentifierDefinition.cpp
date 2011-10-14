@@ -27,7 +27,7 @@ void DefineIdentifierDefinition::SetTokenStrings(const string& inTokenStrings)
 	mTokenStrings = inTokenStrings;
 }
 
-ITokenProvider* DefineIdentifierDefinition::CreateTokenProvider(PreProcessor* inTokenSource)
+IPreprocessorTokenProvider* DefineIdentifierDefinition::CreateTokenProvider(PreProcessor* inTokenSource)
 {
 	// parse string for tokens, and use as the token strings (this is for all but #include cases)
 	StringList stringList;
@@ -45,14 +45,14 @@ ITokenProvider* DefineIdentifierDefinition::CreateTokenProvider(PreProcessor* in
 	{
 		readResult = tokenizer.GetNextToken();
 		if(!readResult.first)
-			notFoundEnd = true;
+			notFoundEnd = false;
 		else
 			stringList.push_back(readResult.second);
 	}
 	return CreateProvider(inTokenSource,stringList);
 }
 
-ITokenProvider* DefineIdentifierDefinition::CreateNoSpaceEntityProvider(PreProcessor* inTokenSource)
+IPreprocessorTokenProvider* DefineIdentifierDefinition::CreateNoSpaceEntityProvider(PreProcessor* inTokenSource)
 {
 	// parse string for non space enitities, and use as the token strings (this is for the #include cases)
 	StringList stringList;
@@ -70,7 +70,7 @@ ITokenProvider* DefineIdentifierDefinition::CreateNoSpaceEntityProvider(PreProce
 	{
 		readResult = tokenizer.GetNextNoSpaceEntity();
 		if(!readResult.first)
-			notFoundEnd = true;
+			notFoundEnd = false;
 		else
 			stringList.push_back(readResult.second);
 	}
@@ -78,7 +78,7 @@ ITokenProvider* DefineIdentifierDefinition::CreateNoSpaceEntityProvider(PreProce
 }
 
 
-ITokenProvider* DefineIdentifierDefinition::CreateProvider(PreProcessor* inTokenSource,const StringList& inTokenStrings)
+IPreprocessorTokenProvider* DefineIdentifierDefinition::CreateProvider(PreProcessor* inTokenSource,const StringList& inTokenStrings)
 {
 	if(mParameters.size() == 0)
 	{

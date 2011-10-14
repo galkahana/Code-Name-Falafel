@@ -108,6 +108,8 @@ void PreprocessorFunctionIterator::ComposeExpression(const StringList& inOrigina
 			}
 		}
 	}
+
+	mItTokenStrings = mTokens.begin();
 }
 
 string PreprocessorFunctionIterator::ConcatToSingleString(const StringList& inStrings,const string& inSurroundingText)

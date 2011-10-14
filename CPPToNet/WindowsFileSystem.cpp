@@ -27,7 +27,7 @@ bool WindowsFileSystem::FileExists(const WindowsPath& inFilePath)
 
 	hFind = FindFirstFile(UTF8ToUTF16Wide(inFilePath.ToString()).c_str(), &findFileData);
 
-	if(hFind == NULL)
+	if(hFind == INVALID_HANDLE_VALUE)
 	{
 		return false;
 	}

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ITokenProvider.h"
+#include "IPreprocessorTokenProvider.h"
 
 #include <string>
 #include <list>
@@ -9,7 +9,7 @@ using namespace std;
 
 typedef list<string> StringList;
 
-class SimplePreprocessorValueIterator : public ITokenProvider
+class SimplePreprocessorValueIterator : public IPreprocessorTokenProvider
 {
 public:
 	SimplePreprocessorValueIterator(const StringList& inTokenStrings);

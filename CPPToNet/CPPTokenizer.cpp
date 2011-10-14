@@ -37,7 +37,7 @@ BoolAndString CPPTokenizer::GetNextToken()
 	Byte buffer;
 	OutputStringBufferStream tokenBuffer;
 	
-	if(!mStream || (!mStream->NotEnded() && mTokenBuffer.size() == 0))
+	if(!mStream || !HasMoreTokens())
 	{
 		result.first = false;
 		return result;
@@ -47,7 +47,7 @@ BoolAndString CPPTokenizer::GetNextToken()
 	do
 	{
 		SkipTillToken();
-		if(!mStream->NotEnded())
+		if(!HasMoreTokens())
 		{
 			result.first = false;
 			break;
@@ -79,7 +79,7 @@ BoolAndString CPPTokenizer::GetNextToken()
 			case '=':
 				{
 					// stream ended is cool, just store char
-					if(!mStream->NotEnded())
+					if(!HasMoreTokens())
 					{
 						mNotEncounteredTokensForLine = false;
 						result.second = tokenBuffer.ToString();
@@ -101,8 +101,7 @@ BoolAndString CPPTokenizer::GetNextToken()
 					mNotEncounteredTokensForLine = false;
 					break;
 				}
-			// symbols that are meaningful by themselves, always (note that # and ~ make sense only with specific later
-			// identifiers...we'll allow a space.
+			// symbols that are meaningful by themselves, always 
 			case '(':
 			case ')':
 			case '{':
@@ -111,7 +110,14 @@ BoolAndString CPPTokenizer::GetNextToken()
 			case ';':
 			case '?':
 			case ',':
-			case '~':
+			case '~': // ~ may also be destructor, we'll take care of the difference between the 1 complement operator and destructor in semantic analysis
+				{
+					result.second = tokenBuffer.ToString();
+					mNotEncounteredTokensForLine = false;
+					break;
+				}
+
+
 			case '#': 
 				{
 					// Hurrah! either a preprocessor instruction or a preprocessor operator
@@ -140,7 +146,7 @@ BoolAndString CPPTokenizer::GetNextToken()
 					{
 						// k. this is an operator. might be # or ## or #@ (the last one is MS specific, but i'll let it go)
 						// stream ended is cool, just store char
-						if(!mStream->NotEnded())
+						if(!HasMoreTokens())
 						{
 							result.second = tokenBuffer.ToString();
 							mNotEncounteredTokensForLine = false;
@@ -179,7 +185,7 @@ BoolAndString CPPTokenizer::GetNextToken()
 				{
 					// stream ended is cool, just store char
 					Byte originalSymbol = buffer;
-					if(!mStream->NotEnded())
+					if(!HasMoreTokens())
 					{
 						result.second = tokenBuffer.ToString();
 						mNotEncounteredTokensForLine = false;
@@ -207,7 +213,7 @@ BoolAndString CPPTokenizer::GetNextToken()
 				{
 					// stream ended is cool, just store char
 					Byte originalSymbol = buffer;
-					if(!mStream->NotEnded())
+					if(!HasMoreTokens())
 					{
 						result.second = tokenBuffer.ToString();
 						mNotEncounteredTokensForLine = false;
@@ -230,7 +236,7 @@ BoolAndString CPPTokenizer::GetNextToken()
 						// may be XX or XX=
 						tokenBuffer.Write(&buffer,1);
 						// basically just repeating the equality part
-						if(!mStream->NotEnded())
+						if(!HasMoreTokens())
 						{
 							result.second = tokenBuffer.ToString();
 							mNotEncounteredTokensForLine = false;
@@ -263,7 +269,7 @@ BoolAndString CPPTokenizer::GetNextToken()
 			case ':':
 				{
 					// stream ended is cool, just store char
-					if(!mStream->NotEnded())
+					if(!HasMoreTokens())
 					{
 						result.second = tokenBuffer.ToString();
 						mNotEncounteredTokensForLine = false;
@@ -294,7 +300,7 @@ BoolAndString CPPTokenizer::GetNextToken()
 			case '.':
 				{
 					// stream ended is cool, just store char
-					if(!mStream->NotEnded())
+					if(!HasMoreTokens())
 					{
 						result.second = tokenBuffer.ToString();
 						mNotEncounteredTokensForLine = false;
@@ -340,7 +346,7 @@ BoolAndString CPPTokenizer::GetNextToken()
 					Byte originalSymbol = buffer;
 
 					bool backSlashEncountered = false;
-					while(mStream->NotEnded())
+					while(HasMoreTokens())
 					{
 						if(GetNextByteForToken(buffer) != eSuccess)
 						{	
@@ -379,7 +385,7 @@ BoolAndString CPPTokenizer::GetNextToken()
 			case '/':
 				{
 					// stream ended is cool, just store char
-					if(!mStream->NotEnded())
+					if(!HasMoreTokens())
 					{
 						result.second = tokenBuffer.ToString();
 						mNotEncounteredTokensForLine = false;
@@ -401,8 +407,10 @@ BoolAndString CPPTokenizer::GetNextToken()
 					}
 					else if('/' == buffer)
 					{
+						tokenBuffer.Write(&buffer,1);
+
 						// single line comment
-						while(mStream->NotEnded())
+						while(HasMoreTokens())
 						{
 							if(GetNextByteForToken(buffer) != eSuccess)
 							{	
@@ -420,11 +428,13 @@ BoolAndString CPPTokenizer::GetNextToken()
 					}
 					else if('*' == buffer)
 					{
+						tokenBuffer.Write(&buffer,1);
+
 						// multiline comment. need to find ending * /...since i'm nice i'll check for balancing
 						int balanceLevel = 1;
 						bool starEncountered = false;
 						bool slashEncountered = false;
-						while(balanceLevel > 0 && mStream->NotEnded())
+						while(balanceLevel > 0 && HasMoreTokens())
 						{
 							if(GetNextByteForToken(buffer) != eSuccess)
 							{	
@@ -448,6 +458,16 @@ BoolAndString CPPTokenizer::GetNextToken()
 							}
 							else
 							{
+								if(slashEncountered)
+								{
+									tokenBuffer.Write(scSlash,1);
+									slashEncountered = false;
+								}
+								if(starEncountered)
+								{
+									tokenBuffer.Write(scStar,1);
+									starEncountered = false;
+								}
 								if('/' == buffer)
 								{
 									slashEncountered = true; 
@@ -487,7 +507,7 @@ BoolAndString CPPTokenizer::GetNextToken()
 			case 0xD:
 				{
 					// may be 0d0a, in which case take as a single token
-					if(!mStream->NotEnded())
+					if(!HasMoreTokens())
 					{
 						result.second = tokenBuffer.ToString();
 						mNotEncounteredTokensForLine = true;
@@ -522,7 +542,7 @@ BoolAndString CPPTokenizer::GetNextToken()
 					// check for wide string
 					if('L' == buffer)
 					{
-						if(!mStream->NotEnded())
+						if(!HasMoreTokens())
 						{
 							result.second = tokenBuffer.ToString();
 							mNotEncounteredTokensForLine = true;
@@ -549,7 +569,7 @@ BoolAndString CPPTokenizer::GetNextToken()
 
 					}
 
-					while(mStream->NotEnded())
+					while(HasMoreTokens())
 					{
 						if(GetNextByteForToken(buffer) != eSuccess)
 						{	
@@ -593,6 +613,11 @@ EStatusCode CPPTokenizer::GetNextByteForToken(Byte& outByte)
 		return (mStream->Read(&outByte,1) != 1) ? eFailure:eSuccess;
 }
 
+bool CPPTokenizer::HasMoreTokens()
+{
+	return mTokenBuffer.size() > 0 || mStream->NotEnded();
+}
+
 void CPPTokenizer::SkipTillToken()
 {
 	Byte buffer = 0;
@@ -601,7 +626,7 @@ void CPPTokenizer::SkipTillToken()
 		return;
 
 	// skip till hitting first non space, or segment end
-	while(mStream->NotEnded())
+	while(HasMoreTokens())
 	{
 		if(GetNextByteForToken(buffer) != eSuccess)
 			break;
@@ -702,7 +727,7 @@ string CPPTokenizer::GetStringTillEndOfLine()
 		return "";
 
 	// skip till hitting first non space, or segment end
-	while(mStream->NotEnded())
+	while(HasMoreTokens())
 	{
 		if(GetNextByteForToken(buffer) != eSuccess)
 			break;
@@ -725,7 +750,7 @@ BoolAndString CPPTokenizer::GetNextNoSpaceEntity()
 	Byte buffer;
 	OutputStringBufferStream tokenBuffer;
 	
-	if(!mStream || (!mStream->NotEnded() && mTokenBuffer.size() == 0))
+	if(!mStream || !HasMoreTokens())
 	{
 		result.first = false;
 		return result;
@@ -735,13 +760,13 @@ BoolAndString CPPTokenizer::GetNextNoSpaceEntity()
 	do
 	{
 		SkipAnySpaceTillToken();
-		if(!mStream->NotEnded())
+		if(!HasMoreTokens())
 		{
 			result.first = false;
 			break;
 		}
 
-		while(mStream->NotEnded())
+		while(HasMoreTokens())
 		{
 			if(GetNextByteForToken(buffer) != eSuccess)
 			{	
@@ -757,6 +782,7 @@ BoolAndString CPPTokenizer::GetNextNoSpaceEntity()
 				tokenBuffer.Write(&buffer,1);
 		}
 		result.second = tokenBuffer.ToString();
+		result.first = true;
 	} while(false);
 
 	return result;
@@ -770,7 +796,7 @@ void CPPTokenizer::SkipAnySpaceTillToken()
 		return;
 
 	// skip till hitting first non space, or segment end
-	while(mStream->NotEnded())
+	while(HasMoreTokens())
 	{
 		if(GetNextByteForToken(buffer) != eSuccess)
 			break;

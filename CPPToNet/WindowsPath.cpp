@@ -31,14 +31,18 @@ void WindowsPath::SetPathFromString(const string& inPath)
 		searchPosition = 3; // may be eitehr c: or c:\...., which should be equivelent
 	}
 
+	string newComponent;
 	while(searchPosition < inPath.length())
 	{
 		string::size_type findResult = inPath.find("\\",searchPosition);
-		string newComponent = inPath.substr(searchPosition,findResult);
+		if(findResult == inPath.npos)
+			newComponent = inPath.substr(searchPosition,findResult);
+		else
+			newComponent = inPath.substr(searchPosition,findResult-searchPosition);
 
 		// with .. i'm doing some calculation already of sparing interim folders.
 		// as a result if there are still ..s they will be only at the beginning of the path
-		if(newComponent == ".." && mPathComponents.size() > 1 && mPathComponents.back() != "..")
+		if(newComponent == ".." && mPathComponents.size() > 0 && mPathComponents.back() != "..")
 			PopPathComponent();
 		else if(newComponent != ".")
 			PushPathComponent(newComponent);

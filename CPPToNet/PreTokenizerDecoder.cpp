@@ -7,7 +7,7 @@ PreTokenizerDecoder::PreTokenizerDecoder()
 PreTokenizerDecoder::PreTokenizerDecoder(IByteReader* inSourceStream)
 {
 	mSourceStream = inSourceStream;
-	mCurrentLineIndex = 0;
+	mCurrentLineIndex = 1; // line index is one based
 	mCarriegeReturnEncountered = false;
 }
 
@@ -19,7 +19,7 @@ void PreTokenizerDecoder::SetStream(IByteReader* inSourceStream)
 {
 	mSourceStream = inSourceStream;
 	mReadCharsBuffer.clear();
-	mCurrentLineIndex = 0;
+	mCurrentLineIndex = 1; // line index is one based
 	mCarriegeReturnEncountered = false;
 }
 
@@ -40,7 +40,7 @@ LongBufferSizeType PreTokenizerDecoder::Read(Byte* inBuffer,LongBufferSizeType i
 
 			if(GetNextByte(buffer) != eSuccess)
 				break;
-			if(buffer != 0xA || buffer != 0xD)
+			if(buffer != 0xA && buffer != 0xD)
 			{
 				// place both chars...
 				*inBuffer = '\\';

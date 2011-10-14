@@ -1,5 +1,5 @@
 #pragma once
-#include "ITokenProvider.h"
+#include "IPreprocessorTokenProvider.h"
 
 #include <string>
 #include <list>
@@ -10,7 +10,7 @@ using namespace std;
 typedef list<string> StringList;
 typedef map<string,StringList> StringToStringListMap;
 
-class PreprocessorFunctionIterator : public ITokenProvider
+class PreprocessorFunctionIterator : public IPreprocessorTokenProvider
 {
 public:
 	PreprocessorFunctionIterator(void);

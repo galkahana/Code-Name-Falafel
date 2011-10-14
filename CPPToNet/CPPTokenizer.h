@@ -85,6 +85,7 @@ private:
 	bool IsEntityBreaker(Hummus::Byte inCharacter,bool inCanIncludeParanthesis);
 	void PutBackToken(const string& inToken);
 	void SkipAnySpaceTillToken();
+	bool HasMoreTokens();
 
 
 };

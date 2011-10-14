@@ -363,11 +363,63 @@
 			Name="Parser"
 			>
 			<File
+				RelativePath=".\CPPExpression.h"
+				>
+			</File>
+			<File
+				RelativePath=".\CPPExpressionInteger.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\CPPExpressionInteger.h"
+				>
+			</File>
+			<File
+				RelativePath=".\CPPExpressionParser.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\CPPExpressionParser.h"
+				>
+			</File>
+			<File
+				RelativePath=".\CPPExpressionSymbol.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\CPPExpressionSymbol.h"
+				>
+			</File>
+			<File
+				RelativePath=".\CPPOperator.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\CPPOperator.h"
+				>
+			</File>
+			<File
+				RelativePath=".\CPPOperatorExpression.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\CPPOperatorExpression.h"
+				>
+			</File>
+			<File
 				RelativePath=".\CPPTokenizer.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\CPPTokenizer.h"
+				>
+			</File>
+			<File
+				RelativePath=".\CPPTypes.h"
+				>
+			</File>
+			<File
+				RelativePath=".\CPPValue.h"
 				>
 			</File>
 			<File
@@ -387,7 +439,23 @@
 				>
 			</File>
 			<File
-				RelativePath=".\ITokenProvider.h"
+				RelativePath=".\IPreprocessorConditionTokenProvider.h"
+				>
+			</File>
+			<File
+				RelativePath=".\IPreprocessorListener.h"
+				>
+			</File>
+			<File
+				RelativePath=".\IPreprocessorTokenProvider.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ParenthesisConditionalTokenProvider.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\ParenthesisConditionalTokenProvider.h"
 				>
 			</File>
 			<File
@@ -423,6 +491,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\SingleLineTokenProvider.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\SingleLineTokenProvider.h"
+				>
+			</File>
+			<File
 				RelativePath=".\WindowsFileSystem.cpp"
 				>
 			</File>
@@ -438,6 +514,98 @@
 				RelativePath=".\WindowsPath.h"
 				>
 			</File>
+			<Filter
+				Name="PrimiteTypes"
+				>
+				<File
+					RelativePath=".\CPPBoolType.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPBoolType.h"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPCharType.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPCharType.h"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPIntType.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPIntType.h"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPLongLongType.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPLongLongType.h"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPLongType.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPLongType.h"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPStandardIntegerType.h"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPULongLongType.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPULongLongType.h"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPUnsignedCharType.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPUnsignedCharType.h"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPUnsignedIntType.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPUnsignedIntType.h"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPUnsignedLongType.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPUnsignedLongType.h"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPWCharType.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPWCharType.h"
+					>
+				</File>
+				<File
+					RelativePath=".\ICPPType.h"
+					>
+				</File>
+			</Filter>
 		</Filter>
 	</Files>
 	<Globals>

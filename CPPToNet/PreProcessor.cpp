@@ -1,11 +1,16 @@
 #include "PreProcessor.h"
 #include "DefineIdentifierDefinition.h"
 #include "Trace.h"
-#include "ITokenProvider.h"
+#include "IPreprocessorTokenProvider.h"
 #include "BoxingBase.h"
 #include "IncludeFileTokenProvider.h"
 #include "WindowsFileSystem.h"
 #include "SafeBufferMacrosDefs.h"
+#include "CPPExpressionParser.h"
+#include "SingleLineTokenProvider.h"
+#include "CPPValue.h"
+#include "CPPExpression.h"
+#include "IPreprocessorListener.h"
 
 #include <ctime>
 
@@ -28,7 +33,7 @@ void PreProcessor::Reset()
 		delete it->second;
 	mDefines.clear();
 
-	ITokenProviderList::iterator itTokenProviders = mTokenSubcontructors.begin();
+	IPreprocessorTokenProviderList::iterator itTokenProviders = mTokenSubcontructors.begin();
 	for(; itTokenProviders != mTokenSubcontructors.end();++itTokenProviders)
 		delete *itTokenProviders;
 	mTokenSubcontructors.clear();
@@ -38,6 +43,7 @@ void PreProcessor::Reset()
 	mIncludeFolders.clear();
 	mDontInclude.clear();
 	mConditionalIteration = 0;
+	mSkippingConditionals = false;
 }
 
 void PreProcessor::Setup(IByteReader* inSourceStream,
@@ -67,12 +73,18 @@ void PreProcessor::Setup(IByteReader* inSourceStream,
 
 BoolAndString PreProcessor::GetNextToken()
 {
+	return GetNextToken(true);
+}
+
+
+BoolAndString PreProcessor::GetNextToken(bool inSkipNewLines)
+{
 	BoolAndString tokenizerResult;
 	
 	// preprocessor implementations are mostly implemented by employing subcontructors
 	// that get tokens according to the matching macro, ifdef section or whatnot.
 	if(DetermineIfHasActiveSubcontructor())
-		mTokenSubcontructors.back()->GetNextToken();
+		tokenizerResult = mTokenSubcontructors.back()->GetNextToken();
 	else
 		tokenizerResult = mTokenizer.GetNextToken();
 	
@@ -91,12 +103,12 @@ BoolAndString PreProcessor::GetNextToken()
 		else
 		{
 			// hurrah! define symbol. move control to a symbol definition
-			ITokenProvider* provider = itDefine->second->CreateTokenProvider(this);
+			IPreprocessorTokenProvider* provider = itDefine->second->CreateTokenProvider(this);
 			if(!provider)
 				return BoolAndString(false,"");
 			mTokenSubcontructors.push_back(provider);
 			mUsedDefines.insert(tokenizerResult.second);
-			mIdentifierTokens.insert(ITokenProviderToStringMap::value_type(provider,tokenizerResult.second));
+			mIdentifierTokens.insert(IPreprocessorTokenProviderToStringMap::value_type(provider,tokenizerResult.second));
 			return GetNextToken();
 		}
 	}
@@ -107,9 +119,11 @@ BoolAndString PreProcessor::GetNextToken()
 	{
 		return predefinedMacrosResult.second;
 	}
-	else if(IsNewLineToken(tokenizerResult.second)) // now, regular cases and preprocessor commands
+	else if(IsNewLineToken(tokenizerResult.second)  && inSkipNewLines) // now, regular cases and preprocessor commands
 	{
 		// skip newlines. not interesting for higher levels
+		FireNewLine(tokenizerResult.second);
+
 		return GetNextToken();
 	}
 	else if(tokenizerResult.second == "#define")
@@ -130,7 +144,7 @@ BoolAndString PreProcessor::GetNextToken()
 	{
 		return FirePreprocessorError();
 	}
-	else if(tokenizerResult.second == "#incude")
+	else if(tokenizerResult.second == "#include")
 	{
 		bool status = IncludeFile();
 		if(!status)
@@ -158,6 +172,8 @@ BoolAndString PreProcessor::GetNextToken()
 	}
 	else if(tokenizerResult.second == "#if" || tokenizerResult.second == "#ifdef" || tokenizerResult.second == "#ifndef")
 	{
+		if(mSkippingConditionals) // skipping phase, so just deliver token as is
+			return tokenizerResult;
 		bool status = InterpretConditionalTokenization(tokenizerResult.second);
 		if(!status)
 			return BoolAndString(false,"");
@@ -165,6 +181,8 @@ BoolAndString PreProcessor::GetNextToken()
 	}
 	else if(tokenizerResult.second == "#else" || tokenizerResult.second == "#elif" || tokenizerResult.second == "#endif")
 	{
+		if(mSkippingConditionals) // skipping phase, so just deliver token as is
+			return tokenizerResult;
 		bool status = InterpretConditionalStopper(tokenizerResult.second);
 		if(!status)
 			return BoolAndString(false,"");
@@ -273,16 +291,36 @@ bool PreProcessor::DefineIdentifierReplacement()
 			while(!foundEndParameters)
 			{
 				readResult = GetNextToken();
-				if(readResult.first)
+				if(!readResult.first)
 				{
 					TRACE_LOG("PreProcessor::DefineIdentifierReplacement, Error in reading token for identifier parameters");
 					status = false;
 					break;
 				}
+
 				if(readResult.second == ")")
 					foundEndParameters = true;
 				else
+				{
+					// first token should be a comma separator, so make sure
+					if(readResult.second != ",")
+					{
+						TRACE_LOG("PreProcessor::DefineIdentifierReplacement, parameters separator not found, failing");
+						status = false;
+						break;
+					}
+
+					// second token should be the next parameter
+					readResult = GetNextToken();
+					if(!readResult.first)
+					{
+						TRACE_LOG("PreProcessor::DefineIdentifierReplacement, Error in reading token for identifier parameters");
+						status = false;
+						break;
+					}
+
 					newDefine->PushParameter(readResult.second);
+				}
 			}
 			if(!status)
 				break;
@@ -290,6 +328,7 @@ bool PreProcessor::DefineIdentifierReplacement()
 
 		// now grab string till end of line (do not intepret yet, because dependent on reading context
 		newDefine->SetTokenStrings(GetStringTillEndOfLine());
+		FlushTillEndOfLine(); // skip the end of line token (which should be left after GetStringtillEndOfLine)
 		
 	}while(false);
 
@@ -309,7 +348,7 @@ string PreProcessor::GetStringTillEndOfLine()
 	BoolAndString tokenizerResult;
 	
 	// preprocessor implementations are mostly implemented by employing subcontructors
-	// that get tokens according to the matching macro, ifdef section or whatnot.
+	// that get tokens according to the matching macro, ifdef section or whatnot. [note that GetStringTillEndOfLine does not consume the line ending!]
 	if(DetermineIfHasActiveSubcontructor())
 		return mTokenSubcontructors.back()->GetStringTillEndOfLine();
 	else
@@ -347,7 +386,7 @@ void PreProcessor::FlushTillEndOfLine()
 
 	while(!foundEndLine)
 	{
-		tokenResult = GetNextToken();
+		tokenResult = GetNextToken(false);
 		if(!tokenResult.first || IsNewLineToken(tokenResult.second)) 
 			foundEndLine = true;
 	}
@@ -362,7 +401,7 @@ bool PreProcessor::DetermineIfHasActiveSubcontructor()
 		if(mTokenSubcontructors.back()->IsFinished())
 		{
 			// see if this is a macro token provider, if so remove related identifier, to allow further usage of it
-			ITokenProviderToStringMap::iterator itIdentifier = mIdentifierTokens.find(mTokenSubcontructors.back());
+			IPreprocessorTokenProviderToStringMap::iterator itIdentifier = mIdentifierTokens.find(mTokenSubcontructors.back());
 			if(itIdentifier != mIdentifierTokens.end())
 			{
 				mUsedDefines.erase(itIdentifier->second);
@@ -403,12 +442,14 @@ BoolAndString PreProcessor::GetDateMacroToken()
 	return BoolAndString(true,aString); 
 }
 
+static const string scDoubleQuote = "\"";
+
 BoolAndString PreProcessor::GetFileMacroToken()
 {
-	return BoolAndString(true,
-			mIncludeProvidersStack.size() > 0 ? 
+	return BoolAndString(true, scDoubleQuote + 
+			(mIncludeProvidersStack.size() > 0 ? 
 				((IncludeFileTokenProvider*)mIncludeProvidersStack.back())->GetSourceFileNameForMacro() :
-				mSourceFileNameForMacro);
+				mSourceFileNameForMacro) + scDoubleQuote);
 }
 
 BoolAndString PreProcessor::GetLineMacroToken()
@@ -481,7 +522,7 @@ BoolAndString PreProcessor::GetTimeStampMacroToken()
 BoolAndString PreProcessor::FirePreprocessorError()
 {
 	// k. this means error situation, should return error message as a string. also trace it
-	BoolAndString bufferTokenReader = GetNextToken();
+	BoolAndString bufferTokenReader = GetNextToken(false);
 
 	if(bufferTokenReader.first)
 	{
@@ -498,7 +539,7 @@ BoolAndString PreProcessor::FirePreprocessorError()
 
 			while(!foundEndLine)
 			{
-				bufferTokenReader = GetNextToken();
+				bufferTokenReader = GetNextToken(false);
 				if(!bufferTokenReader.first) // a "failure" here is not really a failure - it may be the file end
 					return BoolAndString(false,"");
 				if(IsNewLineToken(bufferTokenReader.second))
@@ -541,6 +582,9 @@ bool PreProcessor::IncludeFile()
 		return false;
 	}
 
+	FlushTillEndOfLine();
+
+
 	BoolAndString fileFindResult = FindFile(fileNameToken.second.substr(1,fileNameToken.second.length()-2),fileNameToken.second.at(0) == '\"');
 	if(!fileFindResult.first)
 	{
@@ -567,7 +611,7 @@ BoolAndString PreProcessor::GetNextNoSpaceEntity()
 	// preprocessor implementations are mostly implemented by employing subcontructors
 	// that get tokens according to the matching macro, ifdef section or whatnot.
 	if(DetermineIfHasActiveSubcontructor())
-		mTokenSubcontructors.back()->GetNextNoSpaceEntity();
+		tokenizerResult = mTokenSubcontructors.back()->GetNextNoSpaceEntity();
 	else
 		tokenizerResult = mTokenizer.GetNextNoSpaceEntity();
 	
@@ -586,12 +630,12 @@ BoolAndString PreProcessor::GetNextNoSpaceEntity()
 		else
 		{
 			// hurrah! define symbol. move control to a symbol definition
-			ITokenProvider* provider = itDefine->second->CreateNoSpaceEntityProvider(this);
+			IPreprocessorTokenProvider* provider = itDefine->second->CreateNoSpaceEntityProvider(this);
 			if(!provider)
 				return BoolAndString(false,"");
 			mTokenSubcontructors.push_back(provider);
 			mUsedDefines.insert(tokenizerResult.second);
-			mIdentifierTokens.insert(ITokenProviderToStringMap::value_type(provider,tokenizerResult.second));
+			mIdentifierTokens.insert(IPreprocessorTokenProviderToStringMap::value_type(provider,tokenizerResult.second));
 			return GetNextNoSpaceEntity();
 		}
 	}
@@ -618,7 +662,7 @@ BoolAndString PreProcessor::FindFile(string inIncludeString,bool inIsDoubleQuote
 			3. the input directories list
 	*/
 
-	ITokenProviderList::reverse_iterator itIncludeStack = mIncludeProvidersStack.rbegin();
+	IPreprocessorTokenProviderList::reverse_iterator itIncludeStack = mIncludeProvidersStack.rbegin();
 	WindowsPath filePath(inIncludeString);
 	WindowsFileSystem fileSystem;
 	BoolAndString result(false,"");
@@ -752,21 +796,21 @@ bool PreProcessor::InterpretConditionalTokenization(const string& inConditionalK
 			inConditionalKeyword.c_str());
 		return false;
 	}
+	
+	SetupCondtionalIteration();
 
 	// condition evaluated to true, stop here
 	if(evaluateResult.second)
-	{
-		SetupCondtionalIteration();
 		return true;
-	}
 
 	// condition evaluate to false, continue till true condition is found or endif reached
 	bool foundTrue = false;
 	bool status = true;
+	mSkippingConditionals = true;
 
 	while(!foundTrue && status)
 	{
-		BoolAndString tokenizerResult = GetNextToken();
+		BoolAndString tokenizerResult = GetNextToken(false);
 
 		if(!tokenizerResult.first)
 		{
@@ -778,6 +822,7 @@ bool PreProcessor::InterpretConditionalTokenization(const string& inConditionalK
 		if(tokenizerResult.second == "#else")
 		{
 			foundTrue = true;
+			FlushTillEndOfLine(); // flush newline after #else
 		}
 		else if(tokenizerResult.second == "#elif")
 		{
@@ -794,13 +839,14 @@ bool PreProcessor::InterpretConditionalTokenization(const string& inConditionalK
 		else if(tokenizerResult.second == "#endif")
 		{
 			foundTrue = false;
+			FlushTillEndOfLine(); // flush newline after #endif
 			ResetConditionalIteration();
 			break;
 		}
 	}
 
-	if(status && foundTrue)
-		SetupCondtionalIteration();
+	mSkippingConditionals = false;
+
 	return status;
 }
 
@@ -829,13 +875,15 @@ bool PreProcessor::InterpretConditionalStopper(const string& inConditionalKeywor
 	do
 	{
 		// if reached #elif or #else, skip tokens till endif
-		if(inConditionalKeyword == "#elif" || inConditionalKeyword == "else")
+		if(inConditionalKeyword == "#elif" || inConditionalKeyword == "#else")
 		{
 			bool foundEndif = false;
+			mSkippingConditionals = true;
+
 
 			while(!foundEndif && status)
 			{
-				BoolAndString tokenizerResult = GetNextToken();
+				BoolAndString tokenizerResult = GetNextToken(false);
 
 				if(!tokenizerResult.first)
 				{
@@ -847,9 +895,13 @@ bool PreProcessor::InterpretConditionalStopper(const string& inConditionalKeywor
 				if(tokenizerResult.second == "#endif")
 					foundEndif = true;
 			}
+
+			mSkippingConditionals = false;
 		}
 		if(!status)
 			break;
+
+		FlushTillEndOfLine(); // consume newline post #endif
 
 		// so now should be past #endif [either skipped, or reached]
 		ResetConditionalIteration();
@@ -861,7 +913,129 @@ bool PreProcessor::InterpretConditionalStopper(const string& inConditionalKeywor
 
 BoolAndBool PreProcessor::EvaluateConstantExpression(const string& inConditionType)
 {
-	// TODO, Gal
+	if(inConditionType == "#ifdef" || inConditionType == "#ifndef")
+	{
+		BoolAndString symbolToken = GetNextTokenNoMacroReplacement();
 
-	return BoolAndBool(false,false);
+		if(!symbolToken.first)
+		{
+			TRACE_LOG1("PreProcessor::EvaluateConstantExpression, error while evaluating condition of type %s, cannot get next token", inConditionType.c_str());
+			return BoolAndBool(false,false);
+		}
+
+		FlushTillEndOfLine();
+
+		return BoolAndBool(true,(mDefines.find(symbolToken.second) == mDefines.end()) ^ (inConditionType == "#ifdef"));
+	}
+	else if(inConditionType == "#elif" || inConditionType == "#if")
+	{
+		CPPExpression* expression = NULL;
+		BoolAndBool result(false,false);
+
+		do
+		{
+			SingleLineTokenProvider tokenProviderForConditional(this);
+			CPPExpressionParser expressionParser;
+
+			BoolAndCPPExpression expressionBuildResult = expressionParser.ParseExpression(&tokenProviderForConditional,this);
+
+			if(!expressionBuildResult.first)
+			{
+				TRACE_LOG1("PreProcessor::EvaluateConstantExpression, failed to read expression for condition %s", inConditionType.c_str());
+				break;
+			}
+			expression = expressionBuildResult.second;
+
+			BoolAndCPPValue expressionEvalResult =  expression->Evaluate();
+
+			if(!expressionEvalResult.first)
+			{
+				TRACE_LOG1("PreProcessor::EvaluateConstantExpression, failed to evaluate expression for condition %s", inConditionType.c_str());
+				break;
+			}
+			
+			result.first = true;
+			result.second = GetAsBoolean(expressionEvalResult.second);
+		}
+		while(false);
+
+		delete expression;
+		return result;
+	}
+	else
+	{
+		TRACE_LOG1("PreProcessor::EvaluateConstantExpression, exception, shouldn't get here for %s",inConditionType.c_str());
+		return BoolAndBool(false,false); 
+	}
+}
+
+BoolAndString PreProcessor::GetNextTokenNoMacroReplacement()
+{
+	// preprocessor implementations are mostly implemented by employing subcontructors
+	// that get tokens according to the matching macro, ifdef section or whatnot.
+	if(DetermineIfHasActiveSubcontructor())
+		return mTokenSubcontructors.back()->GetNextToken();
+	else
+		return mTokenizer.GetNextToken();
+}
+
+bool PreProcessor::GetAsBoolean(const CPPValue& inValue)
+{
+	// basically it's an implementation of casting. maybe i should implement it as a casting "operator" for CPPValue.
+	bool value = false;
+
+	switch(inValue.mType)
+	{
+		case eCPPBool:
+			value = inValue.mBoolValue;
+			break;
+		case eCPPChar:
+			value = inValue.mCharValue != 0;
+			break;
+		case eCPPUnsignedChar:
+			value = inValue.mUCharValue != 0;
+			break;
+		case eCPPInt:
+			value = inValue.mIntValue != 0;
+			break;
+		case eCPPUnsigned:
+			value = inValue.mUIntValue != 0;
+			break;
+		case eCPPLong:
+			value = inValue.mLongValue != 0;
+			break;
+		case eCPPUnsignedLong:
+			value = inValue.mULongValue != 0;
+			break;
+		case eCPPLongLong:
+			value = inValue.mLongLongValue != 0;
+			break;
+		case eCPPUnsignedLongLong:
+			value = inValue.mULongLongValue != 0;
+			break;
+	}
+	return value;
+}
+
+bool PreProcessor::IsSymbolDefined(const string& inSymbol)
+{
+	return mDefines.find(inSymbol) != mDefines.end();
+}
+
+void PreProcessor::AddListener(IPreprocessorListener* inListener)
+{
+	mListeners.insert(inListener);
+}
+
+void PreProcessor::RemoveListener(IPreprocessorListener* inListener)
+{
+	mListeners.erase(inListener);
+}
+
+void PreProcessor::FireNewLine(const string& inNewLineString)
+{
+	IPreprocessorListenerSet::iterator it = mListeners.begin();
+
+	for(; it != mListeners.end(); ++it)
+		(*it)->OnNewLine(inNewLineString);
 }

@@ -37,20 +37,23 @@ namespace Hummus
 }
 
 class DefineIdentifierDefinition;
-class ITokenProvider;
+class IPreprocessorTokenProvider;
+struct CPPValue;
+class IPreprocessorListener;
 
 using namespace std;
 
 typedef list<string> StringList;
 typedef pair<bool,string> BoolAndString;
 typedef map<string,DefineIdentifierDefinition*> StringToDefineIdentifierDefinitionMap;
-typedef list<ITokenProvider*> ITokenProviderList;
-typedef set<ITokenProvider*> ITokenProviderSet;
+typedef list<IPreprocessorTokenProvider*> IPreprocessorTokenProviderList;
+typedef set<IPreprocessorTokenProvider*> IPreprocessorTokenProviderSet;
 typedef set<string> StringSet;
-typedef map<ITokenProvider*,string> ITokenProviderToStringMap;
+typedef map<IPreprocessorTokenProvider*,string> IPreprocessorTokenProviderToStringMap;
 typedef pair<bool,BoolAndString> BoolAndBoolAndString;
 typedef list<WindowsPath> WindowsPathList;
 typedef pair<bool,bool> BoolAndBool;
+typedef set<IPreprocessorListener*> IPreprocessorListenerSet;
 
 class PreProcessor
 {
@@ -76,20 +79,34 @@ public:
 	// call this when changing underlying stream position
 	void ResetReadState();
 
+	// Internal, don't call (runs token getting but avoids macro replacement)
+	BoolAndString GetNextTokenNoMacroReplacement();
+
+	// Internal, don't call (retrieves GetNextToken with options to get also newlines as tokens)
+	BoolAndString GetNextToken(bool inSkipNewLines);
+
+	// check if a string is defined
+	bool IsSymbolDefined(const string& inSymbol);
+
+
+	void AddListener(IPreprocessorListener* inListener);
+	void RemoveListener(IPreprocessorListener* inListener);
 private:
 	CPPTokenizer mTokenizer;
 	PreTokenizerDecoder mPreTokenizationDecoder;
 	StringToDefineIdentifierDefinitionMap mDefines;
-	ITokenProviderList mTokenSubcontructors;
+	IPreprocessorTokenProviderList mTokenSubcontructors;
 	StringSet mUsedDefines;
-	ITokenProviderToStringMap mIdentifierTokens;
+	IPreprocessorTokenProviderToStringMap mIdentifierTokens;
 	string mSourceFileName;
 	string mSourceFileNameForMacro;
-	ITokenProviderList mIncludeProvidersStack;
+	IPreprocessorTokenProviderList mIncludeProvidersStack;
 	WindowsPath mSourceFileFolderPath;
 	WindowsPathList mIncludeFolders;
 	StringSet mDontInclude;
 	unsigned long mConditionalIteration;
+	IPreprocessorListenerSet mListeners;
+	bool mSkippingConditionals;
 
 	bool IsNewLineToken(const string& inToken);
 	bool DefineIdentifierReplacement();
@@ -114,6 +131,7 @@ private:
 	// used in the context of define for reading the string till end of line, either from tokenizer, or from subordinate tokenizers
 	string GetStringTillEndOfLine();
 
+
 	BoolAndString FindFile(string inIncludeString,bool inIsDoubleQuoteSearch);
 	void Reset();
 	bool ModifyLineAndfile();
@@ -125,5 +143,7 @@ private:
 	void ResetConditionalIteration();
 	bool InterpretConditionalTokenization(const string& inConditionalKeyword);
 	bool InterpretConditionalStopper(const string& inConditionalKeyword);
+	bool GetAsBoolean(const CPPValue& inValue);
+	void FireNewLine(const string& inNewLineString);
 
 };

@@ -21,6 +21,7 @@
 #include "OutputFile.h"
 #include "OutputBufferedStream.h"
 #include "OutputFileStream.h"
+#include "IByteWriterWithPosition.h"
 #include "Trace.h"
 
 using namespace Hummus;
