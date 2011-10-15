@@ -54,6 +54,7 @@ typedef pair<bool,BoolAndString> BoolAndBoolAndString;
 typedef list<WindowsPath> WindowsPathList;
 typedef pair<bool,bool> BoolAndBool;
 typedef set<IPreprocessorListener*> IPreprocessorListenerSet;
+typedef map<string,string> StringToStringMap;
 
 class PreProcessor
 {
@@ -65,11 +66,11 @@ public:
 	// Setup the preprocessor for reading.
 	// provide the following:
 	// 1. Stream to read the code from
-	// 2. List of defined preprocessor definitions
+	// 2. List of defined preprocessor definitions mapped to their value (pass empty string value for no value)
 	// 3. include folders list (ordered by priority, where the first folder is the first one to look at)
 	void Setup(Hummus::IByteReader* inSourceStream,
 			   const string& inSourceFileName,
-			   const StringList& inPreprocessorDefinitions,
+			   const StringToStringMap& inPreprocessorDefinitions,
 			   const StringList& inIncludeFolders);
 
 	// Get the next available token. The proprocessor retrieves processed tokens

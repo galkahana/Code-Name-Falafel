@@ -48,7 +48,7 @@ void PreProcessor::Reset()
 
 void PreProcessor::Setup(IByteReader* inSourceStream,
 						 const string& inSourceFileName,
-					     const StringList& inPreprocessorDefinitions,
+					     const StringToStringMap& inPreprocessorDefinitions,
 						 const StringList& inIncludeFolders)
 {
 	Reset();
@@ -56,10 +56,15 @@ void PreProcessor::Setup(IByteReader* inSourceStream,
 	mPreTokenizationDecoder.SetStream(inSourceStream);
 	mTokenizer.SetReadStream(&mPreTokenizationDecoder);
 
-	StringList::const_iterator itDefs = inPreprocessorDefinitions.begin();
+	StringToStringMap::const_iterator itDefs = inPreprocessorDefinitions.begin();
 	
 	for(; itDefs != inPreprocessorDefinitions.end(); ++itDefs)
-		mDefines.insert(StringToDefineIdentifierDefinitionMap::value_type(*itDefs,new DefineIdentifierDefinition));
+	{
+		DefineIdentifierDefinition* newDefine = new DefineIdentifierDefinition();
+
+		newDefine->SetTokenStrings(itDefs->second);
+		mDefines.insert(StringToDefineIdentifierDefinitionMap::value_type(itDefs->first,newDefine));
+	}
 
 	mSourceFileName = inSourceFileName;
 	mSourceFileNameForMacro = inSourceFileName;

@@ -107,11 +107,11 @@ EStatusCode PreprocessorTest::RunTest(const string& inName, const string& inOrig
 {
 	EStatusCode status = eSuccess;
 
-	StringList preprocessorDefinitions;
+	StringToStringMap preprocessorDefinitions;
 	StringList includeFolders;
 
 	includeFolders.push_back(scSamplesBasePath);
-	preprocessorDefinitions.push_back("PREDEFINED_SYMBOL");
+	preprocessorDefinitions.insert(StringToStringMap::value_type("PREDEFINED_SYMBOL","2"));
 
 	InputFile sourceFile;
 	sourceFile.OpenFile(inOriginalFile);
