@@ -5,6 +5,6 @@
 class CPPUnsignedIntType : public CPPStandardIntegerType<unsigned,int>
 {
 protected:
-	virtual CPPValue TypeValue(unsigned inValue);
-	virtual unsigned ValueType(const CPPValue& inValue);
+	virtual CPPPrimitiveValue TypeValue(unsigned inValue);
+	virtual unsigned ValueType(const CPPPrimitiveValue& inValue);
 };

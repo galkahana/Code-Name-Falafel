@@ -407,6 +407,22 @@
 				>
 			</File>
 			<File
+				RelativePath=".\CPPPrimitiveTypes.h"
+				>
+			</File>
+			<File
+				RelativePath=".\CPPPrimitiveValue.h"
+				>
+			</File>
+			<File
+				RelativePath=".\CPPStatementsParser.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\CPPStatementsParser.h"
+				>
+			</File>
+			<File
 				RelativePath=".\CPPTokenizer.cpp"
 				>
 			</File>
@@ -415,19 +431,19 @@
 				>
 			</File>
 			<File
-				RelativePath=".\CPPTypes.h"
-				>
-			</File>
-			<File
-				RelativePath=".\CPPValue.h"
-				>
-			</File>
-			<File
 				RelativePath=".\DefineIdentifierDefinition.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\DefineIdentifierDefinition.h"
+				>
+			</File>
+			<File
+				RelativePath=".\HeaderUnit.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\HeaderUnit.h"
 				>
 			</File>
 			<File
@@ -515,7 +531,7 @@
 				>
 			</File>
 			<Filter
-				Name="PrimiteTypes"
+				Name="PrimitiveTypes"
 				>
 				<File
 					RelativePath=".\CPPBoolType.cpp"
@@ -602,7 +618,31 @@
 					>
 				</File>
 				<File
-					RelativePath=".\ICPPType.h"
+					RelativePath=".\ICPPPrimitiveType.h"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="ParsedObjects"
+				>
+				<File
+					RelativePath=".\CPPElement.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPElement.h"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPNamespace.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPNamespace.h"
+					>
+				</File>
+				<File
+					RelativePath=".\ICPPContainerElement.h"
 					>
 				</File>
 			</Filter>

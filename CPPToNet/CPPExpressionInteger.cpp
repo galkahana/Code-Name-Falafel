@@ -1,5 +1,5 @@
 #include "CPPExpressionInteger.h"
-#include "CPPValue.h"
+#include "CPPPrimitiveValue.h"
 
 CPPExpressionInteger::CPPExpressionInteger(void)
 {
@@ -67,9 +67,9 @@ CPPExpressionInteger::~CPPExpressionInteger(void)
 }
 
 
-BoolAndCPPValue CPPExpressionInteger::Evaluate()
+BoolAndCPPPrimitiveValue CPPExpressionInteger::Evaluate()
 {
-	BoolAndCPPValue result(true,CPPValue());
+	BoolAndCPPPrimitiveValue result(true,CPPPrimitiveValue());
 
 	result.second.mType = mType;
 	switch(mType)

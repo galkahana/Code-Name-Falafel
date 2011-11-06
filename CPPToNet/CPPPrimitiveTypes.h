@@ -2,7 +2,7 @@
 
 
 // These are the CPP types interesting for the library. 
-enum ECPPType
+enum ECPPPrimitiveType
 {
 	eCPPBool,
 	eCPPChar,

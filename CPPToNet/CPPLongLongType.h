@@ -5,6 +5,6 @@
 class CPPLongLongType : public CPPStandardIntegerType<long long>
 {
 protected:
-	virtual CPPValue TypeValue(long long inValue);
-	virtual long long ValueType(const CPPValue& inValue);
+	virtual CPPPrimitiveValue TypeValue(long long inValue);
+	virtual long long ValueType(const CPPPrimitiveValue& inValue);
 };

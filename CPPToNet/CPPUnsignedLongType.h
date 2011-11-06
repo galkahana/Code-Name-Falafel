@@ -6,6 +6,6 @@ class CPPUnsignedLongType : public CPPStandardIntegerType<unsigned long, long>
 {
 protected:
 
-	virtual CPPValue TypeValue(unsigned long inValue);
-	virtual unsigned long ValueType(const CPPValue& inValue);
+	virtual CPPPrimitiveValue TypeValue(unsigned long inValue);
+	virtual unsigned long ValueType(const CPPPrimitiveValue& inValue);
 };

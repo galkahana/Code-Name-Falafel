@@ -5,7 +5,7 @@
 class CPPCharType : public CPPStandardIntegerType<char>
 {
 protected:
-	virtual CPPValue TypeValue(char inValue);
-	virtual char ValueType(const CPPValue& inValue);
+	virtual CPPPrimitiveValue TypeValue(char inValue);
+	virtual char ValueType(const CPPPrimitiveValue& inValue);
 
 };

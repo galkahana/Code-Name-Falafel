@@ -38,7 +38,7 @@ namespace Hummus
 
 class DefineIdentifierDefinition;
 class IPreprocessorTokenProvider;
-struct CPPValue;
+struct CPPPrimitiveValue;
 class IPreprocessorListener;
 
 using namespace std;
@@ -144,7 +144,7 @@ private:
 	void ResetConditionalIteration();
 	bool InterpretConditionalTokenization(const string& inConditionalKeyword);
 	bool InterpretConditionalStopper(const string& inConditionalKeyword);
-	bool GetAsBoolean(const CPPValue& inValue);
+	bool GetAsBoolean(const CPPPrimitiveValue& inValue);
 	void FireNewLine(const string& inNewLineString);
 
 };

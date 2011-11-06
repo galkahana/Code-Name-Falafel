@@ -8,7 +8,7 @@
 #include "SafeBufferMacrosDefs.h"
 #include "CPPExpressionParser.h"
 #include "SingleLineTokenProvider.h"
-#include "CPPValue.h"
+#include "CPPPrimitiveValue.h"
 #include "CPPExpression.h"
 #include "IPreprocessorListener.h"
 
@@ -951,7 +951,7 @@ BoolAndBool PreProcessor::EvaluateConstantExpression(const string& inConditionTy
 			}
 			expression = expressionBuildResult.second;
 
-			BoolAndCPPValue expressionEvalResult =  expression->Evaluate();
+			BoolAndCPPPrimitiveValue expressionEvalResult =  expression->Evaluate();
 
 			if(!expressionEvalResult.first)
 			{
@@ -984,9 +984,9 @@ BoolAndString PreProcessor::GetNextTokenNoMacroReplacement()
 		return mTokenizer.GetNextToken();
 }
 
-bool PreProcessor::GetAsBoolean(const CPPValue& inValue)
+bool PreProcessor::GetAsBoolean(const CPPPrimitiveValue& inValue)
 {
-	// basically it's an implementation of casting. maybe i should implement it as a casting "operator" for CPPValue.
+	// basically it's an implementation of casting. maybe i should implement it as a casting "operator" for CPPPrimitiveValue.
 	bool value = false;
 
 	switch(inValue.mType)

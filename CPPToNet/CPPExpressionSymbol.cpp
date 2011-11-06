@@ -10,7 +10,7 @@ CPPExpressionSymbol::~CPPExpressionSymbol(void)
 }
 
 
-BoolAndCPPValue CPPExpressionSymbol::Evaluate()
+BoolAndCPPPrimitiveValue CPPExpressionSymbol::Evaluate()
 {
-	return BoolAndCPPValue(false,CPPValue());
+	return BoolAndCPPPrimitiveValue(false,CPPPrimitiveValue());
 }

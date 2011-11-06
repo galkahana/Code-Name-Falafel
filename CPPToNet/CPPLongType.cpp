@@ -1,14 +1,14 @@
 #include "CPPLongType.h"
 
-CPPValue CPPLongType::TypeValue(long inValue)
+CPPPrimitiveValue CPPLongType::TypeValue(long inValue)
 {
-	CPPValue value;
+	CPPPrimitiveValue value;
 	value.mType = eCPPLong;
 	value.mLongValue = inValue;
 	return value;
 }
 
-long CPPLongType::ValueType(const CPPValue& inValue)
+long CPPLongType::ValueType(const CPPPrimitiveValue& inValue)
 {
 	return inValue.mLongValue;
 }

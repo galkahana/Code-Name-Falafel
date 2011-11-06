@@ -6,6 +6,6 @@ class CPPUnsignedCharType : public CPPStandardIntegerType<unsigned char, char>
 {
 
 protected:
-	virtual CPPValue TypeValue(unsigned char inValue);
-	virtual unsigned char ValueType(const CPPValue& inValue);
+	virtual CPPPrimitiveValue TypeValue(unsigned char inValue);
+	virtual unsigned char ValueType(const CPPPrimitiveValue& inValue);
 };

@@ -1,14 +1,14 @@
 #include "CPPIntType.h"
 
-CPPValue CPPIntType::TypeValue(int inValue)
+CPPPrimitiveValue CPPIntType::TypeValue(int inValue)
 {
-	CPPValue value;
+	CPPPrimitiveValue value;
 	value.mType = eCPPInt;
 	value.mIntValue = inValue;
 	return value;
 }
 
-int CPPIntType::ValueType(const CPPValue& inValue)
+int CPPIntType::ValueType(const CPPPrimitiveValue& inValue)
 {
 	return inValue.mIntValue;
 }

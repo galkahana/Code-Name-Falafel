@@ -1,14 +1,14 @@
 #include "CPPUnsignedLongType.h"
 
-CPPValue CPPUnsignedLongType::TypeValue(unsigned long inValue)
+CPPPrimitiveValue CPPUnsignedLongType::TypeValue(unsigned long inValue)
 {
-	CPPValue value;
+	CPPPrimitiveValue value;
 	value.mType = eCPPUnsignedLong;
 	value.mULongValue = inValue;
 	return value;
 }
 
-unsigned long CPPUnsignedLongType::ValueType(const CPPValue& inValue)
+unsigned long CPPUnsignedLongType::ValueType(const CPPPrimitiveValue& inValue)
 {
 	return inValue.mULongValue;
 }

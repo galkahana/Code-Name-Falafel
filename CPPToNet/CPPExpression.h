@@ -1,17 +1,17 @@
 #pragma once
 
-#include "CPPValue.h"
+#include "CPPPrimitiveValue.h"
 
 #include <utility>
 
 using namespace std;
 
-typedef pair<bool,CPPValue> BoolAndCPPValue;
+typedef pair<bool,CPPPrimitiveValue> BoolAndCPPPrimitiveValue;
 
 class CPPExpression
 {
 public:
 	virtual ~CPPExpression(void){}
 
-	virtual BoolAndCPPValue Evaluate() = 0;
+	virtual BoolAndCPPPrimitiveValue Evaluate() = 0;
 };

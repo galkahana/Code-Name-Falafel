@@ -35,37 +35,41 @@
 	}
 */
 
-template <class T>
-class MapIterator : public ContainerIterator<T>
+namespace Hummus
 {
-public:
 
-	MapIterator(T& inMap);
-	MapIterator(const MapIterator<T>& inOtherIterator);
+	template <class T>
+	class MapIterator : public ContainerIterator<T>
+	{
+	public:
 
-	typename T::key_type GetKey();
-	typename T::mapped_type GetValue();
+		MapIterator(T& inMap);
+		MapIterator(const MapIterator<T>& inOtherIterator);
 
-};
+		typename T::key_type GetKey();
+		typename T::mapped_type GetValue();
 
-template <class T>
-MapIterator<T>::MapIterator(T& inMap):ContainerIterator(inMap)
-{
-}
+	};
 
-template <class T>
-MapIterator<T>::MapIterator(const MapIterator<T>& inOtherIterator):ContainerIterator(inOtherIterator)
-{
-}
+	template <class T>
+	MapIterator<T>::MapIterator(T& inMap):ContainerIterator(inMap)
+	{
+	}
 
-template <class T>
-typename T::key_type MapIterator<T>::GetKey()
-{
-	return mCurrentPosition->first;
-}
+	template <class T>
+	MapIterator<T>::MapIterator(const MapIterator<T>& inOtherIterator):ContainerIterator(inOtherIterator)
+	{
+	}
 
-template <class T>
-typename T::mapped_type MapIterator<T>::GetValue()
-{
-	return mCurrentPosition->second;
+	template <class T>
+	typename T::key_type MapIterator<T>::GetKey()
+	{
+		return mCurrentPosition->first;
+	}
+
+	template <class T>
+	typename T::mapped_type MapIterator<T>::GetValue()
+	{
+		return mCurrentPosition->second;
+	}
 }

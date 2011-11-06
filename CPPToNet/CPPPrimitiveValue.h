@@ -1,12 +1,12 @@
 #pragma once
 
-#include "CPPTypes.h"
+#include "CPPPrimitiveTypes.h"
 
-struct CPPValue
+struct CPPPrimitiveValue
 {
-	CPPValue(){mType = eCPPInt; mIntValue = 0;}
+	CPPPrimitiveValue(){mType = eCPPInt; mIntValue = 0;}
 
-	ECPPType mType;
+	ECPPPrimitiveType mType;
 	union 
 	{
 		bool mBoolValue;

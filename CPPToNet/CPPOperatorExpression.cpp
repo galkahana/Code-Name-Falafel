@@ -27,7 +27,7 @@ void CPPOperatorExpression::PushOperand(CPPExpression* inExpression)
 class IUnaryOperatorCommand
 {
 public:
-	virtual CPPValue Evaluate(ICPPType* inType, const CPPValue& inOperandValue) = 0 ;
+	virtual CPPPrimitiveValue Evaluate(ICPPPrimitiveType* inType, const CPPPrimitiveValue& inOperandValue) = 0 ;
 };
 
 
@@ -36,7 +36,7 @@ class ExecuteOnesComplement : public IUnaryOperatorCommand
 
 public:
 
-	virtual CPPValue Evaluate(ICPPType* inType,const CPPValue& inOperandValue)
+	virtual CPPPrimitiveValue Evaluate(ICPPPrimitiveType* inType,const CPPPrimitiveValue& inOperandValue)
 	{
 		return inType->OnesComplement(inOperandValue);
 	}
@@ -50,7 +50,7 @@ class ExecuteNot : public IUnaryOperatorCommand
 
 public:
 
-	virtual CPPValue Evaluate(ICPPType* inType,const CPPValue& inOperandValue)
+	virtual CPPPrimitiveValue Evaluate(ICPPPrimitiveType* inType,const CPPPrimitiveValue& inOperandValue)
 	{
 		return inType->Not(inOperandValue);
 	}
@@ -63,7 +63,7 @@ class ExecuteUnaryMinus : public IUnaryOperatorCommand
 
 public:
 
-	virtual CPPValue Evaluate(ICPPType* inType,const CPPValue& inOperandValue)
+	virtual CPPPrimitiveValue Evaluate(ICPPPrimitiveType* inType,const CPPPrimitiveValue& inOperandValue)
 	{
 		return inType->UnaryMinus(inOperandValue);
 	}
@@ -76,7 +76,7 @@ class ExecuteUnaryPlus : public IUnaryOperatorCommand
 
 public:
 
-	virtual CPPValue Evaluate(ICPPType* inType,const CPPValue& inOperandValue)
+	virtual CPPPrimitiveValue Evaluate(ICPPPrimitiveType* inType,const CPPPrimitiveValue& inOperandValue)
 	{
 		return inType->UnaryPlus(inOperandValue);
 	}
@@ -111,9 +111,9 @@ IUnaryOperatorCommand* CPPOperatorExpression::GetUnaryOperatorCommand(ECPPOperat
 	return result;
 }
 
-ICPPType* CPPOperatorExpression::GetTypeClass(ECPPType inType)
+ICPPPrimitiveType* CPPOperatorExpression::GetTypeClass(ECPPPrimitiveType inType)
 {
-	ICPPType* result;
+	ICPPPrimitiveType* result;
 
 	switch(inType)
 	{
@@ -155,10 +155,10 @@ ICPPType* CPPOperatorExpression::GetTypeClass(ECPPType inType)
 	return result;
 }
 
-BoolAndCPPValue CPPOperatorExpression::Evaluate()
+BoolAndCPPPrimitiveValue CPPOperatorExpression::Evaluate()
 {
 	// implementations of operators. evaluation is per operator, 'mfraid.
-	BoolAndCPPValue result(false,CPPValue());
+	BoolAndCPPPrimitiveValue result(false,CPPPrimitiveValue());
 
 
 	switch(mOperator->Type)
@@ -173,7 +173,7 @@ BoolAndCPPValue CPPOperatorExpression::Evaluate()
 		case eCPPOperatorUnaryMinus:
 		case eCPPOperatorUnaryPlus:
 			{
-				BoolAndCPPValue operandValue = mOperands.back()->Evaluate();
+				BoolAndCPPPrimitiveValue operandValue = mOperands.back()->Evaluate();
 				if(!operandValue.first)
 				{
 					TRACE_LOG("CPPOperatorExpression::Evaluate, error in evaluating operand for unary operator");
@@ -206,8 +206,8 @@ BoolAndCPPValue CPPOperatorExpression::Evaluate()
 		case eCPPOperatorExclusiveOr:
 
 			{
-				BoolAndCPPValue leftOperand = mOperands.front()->Evaluate();
-				BoolAndCPPValue rightOperand = mOperands.back()->Evaluate();
+				BoolAndCPPPrimitiveValue leftOperand = mOperands.front()->Evaluate();
+				BoolAndCPPPrimitiveValue rightOperand = mOperands.back()->Evaluate();
 
 				if(!leftOperand.first || !rightOperand.first)
 				{
@@ -229,8 +229,8 @@ BoolAndCPPValue CPPOperatorExpression::Evaluate()
 				// the value on the right is always positive. so i'll cast it always to unsigned long long...and implement
 				// the shift always with this as type on the right.
 
-				BoolAndCPPValue leftOperand = mOperands.front()->Evaluate();
-				BoolAndCPPValue rightOperand = mOperands.back()->Evaluate();
+				BoolAndCPPPrimitiveValue leftOperand = mOperands.front()->Evaluate();
+				BoolAndCPPPrimitiveValue rightOperand = mOperands.back()->Evaluate();
 
 				if(!leftOperand.first || !rightOperand.first)
 				{
@@ -246,7 +246,7 @@ BoolAndCPPValue CPPOperatorExpression::Evaluate()
 
 		case eCPPOperatorLogicalAnd:
 			{
-				BoolAndCPPValue leftOperand = mOperands.front()->Evaluate();
+				BoolAndCPPPrimitiveValue leftOperand = mOperands.front()->Evaluate();
 				if(!leftOperand.first)
 				{
 					TRACE_LOG("CPPOperatorExpression::Evaluate, error in evaluating left operand for logical and");
@@ -261,7 +261,7 @@ BoolAndCPPValue CPPOperatorExpression::Evaluate()
 				}
 
 				// otherwise, the value is excatly the 2nd operand
-				BoolAndCPPValue rightOperand = mOperands.back()->Evaluate();
+				BoolAndCPPPrimitiveValue rightOperand = mOperands.back()->Evaluate();
 				if(!rightOperand.first)
 				{
 					TRACE_LOG("CPPOperatorExpression::Evaluate, error in evaluating right operand for logical and");
@@ -274,7 +274,7 @@ BoolAndCPPValue CPPOperatorExpression::Evaluate()
 
 			case eCPPOperatorLogicalOr:
 			{
-				BoolAndCPPValue leftOperand = mOperands.front()->Evaluate();
+				BoolAndCPPPrimitiveValue leftOperand = mOperands.front()->Evaluate();
 				if(!leftOperand.first)
 				{
 					TRACE_LOG("CPPOperatorExpression::Evaluate, error in evaluating left operand for logical or");
@@ -289,7 +289,7 @@ BoolAndCPPValue CPPOperatorExpression::Evaluate()
 				}
 
 				// otherwise, the value is excatly the 2nd operand
-				BoolAndCPPValue rightOperand = mOperands.back()->Evaluate();
+				BoolAndCPPPrimitiveValue rightOperand = mOperands.back()->Evaluate();
 				if(!rightOperand.first)
 				{
 					TRACE_LOG("CPPOperatorExpression::Evaluate, error in evaluating right operand for logical or");
@@ -305,7 +305,7 @@ BoolAndCPPValue CPPOperatorExpression::Evaluate()
 				CPPExpressionList::iterator it = mOperands.begin();
 
 				// evaluate first. if true return 2nd oprand evaluation, otherwise reutrn 3rd operand evaluations
-				BoolAndCPPValue conditionOperand = (*it)->Evaluate();
+				BoolAndCPPPrimitiveValue conditionOperand = (*it)->Evaluate();
 				if(!conditionOperand.first)
 				{
 					TRACE_LOG("CPPOperatorExpression::Evaluate, error in evaluating condition part of conditional operator");
@@ -329,23 +329,23 @@ BoolAndCPPValue CPPOperatorExpression::Evaluate()
 	return result;
 }
 
-BoolAndCPPValue CPPOperatorExpression::EvaluateDefined()
+BoolAndCPPPrimitiveValue CPPOperatorExpression::EvaluateDefined()
 {
 	// function, accepting a single ExressionSymbol operand
-	CPPValue value;
+	CPPPrimitiveValue value;
 	value.mType = eCPPBool;
 	value.mBoolValue = mSymbolsSource->IsSymbolDefined(((CPPExpressionSymbol*)mOperands.back())->mSymbol);
 
-	return BoolAndCPPValue(true, value);
+	return BoolAndCPPPrimitiveValue(true, value);
 }
 
 class IBinaryOperatorCommand
 {
 public:
-	virtual CPPValue Evaluate(ICPPType* inType, const CPPValue& inLeftOperandValue,const CPPValue& inRightOperandValue) = 0;
+	virtual CPPPrimitiveValue Evaluate(ICPPPrimitiveType* inType, const CPPPrimitiveValue& inLeftOperandValue,const CPPPrimitiveValue& inRightOperandValue) = 0;
 };
 
-CPPValue CPPOperatorExpression::EvaluateBinaryOperator(ECPPOperatorType inOperatorType,const CPPValue& inLeftOperand, const CPPValue& inRightOperand)
+CPPPrimitiveValue CPPOperatorExpression::EvaluateBinaryOperator(ECPPOperatorType inOperatorType,const CPPPrimitiveValue& inLeftOperand, const CPPPrimitiveValue& inRightOperand)
 {
 	// easy case, both types are the same.
 	if(inLeftOperand.mType == inRightOperand.mType)
@@ -443,7 +443,7 @@ class ExecuteMultiplication : public IBinaryOperatorCommand
 
 public:
 
-	virtual CPPValue Evaluate(ICPPType* inType, const CPPValue& inLeftOperandValue,const CPPValue& inRightOperandValue)
+	virtual CPPPrimitiveValue Evaluate(ICPPPrimitiveType* inType, const CPPPrimitiveValue& inLeftOperandValue,const CPPPrimitiveValue& inRightOperandValue)
 	{
 		return inType->Multiply(inLeftOperandValue,inRightOperandValue);
 	}
@@ -457,7 +457,7 @@ class ExecuteDivision : public IBinaryOperatorCommand
 
 public:
 
-	virtual CPPValue Evaluate(ICPPType* inType, const CPPValue& inLeftOperandValue,const CPPValue& inRightOperandValue)
+	virtual CPPPrimitiveValue Evaluate(ICPPPrimitiveType* inType, const CPPPrimitiveValue& inLeftOperandValue,const CPPPrimitiveValue& inRightOperandValue)
 	{
 		return inType->Divide(inLeftOperandValue,inRightOperandValue);
 	}
@@ -472,7 +472,7 @@ class ExecuteModulus : public IBinaryOperatorCommand
 
 public:
 
-	virtual CPPValue Evaluate(ICPPType* inType, const CPPValue& inLeftOperandValue,const CPPValue& inRightOperandValue)
+	virtual CPPPrimitiveValue Evaluate(ICPPPrimitiveType* inType, const CPPPrimitiveValue& inLeftOperandValue,const CPPPrimitiveValue& inRightOperandValue)
 	{
 		return inType->Modulus(inLeftOperandValue,inRightOperandValue);
 	}
@@ -486,7 +486,7 @@ class ExecuteAddition : public IBinaryOperatorCommand
 
 public:
 
-	virtual CPPValue Evaluate(ICPPType* inType, const CPPValue& inLeftOperandValue,const CPPValue& inRightOperandValue)
+	virtual CPPPrimitiveValue Evaluate(ICPPPrimitiveType* inType, const CPPPrimitiveValue& inLeftOperandValue,const CPPPrimitiveValue& inRightOperandValue)
 	{
 		return inType->Add(inLeftOperandValue,inRightOperandValue);
 	}
@@ -500,7 +500,7 @@ class ExecuteSubtraction : public IBinaryOperatorCommand
 
 public:
 
-	virtual CPPValue Evaluate(ICPPType* inType, const CPPValue& inLeftOperandValue,const CPPValue& inRightOperandValue)
+	virtual CPPPrimitiveValue Evaluate(ICPPPrimitiveType* inType, const CPPPrimitiveValue& inLeftOperandValue,const CPPPrimitiveValue& inRightOperandValue)
 	{
 		return inType->Subtract(inLeftOperandValue,inRightOperandValue);
 	}
@@ -514,7 +514,7 @@ class ExecuteLeftByteShift : public IBinaryOperatorCommand
 
 public:
 
-	virtual CPPValue Evaluate(ICPPType* inType, const CPPValue& inLeftOperandValue,const CPPValue& inRightOperandValue)
+	virtual CPPPrimitiveValue Evaluate(ICPPPrimitiveType* inType, const CPPPrimitiveValue& inLeftOperandValue,const CPPPrimitiveValue& inRightOperandValue)
 	{
 		return inType->LeftByteShift(inLeftOperandValue,inRightOperandValue);
 	}
@@ -528,7 +528,7 @@ class ExecuteRightByteShift : public IBinaryOperatorCommand
 
 public:
 
-	virtual CPPValue Evaluate(ICPPType* inType, const CPPValue& inLeftOperandValue,const CPPValue& inRightOperandValue)
+	virtual CPPPrimitiveValue Evaluate(ICPPPrimitiveType* inType, const CPPPrimitiveValue& inLeftOperandValue,const CPPPrimitiveValue& inRightOperandValue)
 	{
 		return inType->RightByteShift(inLeftOperandValue,inRightOperandValue);
 	}
@@ -542,7 +542,7 @@ class ExecuteLessThan : public IBinaryOperatorCommand
 
 public:
 
-	virtual CPPValue Evaluate(ICPPType* inType, const CPPValue& inLeftOperandValue,const CPPValue& inRightOperandValue)
+	virtual CPPPrimitiveValue Evaluate(ICPPPrimitiveType* inType, const CPPPrimitiveValue& inLeftOperandValue,const CPPPrimitiveValue& inRightOperandValue)
 	{
 		return inType->LessThan(inLeftOperandValue,inRightOperandValue);
 	}
@@ -556,7 +556,7 @@ class ExecuteGreaterThan : public IBinaryOperatorCommand
 
 public:
 
-	virtual CPPValue Evaluate(ICPPType* inType, const CPPValue& inLeftOperandValue,const CPPValue& inRightOperandValue)
+	virtual CPPPrimitiveValue Evaluate(ICPPPrimitiveType* inType, const CPPPrimitiveValue& inLeftOperandValue,const CPPPrimitiveValue& inRightOperandValue)
 	{
 		return inType->GreaterThan(inLeftOperandValue,inRightOperandValue);
 	}
@@ -570,7 +570,7 @@ class ExecutesLessThanOrEqual : public IBinaryOperatorCommand
 
 public:
 
-	virtual CPPValue Evaluate(ICPPType* inType, const CPPValue& inLeftOperandValue,const CPPValue& inRightOperandValue)
+	virtual CPPPrimitiveValue Evaluate(ICPPPrimitiveType* inType, const CPPPrimitiveValue& inLeftOperandValue,const CPPPrimitiveValue& inRightOperandValue)
 	{
 		return inType->LessThanOrEqual(inLeftOperandValue,inRightOperandValue);
 	}
@@ -584,7 +584,7 @@ class ExecutesGreaterThanOrEqual : public IBinaryOperatorCommand
 
 public:
 
-	virtual CPPValue Evaluate(ICPPType* inType, const CPPValue& inLeftOperandValue,const CPPValue& inRightOperandValue)
+	virtual CPPPrimitiveValue Evaluate(ICPPPrimitiveType* inType, const CPPPrimitiveValue& inLeftOperandValue,const CPPPrimitiveValue& inRightOperandValue)
 	{
 		return inType->GreaterThanOrEqual(inLeftOperandValue,inRightOperandValue);
 	}
@@ -598,7 +598,7 @@ class ExecutesEquality : public IBinaryOperatorCommand
 
 public:
 
-	virtual CPPValue Evaluate(ICPPType* inType, const CPPValue& inLeftOperandValue,const CPPValue& inRightOperandValue)
+	virtual CPPPrimitiveValue Evaluate(ICPPPrimitiveType* inType, const CPPPrimitiveValue& inLeftOperandValue,const CPPPrimitiveValue& inRightOperandValue)
 	{
 		return inType->Equal(inLeftOperandValue,inRightOperandValue);
 	}
@@ -612,7 +612,7 @@ class ExecutesInequality : public IBinaryOperatorCommand
 
 public:
 
-	virtual CPPValue Evaluate(ICPPType* inType, const CPPValue& inLeftOperandValue,const CPPValue& inRightOperandValue)
+	virtual CPPPrimitiveValue Evaluate(ICPPPrimitiveType* inType, const CPPPrimitiveValue& inLeftOperandValue,const CPPPrimitiveValue& inRightOperandValue)
 	{
 		return inType->NotEqual(inLeftOperandValue,inRightOperandValue);
 	}
@@ -626,7 +626,7 @@ class ExecutesBitwiseAnd : public IBinaryOperatorCommand
 
 public:
 
-	virtual CPPValue Evaluate(ICPPType* inType, const CPPValue& inLeftOperandValue,const CPPValue& inRightOperandValue)
+	virtual CPPPrimitiveValue Evaluate(ICPPPrimitiveType* inType, const CPPPrimitiveValue& inLeftOperandValue,const CPPPrimitiveValue& inRightOperandValue)
 	{
 		return inType->BitwiseAnd(inLeftOperandValue,inRightOperandValue);
 	}
@@ -640,7 +640,7 @@ class ExecutesBitwiseOr : public IBinaryOperatorCommand
 
 public:
 
-	virtual CPPValue Evaluate(ICPPType* inType, const CPPValue& inLeftOperandValue,const CPPValue& inRightOperandValue)
+	virtual CPPPrimitiveValue Evaluate(ICPPPrimitiveType* inType, const CPPPrimitiveValue& inLeftOperandValue,const CPPPrimitiveValue& inRightOperandValue)
 	{
 		return inType->BitwiseOr(inLeftOperandValue,inRightOperandValue);
 	}
@@ -654,7 +654,7 @@ class ExecutesExclusiveOr : public IBinaryOperatorCommand
 
 public:
 
-	virtual CPPValue Evaluate(ICPPType* inType, const CPPValue& inLeftOperandValue,const CPPValue& inRightOperandValue)
+	virtual CPPPrimitiveValue Evaluate(ICPPPrimitiveType* inType, const CPPPrimitiveValue& inLeftOperandValue,const CPPPrimitiveValue& inRightOperandValue)
 	{
 		return inType->ExclusiveOr(inLeftOperandValue,inRightOperandValue);
 	}
@@ -726,7 +726,7 @@ IBinaryOperatorCommand* CPPOperatorExpression::GetBinaryOperatorCommand(ECPPOper
 }
 
 
-CPPValue CPPOperatorExpression::EvaluateShiftOperator(ECPPOperatorType inOperatorType,const CPPValue& inLeftOperand, const CPPValue& inRightOperand)
+CPPPrimitiveValue CPPOperatorExpression::EvaluateShiftOperator(ECPPOperatorType inOperatorType,const CPPPrimitiveValue& inLeftOperand, const CPPPrimitiveValue& inRightOperand)
 {
 	// make  the 2nd operand unsigned long long, so we're always providing the same type to shift action...so i can write less code.
 	

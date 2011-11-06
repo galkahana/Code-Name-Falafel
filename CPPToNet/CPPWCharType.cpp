@@ -1,14 +1,14 @@
 #include "CPPWCharType.h"
 
-CPPValue CPPWCharType::TypeValue(wchar_t inValue)
+CPPPrimitiveValue CPPWCharType::TypeValue(wchar_t inValue)
 {
-	CPPValue value;
+	CPPPrimitiveValue value;
 	value.mType = eCPPWChar;
 	value.mWCharValue = inValue;
 	return value;
 }
 
-wchar_t CPPWCharType::ValueType(const CPPValue& inValue)
+wchar_t CPPWCharType::ValueType(const CPPPrimitiveValue& inValue)
 {
 	return inValue.mWCharValue;
 }

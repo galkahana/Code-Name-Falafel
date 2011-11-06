@@ -19,7 +19,7 @@ using namespace std;
 class PreProcessor;
 class IUnaryOperatorCommand;
 class IBinaryOperatorCommand;
-class ICPPType;
+class ICPPPrimitiveType;
 
 typedef list<CPPExpression*> CPPExpressionList;
 
@@ -31,7 +31,7 @@ public:
 
 	void PushOperand(CPPExpression* inExpression);
 
-	virtual BoolAndCPPValue Evaluate();
+	virtual BoolAndCPPPrimitiveValue Evaluate();
 
 private:
 	CPPOperator* mOperator;
@@ -51,12 +51,12 @@ private:
 	CPPLongLongType mLongLongType;
 	CPPULongLongType mULongLongType;
 
-	BoolAndCPPValue EvaluateDefined();
+	BoolAndCPPPrimitiveValue EvaluateDefined();
 
 	IUnaryOperatorCommand* GetUnaryOperatorCommand(ECPPOperatorType inType);
-	ICPPType* GetTypeClass(ECPPType inType);
-	CPPValue EvaluateBinaryOperator(ECPPOperatorType inOperatorType,const CPPValue& inLeftOperand, const CPPValue& inRightOperand);
+	ICPPPrimitiveType* GetTypeClass(ECPPPrimitiveType inType);
+	CPPPrimitiveValue EvaluateBinaryOperator(ECPPOperatorType inOperatorType,const CPPPrimitiveValue& inLeftOperand, const CPPPrimitiveValue& inRightOperand);
 	IBinaryOperatorCommand* GetBinaryOperatorCommand(ECPPOperatorType inType);
-	CPPValue EvaluateShiftOperator(ECPPOperatorType inOperatorType,const CPPValue& inLeftOperand, const CPPValue& inRightOperand);
+	CPPPrimitiveValue EvaluateShiftOperator(ECPPOperatorType inOperatorType,const CPPPrimitiveValue& inLeftOperand, const CPPPrimitiveValue& inRightOperand);
 
 };

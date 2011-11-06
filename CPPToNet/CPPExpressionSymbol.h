@@ -12,7 +12,7 @@ public:
 	~CPPExpressionSymbol(void);
 
 	// evaluate for symbol always fails, because symbol is only used in the context of defined, which uses it explicitly, otherwise it's just illegal.
-	virtual BoolAndCPPValue Evaluate();
+	virtual BoolAndCPPPrimitiveValue Evaluate();
 
 	string mSymbol;
 

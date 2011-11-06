@@ -1,14 +1,14 @@
 #include "CPPUnsignedIntType.h"
 
-CPPValue CPPUnsignedIntType::TypeValue(unsigned inValue)
+CPPPrimitiveValue CPPUnsignedIntType::TypeValue(unsigned inValue)
 {
-	CPPValue value;
+	CPPPrimitiveValue value;
 	value.mType = eCPPUnsigned;
 	value.mUIntValue = inValue;
 	return value;
 }
 
-unsigned CPPUnsignedIntType::ValueType(const CPPValue& inValue)
+unsigned CPPUnsignedIntType::ValueType(const CPPPrimitiveValue& inValue)
 {
 	return inValue.mUIntValue;
 }

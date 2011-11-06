@@ -1,6 +1,6 @@
 #pragma once
 #include "CPPExpression.h"
-#include "CPPTypes.h"
+#include "CPPPrimitiveTypes.h"
 
 class CPPExpressionInteger : public CPPExpression
 {
@@ -17,12 +17,12 @@ public:
 	CPPExpressionInteger(unsigned long long inULongLongValue);
 	~CPPExpressionInteger(void);
 
-	virtual BoolAndCPPValue Evaluate();
+	virtual BoolAndCPPPrimitiveValue Evaluate();
 
 private:
 
 
-	ECPPType mType;
+	ECPPPrimitiveType mType;
 	union 
 	{
 		bool mBoolValue;

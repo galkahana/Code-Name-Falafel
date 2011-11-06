@@ -1,50 +1,50 @@
 #pragma once
 
-#include "ICPPType.h"
-#include "CPPValue.h"
+#include "ICPPPrimitiveType.h"
+#include "CPPPrimitiveValue.h"
 
-class CPPBoolType : public ICPPType
+class CPPBoolType : public ICPPPrimitiveType
 {
 public:
 	CPPBoolType();
 	~CPPBoolType(void);
 
 	// Unary operators implementation
-	virtual CPPValue OnesComplement(const CPPValue& inValue);
-	virtual CPPValue Not(const CPPValue& inValue);
-	virtual CPPValue UnaryMinus(const CPPValue& inValue);
-	virtual CPPValue UnaryPlus(const CPPValue& inValue);
+	virtual CPPPrimitiveValue OnesComplement(const CPPPrimitiveValue& inValue);
+	virtual CPPPrimitiveValue Not(const CPPPrimitiveValue& inValue);
+	virtual CPPPrimitiveValue UnaryMinus(const CPPPrimitiveValue& inValue);
+	virtual CPPPrimitiveValue UnaryPlus(const CPPPrimitiveValue& inValue);
 
-	virtual CPPValue ToULongLong(const CPPValue& inValue);
-	virtual CPPValue ToLongLong(const CPPValue& inValue);
-	virtual CPPValue ToULong(const CPPValue& inValue);
-	virtual CPPValue ToLong(const CPPValue& inValue);
-	virtual CPPValue ToUnsignedInt(const CPPValue& inValue);
-	virtual CPPValue ToInt(const CPPValue& inValue);
-	virtual CPPValue ToBool(const CPPValue& inValue);
+	virtual CPPPrimitiveValue ToULongLong(const CPPPrimitiveValue& inValue);
+	virtual CPPPrimitiveValue ToLongLong(const CPPPrimitiveValue& inValue);
+	virtual CPPPrimitiveValue ToULong(const CPPPrimitiveValue& inValue);
+	virtual CPPPrimitiveValue ToLong(const CPPPrimitiveValue& inValue);
+	virtual CPPPrimitiveValue ToUnsignedInt(const CPPPrimitiveValue& inValue);
+	virtual CPPPrimitiveValue ToInt(const CPPPrimitiveValue& inValue);
+	virtual CPPPrimitiveValue ToBool(const CPPPrimitiveValue& inValue);
 
-	virtual CPPValue Multiply(const CPPValue& inLeftValue,const CPPValue& inRightValue);
-	virtual CPPValue Divide(const CPPValue& inLeftValue,const CPPValue& inRightValue);
-	virtual CPPValue Modulus(const CPPValue& inLeftValue,const CPPValue& inRightValue);
-	virtual CPPValue Add(const CPPValue& inLeftValue,const CPPValue& inRightValue);
-	virtual CPPValue Subtract(const CPPValue& inLeftValue,const CPPValue& inRightValue);
+	virtual CPPPrimitiveValue Multiply(const CPPPrimitiveValue& inLeftValue,const CPPPrimitiveValue& inRightValue);
+	virtual CPPPrimitiveValue Divide(const CPPPrimitiveValue& inLeftValue,const CPPPrimitiveValue& inRightValue);
+	virtual CPPPrimitiveValue Modulus(const CPPPrimitiveValue& inLeftValue,const CPPPrimitiveValue& inRightValue);
+	virtual CPPPrimitiveValue Add(const CPPPrimitiveValue& inLeftValue,const CPPPrimitiveValue& inRightValue);
+	virtual CPPPrimitiveValue Subtract(const CPPPrimitiveValue& inLeftValue,const CPPPrimitiveValue& inRightValue);
 
-	virtual CPPValue LeftByteShift(const CPPValue& inLeftValue,const CPPValue& inRightValue);
-	virtual CPPValue RightByteShift(const CPPValue& inLeftValue,const CPPValue& inRightValue);
+	virtual CPPPrimitiveValue LeftByteShift(const CPPPrimitiveValue& inLeftValue,const CPPPrimitiveValue& inRightValue);
+	virtual CPPPrimitiveValue RightByteShift(const CPPPrimitiveValue& inLeftValue,const CPPPrimitiveValue& inRightValue);
 
-	virtual CPPValue LessThan(const CPPValue& inLeftValue,const CPPValue& inRightValue);
-	virtual CPPValue GreaterThan(const CPPValue& inLeftValue,const CPPValue& inRightValue);
-	virtual CPPValue LessThanOrEqual(const CPPValue& inLeftValue,const CPPValue& inRightValue);
-	virtual CPPValue GreaterThanOrEqual(const CPPValue& inLeftValue,const CPPValue& inRightValue);
-	virtual CPPValue Equal(const CPPValue& inLeftValue,const CPPValue& inRightValue);
-	virtual CPPValue NotEqual(const CPPValue& inLeftValue,const CPPValue& inRightValue);
+	virtual CPPPrimitiveValue LessThan(const CPPPrimitiveValue& inLeftValue,const CPPPrimitiveValue& inRightValue);
+	virtual CPPPrimitiveValue GreaterThan(const CPPPrimitiveValue& inLeftValue,const CPPPrimitiveValue& inRightValue);
+	virtual CPPPrimitiveValue LessThanOrEqual(const CPPPrimitiveValue& inLeftValue,const CPPPrimitiveValue& inRightValue);
+	virtual CPPPrimitiveValue GreaterThanOrEqual(const CPPPrimitiveValue& inLeftValue,const CPPPrimitiveValue& inRightValue);
+	virtual CPPPrimitiveValue Equal(const CPPPrimitiveValue& inLeftValue,const CPPPrimitiveValue& inRightValue);
+	virtual CPPPrimitiveValue NotEqual(const CPPPrimitiveValue& inLeftValue,const CPPPrimitiveValue& inRightValue);
 
-	virtual CPPValue BitwiseAnd(const CPPValue& inLeftValue,const CPPValue& inRightValue);
-	virtual CPPValue BitwiseOr(const CPPValue& inLeftValue,const CPPValue& inRightValue);
-	virtual CPPValue ExclusiveOr(const CPPValue& inLeftValue,const CPPValue& inRightValue);
+	virtual CPPPrimitiveValue BitwiseAnd(const CPPPrimitiveValue& inLeftValue,const CPPPrimitiveValue& inRightValue);
+	virtual CPPPrimitiveValue BitwiseOr(const CPPPrimitiveValue& inLeftValue,const CPPPrimitiveValue& inRightValue);
+	virtual CPPPrimitiveValue ExclusiveOr(const CPPPrimitiveValue& inLeftValue,const CPPPrimitiveValue& inRightValue);
 
 private:
 
-	CPPValue BoolValue(bool inValue);
-	int AsInt(const CPPValue& inValue);
+	CPPPrimitiveValue BoolValue(bool inValue);
+	int AsInt(const CPPPrimitiveValue& inValue);
 };
