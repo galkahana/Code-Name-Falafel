@@ -26,18 +26,16 @@ typedef list<CPPExpression*> CPPExpressionList;
 class CPPOperatorExpression : public CPPExpression
 {
 public:
-	CPPOperatorExpression(CPPOperator* inOperator,PreProcessor* inSymbolsSource);
+	CPPOperatorExpression(CPPOperator* inOperator);
 	virtual ~CPPOperatorExpression(void);
 
 	void PushOperand(CPPExpression* inExpression);
 
-	virtual BoolAndCPPPrimitiveValue Evaluate();
+	virtual BoolAndCPPPrimitiveValue Evaluate(IExpressionEvaluationContext* inContext);
 
 private:
 	CPPOperator* mOperator;
 	CPPExpressionList mOperands;
-	PreProcessor* mSymbolsSource;
-
 
 	// primitive types
 	CPPBoolType mBoolType;
@@ -50,8 +48,6 @@ private:
 	CPPUnsignedLongType mULongType;
 	CPPLongLongType mLongLongType;
 	CPPULongLongType mULongLongType;
-
-	BoolAndCPPPrimitiveValue EvaluateDefined();
 
 	IUnaryOperatorCommand* GetUnaryOperatorCommand(ECPPOperatorType inType);
 	ICPPPrimitiveType* GetTypeClass(ECPPPrimitiveType inType);

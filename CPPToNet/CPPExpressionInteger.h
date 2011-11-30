@@ -17,7 +17,7 @@ public:
 	CPPExpressionInteger(unsigned long long inULongLongValue);
 	~CPPExpressionInteger(void);
 
-	virtual BoolAndCPPPrimitiveValue Evaluate();
+	virtual BoolAndCPPPrimitiveValue Evaluate(IExpressionEvaluationContext* inContext);
 
 private:
 

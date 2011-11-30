@@ -36,7 +36,7 @@
 	}
 */
 
-using namespace Hummus
+namespace Hummus
 {
 
 	template <class T>

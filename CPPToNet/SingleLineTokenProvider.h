@@ -1,21 +1,25 @@
 #pragma once
 
-#include "IPreprocessorConditionTokenProvider.h"
+#include "ITokenProvider.h"
+#include "PreProcessor.h"
+#include "IPreprocessorListener.h"
 
-class PreProcessor;
-
-class SingleLineTokenProvider : public IPreprocessorConditionTokenProvider
+class SingleLineTokenProvider : public ITokenProvider, public IPreprocessorListener
 {
 public:
-	SingleLineTokenProvider(PreProcessor* inPreProcessor);
+	SingleLineTokenProvider(PreProcessor* inTokensSource);
 	~SingleLineTokenProvider(void);
 
-
+	// ITokenProvider implementation
 	virtual BoolAndString GetNextToken();
-	virtual BoolAndString GetNextTokenNoMacroReplacement();
+	virtual void PutBackToken(const string& inToken);
+
+	// IPreprocessorListener implementation
+	virtual void OnNewLine(const string& inNewLineString);
+
 
 private:
-	PreProcessor* mPreProcessor;
+	PreProcessor* mTokensSource;
 	bool mNewLineEncountered;
 
 	bool IsNewLineToken(const string& inToken);

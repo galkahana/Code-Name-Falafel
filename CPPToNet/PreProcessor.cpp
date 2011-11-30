@@ -44,6 +44,7 @@ void PreProcessor::Reset()
 	mDontInclude.clear();
 	mConditionalIteration = 0;
 	mSkippingConditionals = false;
+	mNoMacroReplacemeentState = false;
 }
 
 void PreProcessor::Setup(IByteReader* inSourceStream,
@@ -78,7 +79,21 @@ void PreProcessor::Setup(IByteReader* inSourceStream,
 
 BoolAndString PreProcessor::GetNextToken()
 {
-	return GetNextToken(true);
+	if(mTokensStack.size() == 0)
+	{
+		return GetNextToken(true);
+	}
+	else
+	{
+		string nextToken = mTokensStack.back();
+		mTokensStack.pop_back();
+		return BoolAndString(true,nextToken);
+	}
+}
+
+void PreProcessor::PutBackToken(const string& inToken)
+{
+	mTokensStack.push_back(inToken);
 }
 
 
@@ -98,23 +113,30 @@ BoolAndString PreProcessor::GetNextToken(bool inSkipNewLines)
 
 	// first thing to realize is whether we have an defined identifier here. if this is the case, need to stop and switch context
 	// to idetnfier
-	StringToDefineIdentifierDefinitionMap::iterator itDefine = mDefines.find(tokenizerResult.second);
-	if(itDefine != mDefines.end())
+	if(mNoMacroReplacemeentState)
 	{
-		if(mUsedDefines.find(tokenizerResult.second) != mUsedDefines.end())
+		DetermineContinuedNoReplaceement(tokenizerResult.second);
+	}
+	else
+	{
+		StringToDefineIdentifierDefinitionMap::iterator itDefine = mDefines.find(tokenizerResult.second);
+		if(itDefine != mDefines.end())
 		{
-			TRACE_LOG1("PreProcessor::GetNextToken, circular macro usage identified, ingoring macro replacement. identifier = %s",tokenizerResult.second.c_str());
-		}
-		else
-		{
-			// hurrah! define symbol. move control to a symbol definition
-			IPreprocessorTokenProvider* provider = itDefine->second->CreateTokenProvider(this);
-			if(!provider)
-				return BoolAndString(false,"");
-			mTokenSubcontructors.push_back(provider);
-			mUsedDefines.insert(tokenizerResult.second);
-			mIdentifierTokens.insert(IPreprocessorTokenProviderToStringMap::value_type(provider,tokenizerResult.second));
-			return GetNextToken();
+			if(mUsedDefines.find(tokenizerResult.second) != mUsedDefines.end())
+			{
+				TRACE_LOG1("PreProcessor::GetNextToken, circular macro usage identified, ingoring macro replacement. identifier = %s",tokenizerResult.second.c_str());
+			}
+			else
+			{
+				// hurrah! define symbol. move control to a symbol definition
+				IPreprocessorTokenProvider* provider = itDefine->second->CreateTokenProvider(this);
+				if(!provider)
+					return BoolAndString(false,"");
+				mTokenSubcontructors.push_back(provider);
+				mUsedDefines.insert(tokenizerResult.second);
+				mIdentifierTokens.insert(IPreprocessorTokenProviderToStringMap::value_type(provider,tokenizerResult.second));
+				return GetNextToken();
+			}
 		}
 	}
 
@@ -202,6 +224,9 @@ BoolAndString PreProcessor::GetNextToken(bool inSkipNewLines)
 	}
 	else 
 	{
+		// setup "defined" state, where no macro replacement should occur, if token is "defined"
+		if(tokenizerResult.second == "defined")
+			mNoMacroReplacemeentState = true;
 		return tokenizerResult;
 	}
 }
@@ -942,7 +967,7 @@ BoolAndBool PreProcessor::EvaluateConstantExpression(const string& inConditionTy
 			SingleLineTokenProvider tokenProviderForConditional(this);
 			CPPExpressionParser expressionParser;
 
-			BoolAndCPPExpression expressionBuildResult = expressionParser.ParseExpression(&tokenProviderForConditional,this);
+			BoolAndCPPExpression expressionBuildResult = expressionParser.ParseExpression(&tokenProviderForConditional);
 
 			if(!expressionBuildResult.first)
 			{
@@ -951,7 +976,7 @@ BoolAndBool PreProcessor::EvaluateConstantExpression(const string& inConditionTy
 			}
 			expression = expressionBuildResult.second;
 
-			BoolAndCPPPrimitiveValue expressionEvalResult =  expression->Evaluate();
+			BoolAndCPPPrimitiveValue expressionEvalResult =  expression->Evaluate(this);
 
 			if(!expressionEvalResult.first)
 			{
@@ -1022,11 +1047,6 @@ bool PreProcessor::GetAsBoolean(const CPPPrimitiveValue& inValue)
 	return value;
 }
 
-bool PreProcessor::IsSymbolDefined(const string& inSymbol)
-{
-	return mDefines.find(inSymbol) != mDefines.end();
-}
-
 void PreProcessor::AddListener(IPreprocessorListener* inListener)
 {
 	mListeners.insert(inListener);
@@ -1043,4 +1063,20 @@ void PreProcessor::FireNewLine(const string& inNewLineString)
 
 	for(; it != mListeners.end(); ++it)
 		(*it)->OnNewLine(inNewLineString);
+}
+
+void PreProcessor::DetermineContinuedNoReplaceement(const std::string &inToken)
+{
+	if(inToken == ")")
+		--mParanthesisLevel;
+
+	if(inToken == "(")
+		++mParanthesisLevel;
+
+	mNoMacroReplacemeentState = (mParanthesisLevel != 0);
+}
+
+EStatusCodeAndBool PreProcessor::IsPreprocessorSymbolDefined(const string& inSymbol)
+{
+	return EStatusCodeAndBool(eSuccess,mDefines.find(inSymbol) != mDefines.end());
 }

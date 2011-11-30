@@ -1,12 +1,11 @@
 #include "CPPOperatorExpression.h"
 #include "PreProcessor.h"
-#include "CPPExpressionSymbol.h"
 #include "Trace.h"
+#include "CPPExpressionVariable.h"
 
-CPPOperatorExpression::CPPOperatorExpression(CPPOperator* inOperator,PreProcessor* inSymbolsSource)
+CPPOperatorExpression::CPPOperatorExpression(CPPOperator* inOperator):CPPExpression(CPPExpression::eCPPExpressionOperator)
 {
 	mOperator = inOperator;
-	mSymbolsSource = inSymbolsSource;
 }
 
 CPPOperatorExpression::~CPPOperatorExpression(void)
@@ -148,14 +147,14 @@ ICPPPrimitiveType* CPPOperatorExpression::GetTypeClass(ECPPPrimitiveType inType)
 			result = &mULongLongType;
 			break;
 		default:
-			result = NULL; // but then it shouldn't really happen
+			result = NULL; // only integers are supported
 			break;
 	}
 
 	return result;
 }
 
-BoolAndCPPPrimitiveValue CPPOperatorExpression::Evaluate()
+BoolAndCPPPrimitiveValue CPPOperatorExpression::Evaluate(IExpressionEvaluationContext* inContext)
 {
 	// implementations of operators. evaluation is per operator, 'mfraid.
 	BoolAndCPPPrimitiveValue result(false,CPPPrimitiveValue());
@@ -163,17 +162,13 @@ BoolAndCPPPrimitiveValue CPPOperatorExpression::Evaluate()
 
 	switch(mOperator->Type)
 	{
-		case eCPPOperatorDefined:
-			result = EvaluateDefined();
-			break;
-	
 		// unary operators
 		case eCPPOperatorOnesComplement:
 		case eCPPOperatorNot:
 		case eCPPOperatorUnaryMinus:
 		case eCPPOperatorUnaryPlus:
 			{
-				BoolAndCPPPrimitiveValue operandValue = mOperands.back()->Evaluate();
+				BoolAndCPPPrimitiveValue operandValue = mOperands.back()->Evaluate(inContext);
 				if(!operandValue.first)
 				{
 					TRACE_LOG("CPPOperatorExpression::Evaluate, error in evaluating operand for unary operator");
@@ -206,8 +201,8 @@ BoolAndCPPPrimitiveValue CPPOperatorExpression::Evaluate()
 		case eCPPOperatorExclusiveOr:
 
 			{
-				BoolAndCPPPrimitiveValue leftOperand = mOperands.front()->Evaluate();
-				BoolAndCPPPrimitiveValue rightOperand = mOperands.back()->Evaluate();
+				BoolAndCPPPrimitiveValue leftOperand = mOperands.front()->Evaluate(inContext);
+				BoolAndCPPPrimitiveValue rightOperand = mOperands.back()->Evaluate(inContext);
 
 				if(!leftOperand.first || !rightOperand.first)
 				{
@@ -229,8 +224,8 @@ BoolAndCPPPrimitiveValue CPPOperatorExpression::Evaluate()
 				// the value on the right is always positive. so i'll cast it always to unsigned long long...and implement
 				// the shift always with this as type on the right.
 
-				BoolAndCPPPrimitiveValue leftOperand = mOperands.front()->Evaluate();
-				BoolAndCPPPrimitiveValue rightOperand = mOperands.back()->Evaluate();
+				BoolAndCPPPrimitiveValue leftOperand = mOperands.front()->Evaluate(inContext);
+				BoolAndCPPPrimitiveValue rightOperand = mOperands.back()->Evaluate(inContext);
 
 				if(!leftOperand.first || !rightOperand.first)
 				{
@@ -246,7 +241,7 @@ BoolAndCPPPrimitiveValue CPPOperatorExpression::Evaluate()
 
 		case eCPPOperatorLogicalAnd:
 			{
-				BoolAndCPPPrimitiveValue leftOperand = mOperands.front()->Evaluate();
+				BoolAndCPPPrimitiveValue leftOperand = mOperands.front()->Evaluate(inContext);
 				if(!leftOperand.first)
 				{
 					TRACE_LOG("CPPOperatorExpression::Evaluate, error in evaluating left operand for logical and");
@@ -261,7 +256,7 @@ BoolAndCPPPrimitiveValue CPPOperatorExpression::Evaluate()
 				}
 
 				// otherwise, the value is excatly the 2nd operand
-				BoolAndCPPPrimitiveValue rightOperand = mOperands.back()->Evaluate();
+				BoolAndCPPPrimitiveValue rightOperand = mOperands.back()->Evaluate(inContext);
 				if(!rightOperand.first)
 				{
 					TRACE_LOG("CPPOperatorExpression::Evaluate, error in evaluating right operand for logical and");
@@ -274,7 +269,7 @@ BoolAndCPPPrimitiveValue CPPOperatorExpression::Evaluate()
 
 			case eCPPOperatorLogicalOr:
 			{
-				BoolAndCPPPrimitiveValue leftOperand = mOperands.front()->Evaluate();
+				BoolAndCPPPrimitiveValue leftOperand = mOperands.front()->Evaluate(inContext);
 				if(!leftOperand.first)
 				{
 					TRACE_LOG("CPPOperatorExpression::Evaluate, error in evaluating left operand for logical or");
@@ -289,7 +284,7 @@ BoolAndCPPPrimitiveValue CPPOperatorExpression::Evaluate()
 				}
 
 				// otherwise, the value is excatly the 2nd operand
-				BoolAndCPPPrimitiveValue rightOperand = mOperands.back()->Evaluate();
+				BoolAndCPPPrimitiveValue rightOperand = mOperands.back()->Evaluate(inContext);
 				if(!rightOperand.first)
 				{
 					TRACE_LOG("CPPOperatorExpression::Evaluate, error in evaluating right operand for logical or");
@@ -305,7 +300,7 @@ BoolAndCPPPrimitiveValue CPPOperatorExpression::Evaluate()
 				CPPExpressionList::iterator it = mOperands.begin();
 
 				// evaluate first. if true return 2nd oprand evaluation, otherwise reutrn 3rd operand evaluations
-				BoolAndCPPPrimitiveValue conditionOperand = (*it)->Evaluate();
+				BoolAndCPPPrimitiveValue conditionOperand = (*it)->Evaluate(inContext);
 				if(!conditionOperand.first)
 				{
 					TRACE_LOG("CPPOperatorExpression::Evaluate, error in evaluating condition part of conditional operator");
@@ -315,28 +310,52 @@ BoolAndCPPPrimitiveValue CPPOperatorExpression::Evaluate()
 				++it;
 				if(GetTypeClass(conditionOperand.second.mType)->ToBool(conditionOperand.second).mBoolValue)
 				{
-					result = (*it)->Evaluate();
+					result = (*it)->Evaluate(inContext);
 				}
 				else
 				{
 					++it;
-					result = (*it)->Evaluate();
+					result = (*it)->Evaluate(inContext);
 				}
 				break;
 			}
+			case eCPPOperatorDefined:
+			{
+				// for a define the internal variable should be a CPPExpressionVariable and it should hold the name of the symbol to look for
+				if(mOperands.front()->Type == CPPExpression::eCPPExpressionVariable)
+				{
+					if(!inContext)
+					{
+						TRACE_LOG("CPPOperatorExpression::Evaluate, no context for evaluation. error. context is required for defined operator");
+						break;
+					}
+
+					EStatusCodeAndBool symbolQueryResult = inContext->IsPreprocessorSymbolDefined(((CPPExpressionVariable*)mOperands.front())->VariableName);
+
+					if(symbolQueryResult.first != eSuccess)
+					{
+						TRACE_LOG("CPPOperatorExpression::Evaluate, improper context for 'defined' operator");
+						break;
+					}
+
+					result.first = true;
+					result.second.mBoolValue = symbolQueryResult.second;
+					result.second.mType = eCPPBool;
+				}
+				else
+				{
+					TRACE_LOG("CPPOperatorExpression::Evaluate, unexpected expression type for the operand of defined operator");
+				}
+				break;
+			}
+			default:
+			{
+				TRACE_LOG("CPPOperatorExpression::Evaluate, unknown uperator for evaluation..listen here...the current evaluation process only works on preprocessor expressions for eval");
+			}
+				
 	}
 
 	return result;
-}
-
-BoolAndCPPPrimitiveValue CPPOperatorExpression::EvaluateDefined()
-{
-	// function, accepting a single ExressionSymbol operand
-	CPPPrimitiveValue value;
-	value.mType = eCPPBool;
-	value.mBoolValue = mSymbolsSource->IsSymbolDefined(((CPPExpressionSymbol*)mOperands.back())->mSymbol);
-
-	return BoolAndCPPPrimitiveValue(true, value);
 }
 
 class IBinaryOperatorCommand

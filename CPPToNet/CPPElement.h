@@ -9,12 +9,23 @@ class CPPElement
 public:
 	enum ECPPElementType
 	{
-		eCPPElementNamespace
+		// typenames
+		eCPPElementPrimitive,
+		eCPPElementNamespace,
+		eCPPElementEnumerator,
+		eCPPElementUnion,
+		eCPPTypenames, // just a marker for typenames
+		// values
+		eCPPElementEnumeratorValue,
+		eCPPElementVariable
 	};
 
 
 	CPPElement(const string& inName,ECPPElementType inType);
 	~CPPElement(void);
+
+	// returns true if this element is a type definition (as oppose to an actual instance - function, variable)
+	bool IsType();
 
 
 	ECPPElementType Type;

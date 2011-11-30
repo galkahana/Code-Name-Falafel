@@ -24,6 +24,8 @@
 #include "CPPTokenizer.h"
 #include "PreTokenizerDecoder.h"
 #include "WindowsPath.h"
+#include "ITokenProvider.h"
+#include "IExpressionEvaluationContext.h"
 
 #include <string>
 #include <list>
@@ -56,7 +58,7 @@ typedef pair<bool,bool> BoolAndBool;
 typedef set<IPreprocessorListener*> IPreprocessorListenerSet;
 typedef map<string,string> StringToStringMap;
 
-class PreProcessor
+class PreProcessor : public ITokenProvider, public IExpressionEvaluationContext
 {
 public:
 	PreProcessor(void);
@@ -73,21 +75,23 @@ public:
 			   const StringToStringMap& inPreprocessorDefinitions,
 			   const StringList& inIncludeFolders);
 
+	// ITokenProvider implementation
+
 	// Get the next available token. The proprocessor retrieves processed tokens
 	// after having considered macros replacement and preprocessor instructions
-	BoolAndString GetNextToken();
+	virtual BoolAndString GetNextToken();
+	virtual void PutBackToken(const string& inToken);
+
+	// IExpressionEvaluationContext implementation
+	virtual EStatusCodeAndBool IsPreprocessorSymbolDefined(const string& inSymbol);
 
 	// call this when changing underlying stream position
 	void ResetReadState();
 
 	// Internal, don't call (runs token getting but avoids macro replacement)
 	BoolAndString GetNextTokenNoMacroReplacement();
-
 	// Internal, don't call (retrieves GetNextToken with options to get also newlines as tokens)
 	BoolAndString GetNextToken(bool inSkipNewLines);
-
-	// check if a string is defined
-	bool IsSymbolDefined(const string& inSymbol);
 
 
 	void AddListener(IPreprocessorListener* inListener);
@@ -108,6 +112,10 @@ private:
 	unsigned long mConditionalIteration;
 	IPreprocessorListenerSet mListeners;
 	bool mSkippingConditionals;
+	StringList mTokensStack;
+	bool mNoMacroReplacemeentState;
+	unsigned long mParanthesisLevel;
+
 
 	bool IsNewLineToken(const string& inToken);
 	bool DefineIdentifierReplacement();
@@ -122,6 +130,7 @@ private:
 	BoolAndString FirePreprocessorError();
 	bool IncludeFile();
 	BoolAndBoolAndString HandlePredefinedMacros(const string& inToken);
+	void DetermineContinuedNoReplaceement(const string& inToken);
 
 	// this method is similar to GetNextToken, only it uses GetNextNoSpaceEntity, which does a more limited
 	// tokenization - just of the next entity till the next space. this is used in the context of #include interpretation

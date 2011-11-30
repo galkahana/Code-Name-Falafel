@@ -1,6 +1,6 @@
 #include "ParenthesisConditionalTokenProvider.h"
 
-ParenthesisConditionalTokenProvider::ParenthesisConditionalTokenProvider(IPreprocessorConditionTokenProvider* inProvider)
+ParenthesisConditionalTokenProvider::ParenthesisConditionalTokenProvider(ITokenProvider* inProvider)
 {
 	mProvider = inProvider;
 	mParanthesisLevel = 1;
@@ -33,25 +33,7 @@ BoolAndString ParenthesisConditionalTokenProvider::GetNextToken()
 
 }
 
-BoolAndString ParenthesisConditionalTokenProvider::GetNextTokenNoMacroReplacement()
+void ParenthesisConditionalTokenProvider::PutBackToken(const string& inToken)
 {
-	if(0 == mParanthesisLevel)
-		return BoolAndString(false,"");
-
-	BoolAndString tokenResult = mProvider->GetNextTokenNoMacroReplacement();
-
-	if(!tokenResult.first)
-		return BoolAndString(false,"");
-
-	if(tokenResult.second == ")")
-		--mParanthesisLevel;
-
-	if(tokenResult.second == "(")
-		++mParanthesisLevel;
-
-	if(0 == mParanthesisLevel)
-		return BoolAndString(false,"");
-	else
-		return tokenResult;
-
+	mProvider->PutBackToken(inToken);
 }

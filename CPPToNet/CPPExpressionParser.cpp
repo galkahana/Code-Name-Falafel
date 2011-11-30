@@ -1,12 +1,13 @@
 #include "CPPExpressionParser.h"
-#include "IPreprocessorConditionTokenProvider.h"
+#include "ITokenProvider.h"
 #include "ParenthesisConditionalTokenProvider.h"
 #include "Trace.h"
 #include "CPPOperator.h"
 #include "CPPExpression.h"
 #include "CPPOperatorExpression.h"
-#include "CPPExpressionSymbol.h"
 #include "CPPExpressionInteger.h"
+#include "CPPExpressionVariable.h"
+#include "CPPExpressionFunctionCall.h"
 
 using namespace Hummus;
 
@@ -18,14 +19,13 @@ CPPExpressionParser::~CPPExpressionParser(void)
 {
 }
 
-BoolAndCPPExpression CPPExpressionParser::ParseExpression(IPreprocessorConditionTokenProvider* inTokenProvider,PreProcessor* inSymbolsSource)
+BoolAndCPPExpression CPPExpressionParser::ParseExpression(ITokenProvider* inTokenProvider)
 {
 	mOriginalProvider = inTokenProvider;
-	mSymbolsSource = inSymbolsSource;
 	return ParseExpressionInternal(mOriginalProvider);
 }
 
-BoolAndCPPExpression CPPExpressionParser::ParseExpressionInternal(IPreprocessorConditionTokenProvider* inTokenProvider)
+BoolAndCPPExpression CPPExpressionParser::ParseExpressionInternal(ITokenProvider* inTokenProvider)
 {
 	BoolAndCPPExpression operandResult;
 	BoolAndCPPOperator operatorResult;
@@ -45,7 +45,7 @@ BoolAndCPPExpression CPPExpressionParser::ParseExpressionInternal(IPreprocessorC
 	return ParseExpressionInternal(inTokenProvider,operandResult.second,operatorResult.first ? operatorResult.second : NULL);
 }
 
-BoolAndCPPExpression CPPExpressionParser::ParseExpressionInternal(IPreprocessorConditionTokenProvider* inTokenProvider,CPPExpression* inFirstOperand,CPPOperator* inOperator)
+BoolAndCPPExpression CPPExpressionParser::ParseExpressionInternal(ITokenProvider* inTokenProvider,CPPExpression* inFirstOperand,CPPOperator* inOperator)
 {
 	BoolAndCPPExpression expressionResult;
 	BoolAndCPPOperator operatorResult;
@@ -88,7 +88,7 @@ BoolAndCPPExpression CPPExpressionParser::ParseExpressionInternal(IPreprocessorC
 	}
 }
 
-BoolAndCPPExpression CPPExpressionParser::ParseSingleExpression(IPreprocessorConditionTokenProvider* inTokenProvider,
+BoolAndCPPExpression CPPExpressionParser::ParseSingleExpression(ITokenProvider* inTokenProvider,
 																 CPPExpression* inFirstOperand,
 																 CPPOperator* inOperator,
 																 CPPOperator** outNextOperator)
@@ -200,20 +200,32 @@ BoolAndCPPExpression CPPExpressionParser::ParseSingleExpression(IPreprocessorCon
 	}
 }
 
-BoolAndCPPOperator CPPExpressionParser::ParseOperator(IPreprocessorConditionTokenProvider* inProvider, bool inIsBinary)
+BoolAndCPPOperator CPPExpressionParser::ParseOperator(ITokenProvider* inProvider, bool inIsBinary)
 {
 	BoolAndString tokenizerResult = inProvider->GetNextToken();
 
 	if(!tokenizerResult.first)
 		return BoolAndCPPOperator(false,NULL);
 
-	return MakeOperator(tokenizerResult.second,inIsBinary);
+	// k. if this is not an operator just put it back where you took it from
+	BoolAndCPPOperator result = MakeOperator(tokenizerResult.second,inIsBinary);
+	if(!result.first)
+		inProvider->PutBackToken(tokenizerResult.second);
+	return result;
 }
 
 
 BoolAndCPPOperator CPPExpressionParser::MakeOperator(const string& inToken, bool inIsBinary)
 {
-	if(inToken == "~")
+	if(inToken == "defined")
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorDefined));
+	else if(inToken == "sizeof")
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorSizeof));
+	else if(inToken == "++")
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorPrefixIncrement));
+	else if(inToken == "--")
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorPrefixDecrement));
+	else if(inToken == "~")
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorOnesComplement));
 	else if(inToken == "!")
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorNot));
@@ -221,7 +233,11 @@ BoolAndCPPOperator CPPExpressionParser::MakeOperator(const string& inToken, bool
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorUnaryMinus));
 	else if(inToken == "+" && !inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorUnaryPlus));
-	else if(inToken == "*")
+	else if(inToken == "&" && !inIsBinary)
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorAddressOf));
+	else if(inToken == "*" && !inIsBinary)
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorIndirection));
+	else if(inToken == "*" && inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorMultiplication));
 	else if(inToken == "/")
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorDivision));
@@ -247,7 +263,7 @@ BoolAndCPPOperator CPPExpressionParser::MakeOperator(const string& inToken, bool
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorEquality));
 	else if(inToken == "!=")
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorInequality));
-	else if(inToken == "&")
+	else if(inToken == "&" && inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorBitwiseAnd));
 	else if(inToken == "^")
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorExclusiveOr));
@@ -261,13 +277,11 @@ BoolAndCPPOperator CPPExpressionParser::MakeOperator(const string& inToken, bool
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorConditional));
 	else if(inToken == ":")
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorConditionalSecond));
-	else if(inToken == "defined")
-		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorDefined));
 	else
 		return BoolAndCPPOperator(false,NULL);
 }
 
-BoolAndCPPExpression CPPExpressionParser::ParseOperand(IPreprocessorConditionTokenProvider* inProvider)
+BoolAndCPPExpression CPPExpressionParser::ParseOperand(ITokenProvider* inProvider)
 {
 	BoolAndString tokenizerResult = inProvider->GetNextToken();
 	bool statusOK = true;
@@ -299,7 +313,7 @@ BoolAndCPPExpression CPPExpressionParser::ParseOperand(IPreprocessorConditionTok
 		// unit and returned
 		if(tokenizerResult.second == "(")
 		{
-			IPreprocessorConditionTokenProvider* newProvider = new ParenthesisConditionalTokenProvider(mOriginalProvider);
+			ITokenProvider* newProvider = new ParenthesisConditionalTokenProvider(mOriginalProvider);
 			expressionResult = ParseExpressionInternal(newProvider);
 			statusOK = expressionResult.first;
 			result = expressionResult.second;
@@ -322,87 +336,209 @@ BoolAndCPPExpression CPPExpressionParser::ParseOperand(IPreprocessorConditionTok
 			break;
 		}
 
-		// else, undefined symbol, error
+		// else should be a variable, function, enumerator (including members, . ->). which are all basically the same thing:
+		// XXX[(...)]
+		// [::]YYY[::AAA::ZZZ...]::XXX[(....)]
+		
+
+		// grab the whole string, including all scoping as the variable name. then identify if this is a function, and create a special kind of operand, which is a function call
+		StringList scopes;
+		
+		if(tokenizerResult.second == "::")
+		{
+			scopes.push_back(""); // this will mark global scope
+			tokenizerResult = inProvider->GetNextToken();
+			if(!tokenizerResult.first)
+			{
+				TRACE_LOG("CPPExpressionParser::ParseOperand, syntax error, could not parse a token after global scope specification");
+				statusOK = false;
+				break;
+			}
+
+		}
+
+		// now loop till no more :: are seen. the last one is the actual name
+		string variableName;
+		do
+		{
+			variableName = tokenizerResult.second;
+			tokenizerResult = inProvider->GetNextToken();
+			if(!tokenizerResult.first) // finished provider, finish here
+				break;
+			
+			if(tokenizerResult.second == "::")
+			{
+				scopes.push_back(variableName);
+				tokenizerResult = inProvider->GetNextToken();
+				if(!tokenizerResult.first)
+				{
+					TRACE_LOG("CPPExpressionParser::ParseOperand, syntax error, could not parse a token after scope specification");
+					statusOK = false;
+					break;
+				}
+				// will continue, therefore, only if the tokenizer result was :: and there's a name now. must find out if there's more scoping
+			}
+			else
+			{
+				inProvider->PutBackToken(tokenizerResult.second);
+				break;
+			}
+		}while(statusOK); // will break eventually
+
 		if(!statusOK)
-			TRACE_LOG1("CPPExpressionParser::ParseOperand, undefined symbol while parsing a constant expression for preprocessor - %s",tokenizerResult.second.c_str());
+			break;
+		// now we have in scopes all the scopes and as variable name, the name of the actual variable. great. now just figure out if this is a function
+		tokenizerResult = inProvider->GetNextToken();
+		if(tokenizerResult.first)
+		{
+			if(tokenizerResult.second == "(")
+			{
+				// humff, function call
+				expressionResult = ParseFunctionCall(variableName,scopes,inProvider);
+				if(expressionResult.first)
+				{
+					result = expressionResult.second;
+					break;
+				}
+			}
+			else
+			{
+				// humff variable. put back next token
+				inProvider->PutBackToken(tokenizerResult.second);
+				expressionResult = MakeVariable(variableName,scopes);
+				if(expressionResult.first)
+				{
+					result = expressionResult.second;
+					break;
+				}				
+			}
+		}
+		else
+		{
+			// humff. must be a variable
+			expressionResult = MakeVariable(variableName,scopes);
+			if(expressionResult.first)
+			{
+				result = expressionResult.second;
+				break;
+			}		
+		}
+
+		// k. if not stopped till here, then this must be some kind of syntax error. report
+		TRACE_LOG("CPPExpressionParser::ParseOperand, syntax error, no suitable expression type found");
 		statusOK = false;
 
 	}while(false);
 	
 	if(statusOK)
-		return BoolAndCPPExpression(true,result);
-	else
-		return BoolAndCPPExpression(false,NULL);
-}
-
-BoolAndCPPExpression CPPExpressionParser::ParseUnaryOperatorOperand(IPreprocessorConditionTokenProvider* inProvider,CPPOperator* inOperator)
-{
-	BoolAndCPPExpression operandResult = 
-		inOperator->Type == eCPPOperatorDefined ?
-			ParseOperandForDefined(inProvider) :
-			ParseOperand(inProvider);
-
-	if(!operandResult.first)
 	{
-		delete inOperator;
-		TRACE_LOG("CPPExpressionParser::ParseUnaryOperatorOperand, failed to parse operand for operator");
-		return BoolAndCPPExpression(false,NULL);
+		// consider also postfix operators (subscript, postfix incremenet, postfix decrement...)
+		do
+		{
+			tokenizerResult = inProvider->GetNextToken();
+			if(!tokenizerResult.first)
+				break;
+
+			if(IsPostFixOperator(tokenizerResult.second))
+			{
+				// parse postfix operator, and consider it + the operand as a joint expression
+				expressionResult = ParsePostFixOperatorOperand(inProvider,result,tokenizerResult.second);
+				if(expressionResult.first)
+				{
+					result = expressionResult.second;
+				}		
+				else
+				{
+					TRACE_LOG("CPPExpressionParser::ParseOperand, error in parsing postfix operator");
+					statusOK = false;
+					// no need to release "result" here, ParsePostFixOperatorOperand takes care of this.
+					result = NULL;
+				}
+			}
+			else
+			{
+				inProvider->PutBackToken(tokenizerResult.second);
+			}
+		}while(false);
 	}
-	else
-		return BoolAndCPPExpression(true,MakeExpression(inOperator,operandResult.second,NULL,NULL));
-}
 
-BoolAndCPPExpression CPPExpressionParser::ParseOperandForDefined(IPreprocessorConditionTokenProvider* inProvider)
-{
-	// that's an easy one, just get the "(", "Symbol" and ")"
-	bool statusOK = true;
-	CPPExpression* result = NULL;
-
-	do
-	{
-		BoolAndString tokenResult = inProvider->GetNextToken();
-		if(!tokenResult.first || tokenResult.second != "(")
-		{
-			TRACE_LOG1("CPPExpressionParser::ParseOperandForDefined, defined function first token is not left paranthesis - %s",tokenResult.first ? tokenResult.second.c_str():"(empty)");
-			statusOK = false;
-			break;
-		}
-
-		tokenResult = inProvider->GetNextTokenNoMacroReplacement();
-
-		if(!tokenResult.first)
-		{	
-			TRACE_LOG("CPPExpressionParser::ParseOperandForDefined, failed to parse parameter for defined() function");
-			statusOK = false;
-			break;
-		}
-
-		result = new CPPExpressionSymbol(tokenResult.second);
-
-		tokenResult = inProvider->GetNextToken();
-		if(!tokenResult.first || tokenResult.second != ")")
-		{
-			TRACE_LOG1("CPPExpressionParser::ParseOperandForDefined, defined function last token is not left paranthesis - %s",tokenResult.first ? tokenResult.second.c_str():"(empty)");
-			statusOK = false;
-		}
-
-	}while(false);
 
 	if(statusOK)
-	{
 		return BoolAndCPPExpression(true,result);
+	else
+		return BoolAndCPPExpression(false,NULL);
+}
+
+BoolAndCPPExpression CPPExpressionParser::ParseUnaryOperatorOperand(ITokenProvider* inProvider,CPPOperator* inOperator)
+{
+	// special cases
+	if(inOperator->Type == eCPPOperatorDefined || inOperator->Type == eCPPOperatorSizeof)
+	{
+		// There's paranthesis, then expression which is the operand and then another paranthesis
+		bool statusOK = true;
+		CPPExpression* anOperand = NULL;
+
+		do
+		{
+			BoolAndString tokenResult = inProvider->GetNextToken();
+			if(!tokenResult.first || tokenResult.second != "(")
+			{
+				TRACE_LOG1("CPPExpressionParser::ParseUnaryOperatorOperand, defined function first token is not left paranthesis - %s",tokenResult.first ? tokenResult.second.c_str():"(empty)");
+				statusOK = false;
+				break;
+			}
+		
+			BoolAndCPPExpression result = ParseExpressionInternal(inProvider);
+			if(!result.first)
+			{
+				TRACE_LOG("CPPExpressionParser::ParseUnaryOperatorOperand, problem in parsing operand for unary operator");
+				statusOK = false;
+				break;
+			}
+			
+			anOperand = result.second;
+
+			tokenResult = inProvider->GetNextToken();
+			if(!tokenResult.first || tokenResult.second != ")")
+			{
+				TRACE_LOG1("CPPExpressionParser::ParseUnaryOperatorOperand, defined function last token is not left paranthesis - %s",tokenResult.first ? tokenResult.second.c_str():"(empty)");
+				statusOK = false;
+			}
+
+		}while(false);
+
+		if(statusOK)
+		{
+			return BoolAndCPPExpression(true,MakeExpression(inOperator,anOperand,NULL,NULL));
+		}
+		else
+		{
+			delete inOperator;
+			delete anOperand;
+			return BoolAndCPPExpression(false,NULL);
+		}
 	}
 	else
 	{
-		delete result;
-		return BoolAndCPPExpression(false,NULL);
+		
+		// the rest
+
+		BoolAndCPPExpression operandResult = ParseOperand(inProvider);
+
+		if(!operandResult.first)
+		{
+			delete inOperator;
+			TRACE_LOG("CPPExpressionParser::ParseUnaryOperatorOperand, failed to parse operand for operator");
+			return BoolAndCPPExpression(false,NULL);
+		}
+		else
+			return BoolAndCPPExpression(true,MakeExpression(inOperator,operandResult.second,NULL,NULL));
 	}
 }
-
 
 CPPExpression* CPPExpressionParser::MakeExpression(CPPOperator* inOperator,CPPExpression* inFirstOperand, CPPExpression* inLastOperand, CPPExpression* inOptionalMiddleOperand)
 {
-	CPPOperatorExpression* result = new CPPOperatorExpression(inOperator,mSymbolsSource);
+	CPPOperatorExpression* result = new CPPOperatorExpression(inOperator);
 	result->PushOperand(inFirstOperand);
 	if(inOptionalMiddleOperand)
 		result->PushOperand(inOptionalMiddleOperand);
@@ -777,4 +913,194 @@ BoolAndCPPExpression CPPExpressionParser::MakeInteger(const string& inToken)
 	else
 		return BoolAndCPPExpression(true,new CPPExpressionInteger((int)buffer));
 
+}
+
+BoolAndCPPExpression CPPExpressionParser::MakeVariable(const string& inToken,const StringList& inScopes)
+{
+	return BoolAndCPPExpression(true,new CPPExpressionVariable(inToken,inScopes));
+}
+
+
+BoolAndCPPExpression CPPExpressionParser::ParseFunctionCall(const string& inToken,const StringList& inScopes,ITokenProvider* inProvider)
+{
+	// function call is basically a series of expressions separated by a comma, with ending ")"
+	BoolAndString tokenizerResult = inProvider->GetNextToken();
+	BoolAndCPPExpression expressionResult;
+	CPPExpressionList params;
+	bool status = true;
+	CPPExpression* functionCall = NULL;
+	
+	do
+	{
+		if(!tokenizerResult.first)
+		{
+			TRACE_LOG("CPPExpressionParser::ParseFunctionCall, syntax error, unable to read past function start '('");
+			status = false;
+			break;
+		}
+
+		inProvider->PutBackToken(tokenizerResult.second);
+
+		while(tokenizerResult.second != ")") 
+		{
+			
+			// parse expression
+			expressionResult = ParseExpressionInternal(inProvider); // not limiting here by ,...cause i don't want to start checking, i'll trust the parser and hope for the best
+			if(!expressionResult.first)
+			{
+				TRACE_LOG("CPPExpressionParser::ParseFunctionCall, error in parsing function parameter");
+				status = false;
+				break;
+			}
+			params.push_back(expressionResult.second);
+			tokenizerResult = inProvider->GetNextToken();
+			if(!tokenizerResult.first)
+			{
+				TRACE_LOG("CPPExpressionParser::ParseFunctionCall, syntax error, expecting either ',' or ')' to finish/continue function parameters list");
+				status = false;
+				break;
+			}
+			if(tokenizerResult.second != ",")
+				break;
+		}
+		if(!status)
+			break;
+
+		if(tokenizerResult.second != ")")
+		{
+			TRACE_LOG("CPPExpressionParser::ParseFunctionCall, syntax error, expecting ')' to finish function parameters list");
+			status = false;
+			break;
+		}
+
+		// k. now we got the params, and the current token is the end of the list..which is cool. can continue to create now the expression
+		BoolAndCPPExpression expressionResult = MakeFunctionCall(inToken,inScopes,params);
+		if(!expressionResult.first)
+		{
+			TRACE_LOG("CPPExpressionParser::ParseFunctionCall, failure in creating function call expression");
+			status = false;
+			break;			
+		}
+		else
+			functionCall = expressionResult.second;
+	}
+	while(false);
+
+	if(status)
+	{
+		return BoolAndCPPExpression(true,functionCall);		
+	}
+	else
+	{
+		CPPExpressionList::iterator it = params.begin();
+		for(; it != params.end(); ++it)
+			delete *it;
+		return BoolAndCPPExpression(false,NULL);
+	}
+}
+
+BoolAndCPPExpression CPPExpressionParser::MakeFunctionCall(const string& inToken,const StringList& inScopes,const CPPExpressionList& inParameters)
+{
+	return BoolAndCPPExpression(true,new CPPExpressionFunctionCall(inToken,inScopes,inParameters));
+}
+
+bool CPPExpressionParser::IsPostFixOperator(const string& inToken)
+{
+	return inToken == "[" || inToken == "++" || inToken == "--";
+}
+
+BoolAndCPPExpression CPPExpressionParser::ParsePostFixOperatorOperand(ITokenProvider* inProvider,CPPExpression* inOperand,const string& inFirstOperatorToken)
+{
+	// postfix operators may be with parameters or not...so parse according to operator
+	CPPOperator* anOperator = NULL;
+	CPPExpression* secondaryOperand = NULL;
+	CPPExpression* primaryOperand = inOperand;
+	string operatorToken = inFirstOperatorToken;
+	bool statusOK = true;
+	BoolAndString token;
+
+	do
+	{
+		if(operatorToken == "++")
+		{
+			anOperator  = new CPPOperator(eCPPOperatorPostfixIncrement);
+		}
+		else if(operatorToken == "--")
+		{
+			anOperator  = new CPPOperator(eCPPOperatorPostfixDecrement);
+		}
+		else if(operatorToken == "[")
+		{
+			// parse the operand
+			BoolAndCPPExpression expressionResult = ParseExpressionInternal(inProvider); 
+			if(!expressionResult.first)
+			{
+				TRACE_LOG("CPPExpressionParser::ParsePostFixOperatorOperand, error in parsing subscript parameter");
+				statusOK = false;
+			}
+			else
+			{
+				secondaryOperand = expressionResult.second;
+				// take next token which has to be subscript end
+				token = inProvider->GetNextToken();
+				if(!token.first)
+				{
+					TRACE_LOG("CPPExpressionParser::ParsePostFixOperatorOperand, syntax error, unfinished subscript");
+					delete secondaryOperand;
+					secondaryOperand = NULL;
+					statusOK = false;
+				}
+				if(token.second != "]")
+				{
+					TRACE_LOG1("CPPExpressionParser::ParsePostFixOperatorOperand, syntax error,subscript expression finished, but no subscript end. instead there's this - %s",token.second.c_str());
+					delete secondaryOperand;
+					secondaryOperand = NULL;
+					statusOK = false;
+				}
+				anOperator = new CPPOperator(eCPPOperatorSubscript);
+			}
+		}
+		else
+		{
+			TRACE_LOG1("CPPExpressionParser::ParsePostFixOperatorOperand, unknown postfix operator '%s'",operatorToken.c_str());
+			statusOK = false;
+		}
+
+		if(statusOK)
+		{
+			primaryOperand = MakeExpression(anOperator,primaryOperand,secondaryOperand,NULL);
+			secondaryOperand = NULL;
+			anOperator = NULL;
+
+			// now continue to the next loop, if there's more postfix oprators
+			token = inProvider->GetNextToken();
+			if(!token.first)
+				break;
+
+			if(IsPostFixOperator(token.second))
+			{
+				// aha! another postfix, store and continue
+				operatorToken = token.second;
+			}
+			else
+			{
+				// not postfix. stop
+				inProvider->PutBackToken(token.second);
+				break;
+			}
+
+		}
+	}while(statusOK);
+
+	if(statusOK)
+	{
+		return BoolAndCPPExpression(true,primaryOperand);
+	}
+	else
+	{
+		delete primaryOperand;
+		delete anOperator;
+		delete secondaryOperand;
+		return BoolAndCPPExpression(false,NULL);
+	}
 }

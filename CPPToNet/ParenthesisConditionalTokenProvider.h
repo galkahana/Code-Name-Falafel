@@ -1,18 +1,18 @@
 #pragma once
 
-#include "IPreprocessorConditionTokenProvider.h"
+#include "ITokenProvider.h"
 
-class ParenthesisConditionalTokenProvider : public IPreprocessorConditionTokenProvider
+class ParenthesisConditionalTokenProvider : public ITokenProvider
 {
 public:
-	ParenthesisConditionalTokenProvider(IPreprocessorConditionTokenProvider* inProvider);
+	ParenthesisConditionalTokenProvider(ITokenProvider* inProvider);
 	~ParenthesisConditionalTokenProvider(void);
 
-
+	// ITokenProvider implementation
 	virtual BoolAndString GetNextToken();
-	virtual BoolAndString GetNextTokenNoMacroReplacement();
+	virtual void PutBackToken(const string& inToken);
 
 private:
-	IPreprocessorConditionTokenProvider* mProvider;
+	ITokenProvider* mProvider;
 	unsigned long mParanthesisLevel;
 };

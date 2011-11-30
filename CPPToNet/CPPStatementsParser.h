@@ -14,7 +14,8 @@ using namespace std;
 class HeaderUnit;
 class CPPNamespace;
 class CPPElement;
-class ICPPContainerElement;
+class ICPPDefinitionsContainerElement;
+class ICPPVariablesContainerElement;
 
 typedef map<string,string> StringToStringMap;
 typedef list<string> StringList;
@@ -23,7 +24,7 @@ typedef pair<Hummus::EStatusCode,bool> EStatusCodeAndBool;
 typedef list<CPPNamespace*> CPPNamespaceList;
 typedef set<CPPNamespace*> CPPNamespaceSet;
 typedef list<string> StringList;
-typedef list<ICPPContainerElement*> ICPPContainerElementList;
+typedef list<ICPPDefinitionsContainerElement*> ICPPDefinitionsContainerElementList;
 
 
 struct LocalContext
@@ -47,14 +48,14 @@ public:
 private:
 
 	PreProcessor mTokensSource;
-	ICPPContainerElementList mDefinitionContextStack;
+	ICPPDefinitionsContainerElementList mDefinitionContextStack;
 	LocalContextList mLocalContext;
 	Hummus::Long mUnnamedSequance;
 	HeaderUnit* mWorkingUnit;
-	StringList mTokensStack;
 	
 
 	EStatusCodeAndHeaderUnit ParseUnit();
+	void SetupPrimitiveTypes();
 	EStatusCodeAndBool ParseStatement(HeaderUnit* inUnitModel);
 
 	Hummus::EStatusCode ParseNamespaceDeclaration();
@@ -72,10 +73,21 @@ private:
 	Hummus::EStatusCode SkipSemiColon();
 	CPPElement* GetElementFromCurrentLocation();
 
-	BoolAndString GetNextToken();
-	void PutBackToken(const string& inToken);
+
+	Hummus::EStatusCode SkipConstantExpression();
 
 	bool IsTypenamesContainer(CPPElement* inElement);
+	string GetNewUnnamedName();
+
+	Hummus::EStatusCode ParseAndDefineVariablesDeclarators(ICPPVariablesContainerElement* inContainer,
+														   CPPElement* inType,
+														   bool inIsAuto,
+														   bool inIsRegister,
+														   bool inIsExtern,
+														   bool inIsConst,
+														   bool inIsVolatile);
+	Hummus::EStatusCode ParseVariablesDefinitionStatement(ICPPVariablesContainerElement* inContainer);
+
 
 	void StartLocalContext();
 	void EndLocalContext();

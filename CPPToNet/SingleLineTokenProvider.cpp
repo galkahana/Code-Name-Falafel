@@ -1,14 +1,16 @@
 #include "SingleLineTokenProvider.h"
-#include "PreProcessor.h"
 
-SingleLineTokenProvider::SingleLineTokenProvider(PreProcessor* inPreProcessor)
+SingleLineTokenProvider::SingleLineTokenProvider(PreProcessor* inTokensSource)
 {
-	mPreProcessor = inPreProcessor;
+	mTokensSource = inTokensSource;
+	if(mTokensSource)
+		mTokensSource->AddListener(this);
 	mNewLineEncountered = false;
 }
 
 SingleLineTokenProvider::~SingleLineTokenProvider(void)
 {
+	mTokensSource->RemoveListener(this);
 }
 
 
@@ -17,35 +19,25 @@ BoolAndString SingleLineTokenProvider::GetNextToken()
 	if(mNewLineEncountered)
 		return BoolAndString(false,"");
 
-	BoolAndString result = mPreProcessor->GetNextToken(false);
+	BoolAndString result = mTokensSource->GetNextToken();
 
-	if(result.first && IsNewLineToken(result.second))
+	if(mNewLineEncountered) // will be modified through event
 	{
 		mNewLineEncountered = true;
+		if(result.first)
+			mTokensSource->PutBackToken(result.second);
 		return BoolAndString(false,"");
 	}
 	else
 		return result;
 }
 
-BoolAndString SingleLineTokenProvider::GetNextTokenNoMacroReplacement()
+void SingleLineTokenProvider::PutBackToken(const string& inToken)
 {
-	if(mNewLineEncountered)
-		return BoolAndString(false,"");
-
-	BoolAndString result = mPreProcessor->GetNextTokenNoMacroReplacement();
-
-	if(result.first && IsNewLineToken(result.second))
-	{
-		mNewLineEncountered = true;
-		return BoolAndString(false,"");
-	}
-	else
-		return result;
+	mTokensSource->PutBackToken(inToken);
 }
 
-bool SingleLineTokenProvider::IsNewLineToken(const string& inToken)
+void SingleLineTokenProvider::OnNewLine(const string& inNewLineString)
 {
-	// new line can be: \r, \n or \r\n. and is the only kind of token to have these chars
-	return inToken.at(0) == '\r' || inToken.at(0) == '\n';
+	mNewLineEncountered = true;
 }

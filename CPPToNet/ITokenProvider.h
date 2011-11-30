@@ -2,17 +2,16 @@
 
 #include <string>
 #include <utility>
+
 using namespace std;
 
 typedef pair<bool,string> BoolAndString;
 
-
-class IPreprocessorConditionTokenProvider
+class ITokenProvider
 {
 public:
-	virtual ~IPreprocessorConditionTokenProvider(){}
+	virtual ~ITokenProvider(){}
 
 	virtual BoolAndString GetNextToken() = 0;
-	virtual BoolAndString GetNextTokenNoMacroReplacement() = 0;
-
+	virtual void PutBackToken(const string& inToken) = 0;
 };

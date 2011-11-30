@@ -1,62 +1,62 @@
 #include "CPPExpressionInteger.h"
 #include "CPPPrimitiveValue.h"
 
-CPPExpressionInteger::CPPExpressionInteger(void)
+CPPExpressionInteger::CPPExpressionInteger(void):CPPExpression(CPPExpression::eCPPExpressionInteger)
 {
 	mCharValue = 0;
 	mType = eCPPChar;
 }
 
-CPPExpressionInteger::CPPExpressionInteger(bool inBoolValue)
+CPPExpressionInteger::CPPExpressionInteger(bool inBoolValue):CPPExpression(CPPExpression::eCPPExpressionInteger)
 {
 	mBoolValue = inBoolValue;
 	mType = eCPPBool;
 }
 
 
-CPPExpressionInteger::CPPExpressionInteger(char inCharValue)
+CPPExpressionInteger::CPPExpressionInteger(char inCharValue):CPPExpression(CPPExpression::eCPPExpressionInteger)
 {
 	mCharValue = inCharValue;
 	mType = eCPPChar;
 }
 
-CPPExpressionInteger::CPPExpressionInteger(unsigned char inUCharValue)
+CPPExpressionInteger::CPPExpressionInteger(unsigned char inUCharValue):CPPExpression(CPPExpression::eCPPExpressionInteger)
 {
 	mUCharValue = inUCharValue;
 	mType = eCPPUnsignedChar;
 }
 
-CPPExpressionInteger::CPPExpressionInteger(int inIntValue)
+CPPExpressionInteger::CPPExpressionInteger(int inIntValue):CPPExpression(CPPExpression::eCPPExpressionInteger)
 {
 	mIntValue = inIntValue;
 	mType = eCPPInt;
 }
 
-CPPExpressionInteger::CPPExpressionInteger(unsigned inUIntValue)
+CPPExpressionInteger::CPPExpressionInteger(unsigned inUIntValue):CPPExpression(CPPExpression::eCPPExpressionInteger)
 {
 	mUIntValue = inUIntValue;
 	mType = eCPPUnsigned;
 }
 
-CPPExpressionInteger::CPPExpressionInteger(long inLongValue)
+CPPExpressionInteger::CPPExpressionInteger(long inLongValue):CPPExpression(CPPExpression::eCPPExpressionInteger)
 {
 	mLongValue = inLongValue;
 	mType = eCPPLong;
 }
 
-CPPExpressionInteger::CPPExpressionInteger(unsigned long inULongValue)
+CPPExpressionInteger::CPPExpressionInteger(unsigned long inULongValue):CPPExpression(CPPExpression::eCPPExpressionInteger)
 {
 	mULongValue = inULongValue;
 	mType = eCPPUnsignedLong;
 }
 
-CPPExpressionInteger::CPPExpressionInteger(long long inLongLongValue)
+CPPExpressionInteger::CPPExpressionInteger(long long inLongLongValue):CPPExpression(CPPExpression::eCPPExpressionInteger)
 {
 	mLongLongValue = inLongLongValue;
 	mType = eCPPLongLong;
 }
 
-CPPExpressionInteger::CPPExpressionInteger(unsigned long long inULongLongValue)
+CPPExpressionInteger::CPPExpressionInteger(unsigned long long inULongLongValue):CPPExpression(CPPExpression::eCPPExpressionInteger)
 {
 	mULongLongValue = inULongLongValue;
 	mType = eCPPUnsignedLongLong;
@@ -67,7 +67,7 @@ CPPExpressionInteger::~CPPExpressionInteger(void)
 }
 
 
-BoolAndCPPPrimitiveValue CPPExpressionInteger::Evaluate()
+BoolAndCPPPrimitiveValue CPPExpressionInteger::Evaluate(IExpressionEvaluationContext* inContext)
 {
 	BoolAndCPPPrimitiveValue result(true,CPPPrimitiveValue());
 

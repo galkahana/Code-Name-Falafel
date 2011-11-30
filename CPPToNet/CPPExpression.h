@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CPPPrimitiveValue.h"
+#include "IExpressionEvaluationContext.h"
 
 #include <utility>
 
@@ -11,7 +12,19 @@ typedef pair<bool,CPPPrimitiveValue> BoolAndCPPPrimitiveValue;
 class CPPExpression
 {
 public:
+	enum ECPPExpressionType
+	{
+		eCPPExpressionOperator,
+		eCPPExpressionInteger,
+		eCPPExpressionFunctionCall,
+		eCPPExpressionVariable
+	};
+
+	CPPExpression(ECPPExpressionType inType){Type = inType;}
 	virtual ~CPPExpression(void){}
 
-	virtual BoolAndCPPPrimitiveValue Evaluate() = 0;
+	// the expression type. for verifications
+	ECPPExpressionType Type;
+
+	virtual BoolAndCPPPrimitiveValue Evaluate(IExpressionEvaluationContext* inContext) = 0;
 };

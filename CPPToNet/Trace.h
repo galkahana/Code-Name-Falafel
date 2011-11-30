@@ -61,12 +61,12 @@ namespace Hummus
 
 
 	// short cuts for logging formats strings
-	#define TRACE_LOG(FORMAT) Singleton<Trace>::GetInstance()->TraceToLog(FORMAT)
-	#define TRACE_LOG1(FORMAT,ARG1) Singleton<Trace>::GetInstance()->TraceToLog(FORMAT,ARG1)
-	#define TRACE_LOG2(FORMAT,ARG1,ARG2) Singleton<Trace>::GetInstance()->TraceToLog(FORMAT,ARG1,ARG2)
-	#define TRACE_LOG3(FORMAT,ARG1,ARG2,ARG3) Singleton<Trace>::GetInstance()->TraceToLog(FORMAT,ARG1,ARG2,ARG3)
-	#define TRACE_LOG4(FORMAT,ARG1,ARG2,ARG3,ARG4) Singleton<Trace>::GetInstance()->TraceToLog(FORMAT,ARG1,ARG2,ARG3,ARG4)
-	#define TRACE_LOG5(FORMAT,ARG1,ARG2,ARG3,ARG4,ARG5) Singleton<Trace>::GetInstance()->TraceToLog(FORMAT,ARG1,ARG2,ARG3,ARG4,ARG5)
+	#define TRACE_LOG(FORMAT) Hummus::Singleton<Hummus::Trace>::GetInstance()->TraceToLog(FORMAT)
+	#define TRACE_LOG1(FORMAT,ARG1) Hummus::Singleton<Hummus::Trace>::GetInstance()->TraceToLog(FORMAT,ARG1)
+	#define TRACE_LOG2(FORMAT,ARG1,ARG2) Hummus::Singleton<Hummus::Trace>::GetInstance()->TraceToLog(FORMAT,ARG1,ARG2)
+	#define TRACE_LOG3(FORMAT,ARG1,ARG2,ARG3) Hummus::Singleton<Hummus::Trace>::GetInstance()->TraceToLog(FORMAT,ARG1,ARG2,ARG3)
+	#define TRACE_LOG4(FORMAT,ARG1,ARG2,ARG3,ARG4) Hummus::Singleton<Hummus::Trace>::GetInstance()->TraceToLog(FORMAT,ARG1,ARG2,ARG3,ARG4)
+	#define TRACE_LOG5(FORMAT,ARG1,ARG2,ARG3,ARG4,ARG5) Hummus::Singleton<Hummus::Trace>::GetInstance()->TraceToLog(FORMAT,ARG1,ARG2,ARG3,ARG4,ARG5)
 
 }
 

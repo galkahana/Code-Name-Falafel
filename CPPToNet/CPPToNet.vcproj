@@ -12,6 +12,9 @@
 		<Platform
 			Name="Win32"
 		/>
+		<Platform
+			Name="x64"
+		/>
 	</Platforms>
 	<ToolFiles>
 	</ToolFiles>
@@ -99,6 +102,131 @@
 			/>
 			<Tool
 				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="2"
+				EnableIntrinsicFunctions="true"
+				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
+				RuntimeLibrary="2"
+				EnableFunctionLevelLinking="true"
+				UsePrecompiledHeader="0"
+				WarningLevel="3"
+				DebugInformationFormat="3"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLibrarianTool"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Debug|x64"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			ConfigurationType="4"
+			CharacterSet="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+				TargetEnvironment="3"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="0"
+				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
+				MinimalRebuild="true"
+				BasicRuntimeChecks="3"
+				RuntimeLibrary="3"
+				UsePrecompiledHeader="0"
+				WarningLevel="3"
+				DebugInformationFormat="3"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLibrarianTool"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Release|x64"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			ConfigurationType="4"
+			CharacterSet="1"
+			WholeProgramOptimization="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+				TargetEnvironment="3"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
@@ -367,6 +495,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\CPPExpressionFunctionCall.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\CPPExpressionFunctionCall.h"
+				>
+			</File>
+			<File
 				RelativePath=".\CPPExpressionInteger.cpp"
 				>
 			</File>
@@ -383,11 +519,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\CPPExpressionSymbol.cpp"
+				RelativePath=".\CPPExpressionVariable.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\CPPExpressionSymbol.h"
+				RelativePath=".\CPPExpressionVariable.h"
 				>
 			</File>
 			<File
@@ -447,6 +583,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\IExpressionEvaluationContext.h"
+				>
+			</File>
+			<File
 				RelativePath=".\IncludeFileTokenProvider.cpp"
 				>
 			</File>
@@ -455,15 +595,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\IPreprocessorConditionTokenProvider.h"
-				>
-			</File>
-			<File
 				RelativePath=".\IPreprocessorListener.h"
 				>
 			</File>
 			<File
 				RelativePath=".\IPreprocessorTokenProvider.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ITokenProvider.h"
 				>
 			</File>
 			<File
@@ -512,22 +652,6 @@
 			</File>
 			<File
 				RelativePath=".\SingleLineTokenProvider.h"
-				>
-			</File>
-			<File
-				RelativePath=".\WindowsFileSystem.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\WindowsFileSystem.h"
-				>
-			</File>
-			<File
-				RelativePath=".\WindowsPath.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\WindowsPath.h"
 				>
 			</File>
 			<Filter
@@ -634,6 +758,14 @@
 					>
 				</File>
 				<File
+					RelativePath=".\CPPEnumerator.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPEnumerator.h"
+					>
+				</File>
+				<File
 					RelativePath=".\CPPNamespace.cpp"
 					>
 				</File>
@@ -642,10 +774,62 @@
 					>
 				</File>
 				<File
-					RelativePath=".\ICPPContainerElement.h"
+					RelativePath=".\CPPPrimitive.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPPrimitive.h"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPUnion.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPUnion.h"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPVariable.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPVariable.h"
+					>
+				</File>
+				<File
+					RelativePath=".\DeclaratorModifier.h"
+					>
+				</File>
+				<File
+					RelativePath=".\ICPPDefinitionsContainerElement.h"
+					>
+				</File>
+				<File
+					RelativePath=".\ICPPVariablesContainerElement.h"
 					>
 				</File>
 			</Filter>
+		</Filter>
+		<Filter
+			Name="WindowsOS"
+			>
+			<File
+				RelativePath=".\WindowsFileSystem.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\WindowsFileSystem.h"
+				>
+			</File>
+			<File
+				RelativePath=".\WindowsPath.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\WindowsPath.h"
+				>
+			</File>
 		</Filter>
 	</Files>
 	<Globals>

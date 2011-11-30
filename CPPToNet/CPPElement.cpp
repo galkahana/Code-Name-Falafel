@@ -9,3 +9,8 @@ CPPElement::CPPElement(const string& inName,ECPPElementType inType)
 CPPElement::~CPPElement(void)
 {
 }
+
+bool CPPElement::IsType()
+{
+	return Type < CPPElement::eCPPTypenames;
+}

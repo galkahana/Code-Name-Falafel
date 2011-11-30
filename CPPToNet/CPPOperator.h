@@ -3,10 +3,18 @@
 enum ECPPOperatorType
 {
 	eCPPOperatorDefined,
+	eCPPOperatorSubscript,
+	eCPPOperatorPostfixIncrement,
+	eCPPOperatorPostfixDecrement,
+	eCPPOperatorSizeof,
+	eCPPOperatorPrefixIncrement,
+	eCPPOperatorPrefixDecrement,
 	eCPPOperatorOnesComplement,
 	eCPPOperatorNot,
 	eCPPOperatorUnaryMinus,
 	eCPPOperatorUnaryPlus,
+	eCPPOperatorAddressOf,
+	eCPPOperatorIndirection,
 	eCPPOperatorMultiplication,
 	eCPPOperatorDivision,
 	eCPPOperatorModulus,
