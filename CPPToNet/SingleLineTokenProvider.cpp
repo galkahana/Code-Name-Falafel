@@ -23,7 +23,6 @@ BoolAndString SingleLineTokenProvider::GetNextToken()
 
 	if(mNewLineEncountered) // will be modified through event
 	{
-		mNewLineEncountered = true;
 		if(result.first)
 			mTokensSource->PutBackToken(result.second);
 		return BoolAndString(false,"");
@@ -40,4 +39,22 @@ void SingleLineTokenProvider::PutBackToken(const string& inToken)
 void SingleLineTokenProvider::OnNewLine(const string& inNewLineString)
 {
 	mNewLineEncountered = true;
+}
+
+void SingleLineTokenProvider::Flush()
+{
+	BoolAndString result;
+
+	while(!mNewLineEncountered)
+	{
+		BoolAndString result = mTokensSource->GetNextToken();
+		if(!result.first)
+			break;
+
+		if(mNewLineEncountered)
+		{
+			mTokensSource->PutBackToken(result.second);
+			break;
+		}
+	}
 }

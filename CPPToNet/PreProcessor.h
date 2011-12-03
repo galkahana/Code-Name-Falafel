@@ -115,6 +115,8 @@ private:
 	StringList mTokensStack;
 	bool mNoMacroReplacemeentState;
 	unsigned long mParanthesisLevel;
+	bool mNotifyNewLines;
+	bool mEncounteredNewLineWhileNotNotifying;
 
 
 	bool IsNewLineToken(const string& inToken);
@@ -155,5 +157,7 @@ private:
 	bool InterpretConditionalStopper(const string& inConditionalKeyword);
 	bool GetAsBoolean(const CPPPrimitiveValue& inValue);
 	void FireNewLine(const string& inNewLineString);
+	void StopNewLineNotification();
+	void StartNewLineNotification();
 
 };

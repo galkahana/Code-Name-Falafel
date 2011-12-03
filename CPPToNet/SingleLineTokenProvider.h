@@ -17,6 +17,8 @@ public:
 	// IPreprocessorListener implementation
 	virtual void OnNewLine(const string& inNewLineString);
 
+	void Flush();
+
 
 private:
 	PreProcessor* mTokensSource;

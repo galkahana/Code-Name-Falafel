@@ -35,5 +35,15 @@ BoolAndString ParenthesisConditionalTokenProvider::GetNextToken()
 
 void ParenthesisConditionalTokenProvider::PutBackToken(const string& inToken)
 {
+	// better implementation is probably to implement ones own stack, but we can manage
+	// here with adding/substracting proparly. need to reverse the logic, basically
+
+	if(inToken == ")")
+		++mParanthesisLevel;
+
+	if(inToken == "(")
+		--mParanthesisLevel;
+
+
 	mProvider->PutBackToken(inToken);
 }

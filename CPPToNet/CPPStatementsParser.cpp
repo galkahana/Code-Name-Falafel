@@ -1103,7 +1103,7 @@ EStatusCode CPPStatementsParser::ParseTypedefDeclaration()
 	return eFailure;
 }
 
-// now after having played initial games with types give a shot at functions parsing
+// now after having played initial games with types give a shot at variables & functions parsing
 
 EStatusCode CPPStatementsParser::ParseClassDeclaration()
 {

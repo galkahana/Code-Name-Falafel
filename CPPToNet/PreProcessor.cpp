@@ -45,6 +45,10 @@ void PreProcessor::Reset()
 	mConditionalIteration = 0;
 	mSkippingConditionals = false;
 	mNoMacroReplacemeentState = false;
+	mNotifyNewLines = true;
+	mEncounteredNewLineWhileNotNotifying = false;
+	mParanthesisLevel = 0;
+
 }
 
 void PreProcessor::Setup(IByteReader* inSourceStream,
@@ -100,16 +104,27 @@ void PreProcessor::PutBackToken(const string& inToken)
 BoolAndString PreProcessor::GetNextToken(bool inSkipNewLines)
 {
 	BoolAndString tokenizerResult;
-	
-	// preprocessor implementations are mostly implemented by employing subcontructors
-	// that get tokens according to the matching macro, ifdef section or whatnot.
-	if(DetermineIfHasActiveSubcontructor())
-		tokenizerResult = mTokenSubcontructors.back()->GetNextToken();
+
+	// first see if stack variables are available
+	if(mTokensStack.size() != 0)
+	{
+		string nextToken = mTokensStack.back();
+		mTokensStack.pop_back();
+		tokenizerResult = BoolAndString(true,nextToken);
+	}
 	else
-		tokenizerResult = mTokenizer.GetNextToken();
-	
-	if(!tokenizerResult.first)
-		return tokenizerResult;
+	{
+		
+		// preprocessor implementations are mostly implemented by employing subcontructors
+		// that get tokens according to the matching macro, ifdef section or whatnot.
+		if(DetermineIfHasActiveSubcontructor())
+			tokenizerResult = mTokenSubcontructors.back()->GetNextToken();
+		else
+			tokenizerResult = mTokenizer.GetNextToken();
+		
+		if(!tokenizerResult.first)
+			return tokenizerResult;
+	}
 
 	// first thing to realize is whether we have an defined identifier here. if this is the case, need to stop and switch context
 	// to idetnfier
@@ -964,10 +979,12 @@ BoolAndBool PreProcessor::EvaluateConstantExpression(const string& inConditionTy
 
 		do
 		{
-			SingleLineTokenProvider tokenProviderForConditional(this);
 			CPPExpressionParser expressionParser;
+			StopNewLineNotification();
 
-			BoolAndCPPExpression expressionBuildResult = expressionParser.ParseExpression(&tokenProviderForConditional);
+			BoolAndCPPExpression expressionBuildResult = expressionParser.ParseExpression(this);
+
+			StartNewLineNotification();
 
 			if(!expressionBuildResult.first)
 			{
@@ -986,6 +1003,8 @@ BoolAndBool PreProcessor::EvaluateConstantExpression(const string& inConditionTy
 			
 			result.first = true;
 			result.second = GetAsBoolean(expressionEvalResult.second);
+			if(!mEncounteredNewLineWhileNotNotifying) // note if newline was reached while in expression parsing (=not notifying). if not, make sure to flush
+				FlushTillEndOfLine();
 		}
 		while(false);
 
@@ -1059,10 +1078,14 @@ void PreProcessor::RemoveListener(IPreprocessorListener* inListener)
 
 void PreProcessor::FireNewLine(const string& inNewLineString)
 {
-	IPreprocessorListenerSet::iterator it = mListeners.begin();
+	mEncounteredNewLineWhileNotNotifying = true;
+	if(mNotifyNewLines)
+	{
+		IPreprocessorListenerSet::iterator it = mListeners.begin();
 
-	for(; it != mListeners.end(); ++it)
-		(*it)->OnNewLine(inNewLineString);
+		for(; it != mListeners.end(); ++it)
+			(*it)->OnNewLine(inNewLineString);
+	}
 }
 
 void PreProcessor::DetermineContinuedNoReplaceement(const std::string &inToken)
@@ -1079,4 +1102,15 @@ void PreProcessor::DetermineContinuedNoReplaceement(const std::string &inToken)
 EStatusCodeAndBool PreProcessor::IsPreprocessorSymbolDefined(const string& inSymbol)
 {
 	return EStatusCodeAndBool(eSuccess,mDefines.find(inSymbol) != mDefines.end());
+}
+
+void PreProcessor::StopNewLineNotification()
+{
+	mNotifyNewLines = false;
+	mEncounteredNewLineWhileNotNotifying = false;
+}
+
+void PreProcessor::StartNewLineNotification()
+{
+	mNotifyNewLines = true;
 }
