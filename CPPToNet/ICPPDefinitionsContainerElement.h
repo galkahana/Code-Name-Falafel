@@ -8,6 +8,7 @@ class CPPElement;
 class CPPEnumerator;
 class CPPEnumeratorValue;
 class CPPUnion;
+class CPPTypedef;
 
 using namespace std;
 
@@ -24,5 +25,11 @@ public:
 
 	// unions
 	virtual CPPUnion* CreateUnion(const string& inUnionName) = 0;
+
+	// typedefs
+	virtual CPPTypedef* CreateTypedef(const string& inTypedefName,
+									  CPPElement* inSubordinateType,
+									  bool inIsConst,
+									  bool inIsVolatile) = 0;
 
 };

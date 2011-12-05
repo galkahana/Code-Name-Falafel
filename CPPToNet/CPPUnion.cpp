@@ -30,7 +30,8 @@ CPPVariable* CPPUnion::CreateVariable(const string& inVariableName,
 									  bool inIsRegister,
 									  bool inIsExtern,
 									  bool inIsConst,
-									  bool inIsVolatile)
+									  bool inIsVolatile,
+									  bool inIsStatic)
 {
 	CPPElement* existingElement = FindElement(inVariableName);
 
@@ -42,7 +43,7 @@ CPPVariable* CPPUnion::CreateVariable(const string& inVariableName,
 	}
 	else
 	{
-		CPPVariable* aVariable = new CPPVariable(inType,inVariableName,inIsAuto,inIsRegister,inIsExtern,inIsConst,inIsVolatile);
+		CPPVariable* aVariable = new CPPVariable(inType,inVariableName,inIsAuto,inIsRegister,inIsExtern,inIsConst,inIsVolatile,inIsStatic);
 
 		mVariables.insert(StringToCPPVariableMap::value_type(inVariableName,aVariable));
 		

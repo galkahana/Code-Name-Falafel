@@ -16,6 +16,7 @@ class CPPNamespace;
 class CPPElement;
 class ICPPDefinitionsContainerElement;
 class ICPPVariablesContainerElement;
+class ICPPDeclaratorContainer;
 
 typedef map<string,string> StringToStringMap;
 typedef list<string> StringList;
@@ -79,13 +80,8 @@ private:
 	bool IsTypenamesContainer(CPPElement* inElement);
 	string GetNewUnnamedName();
 
-	Hummus::EStatusCode ParseAndDefineVariablesDeclarators(ICPPVariablesContainerElement* inContainer,
-														   CPPElement* inType,
-														   bool inIsAuto,
-														   bool inIsRegister,
-														   bool inIsExtern,
-														   bool inIsConst,
-														   bool inIsVolatile);
+	Hummus::EStatusCode ParseAndDefineDeclarators(ICPPDeclaratorContainer* inContainer,
+												  CPPElement* inType);
 	Hummus::EStatusCode ParseVariablesDefinitionStatement(ICPPVariablesContainerElement* inContainer);
 
 

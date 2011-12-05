@@ -8,18 +8,14 @@
 
 using namespace std;
 
-class CPPVariable : public CPPElement, public ICPPDeclerator
+class CPPTypedef : public CPPElement, public ICPPDeclerator
 {
 public:
-	CPPVariable(CPPElement* inType, 
-				const string& inVariableName,
-				bool inIsAuto,
-				bool inIsRegister,
-				bool inIsExtern,
+	CPPTypedef(	const string& inTypedefName,
+				CPPElement* inSubordinateType, 
 				bool inIsConst,
-				bool inIsVolatile,
-				bool inIsStatic);
-	~CPPVariable(void);
+				bool inIsVolatile);
+	~CPPTypedef(void);
 
 	// ICPPDeclerator implementation
 	virtual void AppendModifiers(const DeclaratorModifierList& inModifiers);
@@ -27,18 +23,13 @@ public:
 
 	Hummus::SingleValueContainerIterator<DeclaratorModifierList> GetModifiersListIterator();
 	unsigned long GetSubscriptCount();
-	CPPElement* GetType();
+	CPPElement* GetSubordinateType();
 
-
-	bool IsAuto;
-	bool IsRegister;
-	bool IsExtern;
 	bool IsConst;
 	bool IsVolatile;
-	bool IsStatic;
 
 private:
 	DeclaratorModifierList mModifiers;
 	unsigned long mSubscriptCount;
-	CPPElement* mType;
+	CPPElement* mSubordinateType;
 };

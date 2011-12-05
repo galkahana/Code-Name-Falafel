@@ -14,6 +14,7 @@ public:
 		eCPPElementNamespace,
 		eCPPElementEnumerator,
 		eCPPElementUnion,
+		eCPPElementTypedef,
 		eCPPTypenames, // just a marker for typenames
 		// values
 		eCPPElementEnumeratorValue,

@@ -20,5 +20,6 @@ public:
 										bool inIsRegister,
 										bool inIsExtern,
 										bool inIsConst,
-										bool inIsVolatile) = 0;
+										bool inIsVolatile,
+										bool inIsStatic) = 0;
 };

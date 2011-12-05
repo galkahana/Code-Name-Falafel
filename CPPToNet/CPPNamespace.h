@@ -13,12 +13,14 @@ using namespace std;
 class CPPNamespace;
 class CPPEnumerator;
 class CPPUnion;
+class CPPTypedef;
 
 typedef map<string,CPPNamespace*> StringToCPPNamespaceMap;
 typedef map<string, CPPEnumerator*> StringToCPPEnumeratorMap;
 typedef map<string,CPPElement*> StringToCPPElementMap;
 typedef map<string,CPPVariable*> StringToCPPVariableMap;
 typedef map<string,CPPUnion*> StringToCPPUnionMap;
+typedef map<string,CPPTypedef*> StringToCPPTypedefMap;
 
 class CPPNamespace : public CPPElement, public ICPPDefinitionsContainerElement
 {
@@ -50,9 +52,13 @@ public:
 									bool inIsRegister,
 									bool inIsExtern,
 									bool inIsConst,
-									bool inIsVolatile);
+									bool inIsVolatile,
+									bool inIsStatic);
 	virtual CPPUnion* CreateUnion(const string& inUnionName);
-
+	virtual CPPTypedef* CreateTypedef(const string& inTypedefName,
+									  CPPElement* inSubordinateType,
+									  bool inIsConst,
+									  bool inIsVolatile);
 
 
 private:
@@ -76,6 +82,10 @@ private:
 
 	// basic types
 	StringToCPPElementMap mBasicTypes;
+
+	// typedefs
+	StringToCPPTypedefMap mTypedefs;
+
 
 	bool IsTypename(CPPElement* inElement);
 

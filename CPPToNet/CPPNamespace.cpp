@@ -3,6 +3,7 @@
 #include "CPPEnumerator.h"
 #include "CPPVariable.h"
 #include "CPPUnion.h"
+#include "CPPTypedef.h"
 
 using namespace Hummus;
 
@@ -31,6 +32,10 @@ CPPNamespace::~CPPNamespace(void)
 	StringToCPPElementMap::iterator itBasicTypes = mBasicTypes.begin();
 	for(; itBasicTypes != mBasicTypes.end(); ++itBasicTypes)
 		delete itBasicTypes->second;
+
+	StringToCPPTypedefMap::iterator itTypedefs = mTypedefs.begin();
+	for(; itTypedefs != mTypedefs.end(); ++itTypedefs)
+		delete itTypedefs->second;
 
 }
 
@@ -164,7 +169,8 @@ CPPVariable* CPPNamespace::CreateVariable(const string& inVariableName,
 										  bool inIsRegister,
 										  bool inIsExtern,
 										  bool inIsConst,
-										  bool inIsVolatile)
+										  bool inIsVolatile,
+										  bool inIsStatic)
 {
 	CPPElement* existingElement = FindElement(inVariableName);
 
@@ -176,7 +182,7 @@ CPPVariable* CPPNamespace::CreateVariable(const string& inVariableName,
 	}
 	else
 	{
-		CPPVariable* aVariable = new CPPVariable(inType,inVariableName,inIsAuto,inIsRegister,inIsExtern,inIsConst,inIsVolatile);
+		CPPVariable* aVariable = new CPPVariable(inType,inVariableName,inIsAuto,inIsRegister,inIsExtern,inIsConst,inIsVolatile,inIsStatic);
 
 		mVariables.insert(StringToCPPVariableMap::value_type(inVariableName,aVariable));
 		mTypenames.insert(StringToCPPElementMap::value_type(inVariableName,aVariable));
@@ -225,5 +231,29 @@ EStatusCode CPPNamespace::AppendBasicType(const string& inTypeName,CPPElement* i
 		mDefinitions.insert(StringToCPPElementMap::value_type(inTypeName,inNewType));
 
 		return eSuccess;
+	}
+}
+
+CPPTypedef* CPPNamespace::CreateTypedef(const string& inTypedefName,
+										CPPElement* inSubordinateType,
+										bool inIsConst,
+										bool inIsVolatile)
+{
+	CPPElement* existingElement = FindElement(inTypedefName);
+
+	if(existingElement)
+	{
+		TRACE_LOG1("CPPNamespace::CreateTypedef, syntax error, typename already exists for %s",
+					inTypedefName.c_str());
+		return NULL;
+	}
+	else
+	{
+		CPPTypedef* newTypedef = new CPPTypedef(inTypedefName,inSubordinateType,inIsConst,inIsVolatile);
+		mTypedefs.insert(StringToCPPTypedefMap::value_type(inTypedefName,newTypedef));
+		mTypenames.insert(StringToCPPElementMap::value_type(inTypedefName,newTypedef));
+		mDefinitions.insert(StringToCPPElementMap::value_type(inTypedefName,newTypedef));
+
+		return newTypedef;
 	}
 }

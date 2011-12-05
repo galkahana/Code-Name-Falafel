@@ -6,7 +6,8 @@ CPPVariable::CPPVariable(CPPElement* inType,
 						 bool inIsRegister,
 						 bool inIsExtern,
 						 bool inIsConst,
-						 bool inIsVolatile):CPPElement(inVariableName,CPPElement::eCPPElementVariable)
+						 bool inIsVolatile,
+						 bool inIsStatic):CPPElement(inVariableName,CPPElement::eCPPElementVariable)
 {
 	mType = inType;
 	mSubscriptCount = 0;
@@ -15,17 +16,13 @@ CPPVariable::CPPVariable(CPPElement* inType,
 	IsExtern = inIsExtern;
 	IsConst = inIsConst;
 	IsVolatile = inIsVolatile;
+	IsStatic = inIsStatic;
 }
 
 CPPVariable::~CPPVariable(void)
 {
 }
 
-
-void CPPVariable::PushModifier(const DeclaratorModifier& inModifier)
-{
-	mModifiers.push_back(inModifier);
-}
 
 void CPPVariable::AppendModifiers(const DeclaratorModifierList& inModifiers)
 {
