@@ -1,4 +1,7 @@
 #pragma once
+#include <list>
+
+using namespace std;
 
 struct DeclaratorModifier
 {
@@ -14,3 +17,6 @@ struct DeclaratorModifier
 	bool IsConst;
 	bool IsVolatile;
 };
+
+
+typedef list<DeclaratorModifier> DeclaratorModifierList;

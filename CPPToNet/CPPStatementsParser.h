@@ -2,6 +2,7 @@
 #include "IByteReader.h"
 #include "PreProcessor.h"
 #include "BoxingBase.h"
+#include "DeclaratorModifier.h"
 
 #include <string>
 #include <map>
@@ -81,8 +82,12 @@ private:
 	string GetNewUnnamedName();
 
 	Hummus::EStatusCode ParseVariablesDefinitionStatement(ICPPDeclaratorContainer* inContainer);
+	Hummus::EStatusCode ParseAndDefineField(ICPPDeclaratorContainer* inContainer,const DeclaratorModifierList& inFieldModifiersList);
+	Hummus::EStatusCode ParseAndDefineFunctionPointer(ICPPDeclaratorContainer* inContainer,const DeclaratorModifierList& inReturnTypeModifiersList);
 	Hummus::EStatusCode ParseAndDefineDeclarators(ICPPDeclaratorContainer* inContainer);
-	Hummus::EStatusCode ParseAndDefineFunctionPointer(ICPPDeclaratorContainer* inContainer);
+
+	Hummus::EStatusCode SkipInitializer();
+	Hummus::EStatusCode SkipBlock();
 
 	void StartLocalContext();
 	void EndLocalContext();

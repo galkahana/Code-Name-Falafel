@@ -815,82 +815,47 @@ EStatusCode CPPStatementsParser::SkipConstantExpression()
 		return eFailure;
 }
 
-EStatusCode CPPStatementsParser::ParseAndDefineDeclarators(ICPPDeclaratorContainer* inContainer)
+EStatusCode CPPStatementsParser::ParseAndDefineField(ICPPDeclaratorContainer* inContainer,const DeclaratorModifierList& inFieldModifiersList)
 {
-	// Important : assuming that we are NOT at semicolon, and that there's at least a suspicion for a declarator!!
-	// k. parsing variable declarators at this point is relatively simple.
-	// loop till reaching the semicolon, where separators are ","s. 
-	// each item in the comma is a combination of references and pointers, with optional const/volatile modifiers
-	// then the name of the variable, and than zero or more subscript marks. then optional initializer which for my purposes
-	// should just be skipped.
-	// parsing consumes ending semicolon
-
 	EStatusCode status = eSuccess;
 	string decleratorName;
 
 	BoolAndString token = mTokensSource.GetNextToken();	
 	if(!token.first)
 	{
-		// m.k...no tokens
-		return eSuccess;
+		TRACE_LOG("CPPStatementsParser::ParseAndDefineField, tokens not found when trying to parse for fields");
+		return eFailure;
 	}
 
 	do
 	{
-		DeclaratorModifierList modifiers;
-		while(token.first && token.second == "*" || token.second == "&" && (eSuccess == status))
-		{
-			DeclaratorModifier modifier;
-			modifier.Modifier = (token.second == "&" ?  DeclaratorModifier::eDeclaratorModifierReference : DeclaratorModifier::eDeclaratorModifierPointer);
+		ICPPDeclerator* aDeclarator;
 
-			// look for volatile/const
-			token = mTokensSource.GetNextToken();
-			if(token.first && (token.second == "volatile" || token.second == "const"))
-			{
-				if(token.second == "volatile")
-					modifier.IsVolatile = true;
-				else
-					modifier.IsConst = true;
-				// since there might be a second modifier, continue
-				token = mTokensSource.GetNextToken();
-				if(token.first && (token.second == "volatile" || token.second == "const"))
-				{
-					if(token.second == "volatile")
-						modifier.IsVolatile = true;
-					else
-						modifier.IsConst = true;
-					token = mTokensSource.GetNextToken();
-				}
-			}
-			modifiers.push_back(modifier);
-
-			// k. so now token should be post modifier. continue with loop
-		}
-		
-		// k. now, name
-		if(!token.first)
-		{
-			TRACE_LOG("CPPStatementsParser::ParseAndDefineDeclarators, anonymous declarators encountered. invalid at this point.");
-			status = eFailure;
-			break; // anonymous declarator. at this point not allowed.
-		}
-
-		decleratorName = token.second;
-		ICPPDeclerator* aDeclarator = inContainer->AddDeclarator(decleratorName);
+		if(token.second != "[" && !inContainer->VerifyDeclaratorStopper(token.second))
+			aDeclarator = inContainer->AddDeclarator(decleratorName);
+		else
+			aDeclarator = inContainer->AddDeclarator(""); // unnamed declarator. normally only found in function parameters
 		if(!aDeclarator)
 		{
-			TRACE_LOG1("CPPStatementsParser::ParseAndDefineDeclarators, unable to create a declarator with the name %s.",decleratorName.c_str());
+			TRACE_LOG1("CPPStatementsParser::ParseAndDefineField, unable to create a declarator with the name %s.",decleratorName.c_str());
 			status = eFailure;
 			break;
 		}
 		
-		aDeclarator->AppendModifiers(modifiers);
+		aDeclarator->AppendModifiers(inFieldModifiersList);
+
+		if(inContainer->VerifyDeclaratorStopper(token.second))
+		{
+			// k. unnamed parameter, break;
+			mTokensSource.PutBackToken(token.second); // put back this token, which is not used
+			break;
+		}
 
 		// subscripts
 		token = mTokensSource.GetNextToken();
 		if(!token.first)
 		{
-			TRACE_LOG("CPPStatementsParser::ParseAndDefineDeclarators, unexpected end, should have semicolon, initializor, comma or subscript marks");
+			TRACE_LOG("CPPStatementsParser::ParseAndDefineField, unexpected end, should have semicolon, initializor, comma or subscript marks");
 			status = eFailure;
 			break;
 		}
@@ -902,7 +867,7 @@ EStatusCode CPPStatementsParser::ParseAndDefineDeclarators(ICPPDeclaratorContain
 			token = mTokensSource.GetNextToken();
 			if(!token.first)
 			{
-				TRACE_LOG("CPPStatementsParser::ParseAndDefineDeclarators, unexpected end, expected an expression or closing bracket ']'");
+				TRACE_LOG("CPPStatementsParser::ParseAndDefineField, unexpected end, expected an expression or closing bracket ']'");
 				status = eFailure;
 				break;
 			}
@@ -917,7 +882,7 @@ EStatusCode CPPStatementsParser::ParseAndDefineDeclarators(ICPPDeclaratorContain
 				token = mTokensSource.GetNextToken();
 				if(!token.first || token.second != "]")
 				{
-					TRACE_LOG("CPPStatementsParser::ParseAndDefineDeclarators, unexpected end or wrong token, expected closing bracket ']'");
+					TRACE_LOG("CPPStatementsParser::ParseAndDefineField, unexpected end or wrong token, expected closing bracket ']'");
 					status = eFailure;
 					break;
 				}
@@ -930,34 +895,68 @@ EStatusCode CPPStatementsParser::ParseAndDefineDeclarators(ICPPDeclaratorContain
 		// k. done with subscripts, now initializers skipping
 		if(token.second == "=")
 		{
-			status = SkipConstantExpression();
+			status = SkipInitializer();
 			if(status != eSuccess)
 				break;
-			token = mTokensSource.GetNextToken();
-			if(!token.first)
-			{
-				TRACE_LOG("CPPStatementsParser::ParseAndDefineDeclarators, unexpected end, expecting either comma or semicolon");
-				status = eFailure;
-				break;
-			}
 		}
-
-		// k. now expecting either a stopper (semicolon for regulaer declarators, comma for parameters)
-		if(inContainer->VerifyDeclaratorStopper(token.second))
-			break;
-
-		if(token.second != ",")
-		{
-			TRACE_LOG1("CPPStatementsParser::ParseAndDefineDeclarators, unexpected token, expecting a comma. got %s",token.second.c_str());
-			status = eFailure;
-			break;
-		}
-		
-		token = mTokensSource.GetNextToken();
-	}while(eSuccess == status && token.first);
+		else
+			mTokensSource.PutBackToken(token.second);
+	}while(false);
 
 	return status;
 
+}
+
+EStatusCode CPPStatementsParser::SkipInitializer()
+{
+	EStatusCode status = eSuccess;
+
+	do
+	{
+
+		BoolAndString token = mTokensSource.GetNextToken();
+		
+		if(!token.first)
+		{
+			TRACE_LOG("CPPStatementsParser::SkipInitalizer, expecting a token and found nothing");
+			status = eFailure;
+			break;
+		}
+
+		if(token.second == "{")
+			status = SkipBlock();
+		else
+			status = SkipConstantExpression();
+	}while(false);
+
+	return status;
+}
+
+Hummus::EStatusCode CPPStatementsParser::SkipBlock()
+{
+	// assuming block already started
+	EStatusCode status = eSuccess;
+	int blockLevel = 1;
+	BoolAndString token;
+
+	while(eSuccess == status && blockLevel > 0)
+	{
+		token = mTokensSource.GetNextToken();
+
+		if(!token.first)
+		{
+			TRACE_LOG("CPPStatementsParser::SkipBlock, unxpected end of reading, while skipping block");
+			status = eFailure;
+		}
+		else
+		{
+			if(token.second == "}")
+				--blockLevel;
+			else if(token.second == "{")
+				++blockLevel;
+		}
+	}
+	return status;
 }
 
 class DecleratorAsParametersContainer : public ICPPDeclaratorContainer
@@ -1064,7 +1063,7 @@ bool DecleratorAsParametersContainer::FoundStop()
 	return mFoundStop;
 }
 
-EStatusCode CPPStatementsParser::ParseAndDefineFunctionPointer(ICPPDeclaratorContainer* inContainer)
+EStatusCode CPPStatementsParser::ParseAndDefineFunctionPointer(ICPPDeclaratorContainer* inContainer,const DeclaratorModifierList& inReturnTypeModifiersList)
 {
 	// function pointers look like this:
 	// T (name)(params)
@@ -1081,7 +1080,7 @@ EStatusCode CPPStatementsParser::ParseAndDefineFunctionPointer(ICPPDeclaratorCon
 	BoolAndString token = mTokensSource.GetNextToken();	
 	if(!token.first)
 	{
-		TRACE_LOG("CPPStatementsParser::ParseAndDefineDeclarators, tokens not found when trying to parse for function pointers");
+		TRACE_LOG("CPPStatementsParser::ParseAndDefineFunctionPointer, tokens not found when trying to parse for function pointers");
 		return eFailure;
 	}
 
@@ -1131,48 +1130,46 @@ EStatusCode CPPStatementsParser::ParseAndDefineFunctionPointer(ICPPDeclaratorCon
 		}
 
 		aDeclarator->SetFunctionPointerType(pointerType);
+		aDeclarator->AppendModifiersForReturnType(inReturnTypeModifiersList);
 
 		token = mTokensSource.GetNextToken();	
 		
-
 		DecleratorAsParametersContainer parametersContainer(aDeclarator);
 
 		// Now for parameters parsing
 		while(token.first && token.second != ")" && eSuccess == status)
 		{
-			status = ParseVariablesDefinitionStatement(&parametersContainer);
-			if(status != eSuccess)
+			if(token.second == "...")
 			{
-				TRACE_LOG("CPPStatementsParser::ParseAndDefineFunctionPointer, failed to parase function pointer paremeter");
+				aDeclarator->SetHasElipsis();
+				token = mTokensSource.GetNextToken();
+				if(!token.first)
+				{
+					TRACE_LOG("CPPStatementsParser::ParseAndDefineFunctionPointer, unexpected no tokens after elipsis. expected )");
+					status = eFailure;
+				}
+				else if(token.second != ")")
+				{
+					TRACE_LOG1("CPPStatementsParser::ParseAndDefineFunctionPointer, unexpected token after elipsis. expected ), got %s",token.second.c_str());
+					status = eFailure;
+				}
 				break;
 			}
-			
-			if(parametersContainer.FoundStop())	
-				break;
+			else
+			{
+				status = ParseVariablesDefinitionStatement(&parametersContainer);
+				if(status != eSuccess)
+				{
+					TRACE_LOG("CPPStatementsParser::ParseAndDefineFunctionPointer, failed to parase function pointer paremeter");
+					break;
+				}
+				
+				if(parametersContainer.FoundStop())	
+					break;
 
-			parametersContainer.Reset();
+				parametersContainer.Reset();
+			}
 		}
-		if(status != eSuccess)
-			break;
-
-		// next, consume the final ending character (semi colon for regular decalrator, comma for params)
-		token = mTokensSource.GetNextToken();
-		if(!token.first)
-		{
-			TRACE_LOG("CPPStatementsParser::ParseAndDefineFunctionPointer, unexpected end, expecting either comma or semicolon");
-			status = eFailure;
-			break;
-		}
-
-		// k. now expecting either a stopper (semicolon for regulaer declarators, comma for parameters)
-		if(!inContainer->VerifyDeclaratorStopper(token.second))
-		{
-			TRACE_LOG1("CPPStatementsParser::ParseAndDefineFunctionPointer, unexpected token, expecting either comma or semicolon, found %s",token.second.c_str());
-			status = eFailure;
-			break;
-		}
-			
-
 	} while(false);
 
 	return status;
@@ -1311,13 +1308,116 @@ EStatusCode CPPStatementsParser::ParseUnionDeclaration()
 	return status;
 }
 
+Hummus::EStatusCode CPPStatementsParser::ParseAndDefineDeclarators(ICPPDeclaratorContainer* inContainer)
+{
+	// This could be either a regular field variable or a function pointer. both are similar but essentially different. so parse in accordance.
+	// note that variable definitions statement may contain more than one element defined, so hence there's a loop internally. the container
+	// should provide information on when to stop
+
+	EStatusCode status = eSuccess;
+	BoolAndString token;
+
+
+	do
+	{
+		token = mTokensSource.GetNextToken();
+		if(!token.first)
+		{
+			TRACE_LOG("CPPStatementsParser::ParseVariablesDefinitionStatement, unexpected end of statement while parsing for a variable definition");
+			status = eFailure;
+			break;
+		}
+
+		do
+		{
+			// start with some declarators modifiers - pointers/refrences which in turn could be const/volatile (or none)
+			DeclaratorModifierList modifiers;
+
+			while(token.first && token.second == "*" || token.second == "&" && (eSuccess == status))
+			{
+				DeclaratorModifier modifier;
+				modifier.Modifier = (token.second == "&" ?  DeclaratorModifier::eDeclaratorModifierReference : DeclaratorModifier::eDeclaratorModifierPointer);
+
+				// look for volatile/const
+				token = mTokensSource.GetNextToken();
+				if(token.first && (token.second == "volatile" || token.second == "const"))
+				{
+					if(token.second == "volatile")
+						modifier.IsVolatile = true;
+					else
+						modifier.IsConst = true;
+					// since there might be a second modifier, continue
+					token = mTokensSource.GetNextToken();
+					if(token.first && (token.second == "volatile" || token.second == "const"))
+					{
+						if(token.second == "volatile")
+							modifier.IsVolatile = true;
+						else
+							modifier.IsConst = true;
+						token = mTokensSource.GetNextToken();
+					}
+				}
+				modifiers.push_back(modifier);
+
+				// k. so now token should be post modifier. continue with loop
+			}
+			
+			if(!token.first)
+			{
+				TRACE_LOG("CPPStatementsParser::ParseAndDefineDeclarators, anonymous declarators encountered. invalid at this point.");
+				status = eFailure;
+				break; // anonymous declarator. at this point not allowed.
+			}
+
+			// now, either function pointer token or name
+			if(token.second == "(")
+			{
+				status = ParseAndDefineFunctionPointer(inContainer,modifiers);
+			}
+			else
+			{
+				// Field case
+
+				mTokensSource.PutBackToken(token.second);
+
+				status = ParseAndDefineField(inContainer,modifiers);
+			}
+			// run either parsing method. [make sure they put back if the token is outside]
+
+			token = mTokensSource.GetNextToken();
+			if(!token.first)
+			{
+				TRACE_LOG("CPPStatementsParser::ParseAndDefineDeclarators, unexpected end, expecting either comma or semicolon");
+				status = eFailure;
+				break;
+			}
+
+			// k. now expecting either a stopper (semicolon for regulaer declarators, comma for parameters)
+			if(inContainer->VerifyDeclaratorStopper(token.second))
+				break;
+
+			// if it's not, then there should always be a comma
+			if(token.second != ",")
+			{
+				TRACE_LOG1("CPPStatementsParser::ParseAndDefineDeclarators, unexpected token, expecting a comma. got %s",token.second.c_str());
+				status = eFailure;
+				break;
+			}
+			
+			token = mTokensSource.GetNextToken();
+		}while(eSuccess == status && token.first);
+
+	}while(false);
+
+	return status;	
+}
+
 EStatusCode CPPStatementsParser::ParseVariablesDefinitionStatement(ICPPDeclaratorContainer* inContainer)
 {
-	// This could be either a regular field variable or a function pointer. both are similar but essentially different. so parse in accordance
+	// This could be either a regular field variable or a function pointer. both are similar but essentially different. so parse in accordance.
+	// note that variable definitions statement may contain more than one element defined, so hence there's a loop internally. the container
+	// should provide information on when to stop
 
-	// Parse storage specifiers, type and the declarators. assuming we expect to have a definition here
-	// parsing consumes ending semicolon
-	// basically it should look like this: [[auto/register][static/extern][const][volatile]] type
 	EStatusCode status = eSuccess;
 	bool typenameFound = false;
 	bool isAuto = false;
@@ -1328,6 +1428,7 @@ EStatusCode CPPStatementsParser::ParseVariablesDefinitionStatement(ICPPDeclarato
 	bool isStatic = false;
 	BoolAndString token;
 
+	// start by parsing storage specificers for the initial defined type (be it return type for function pointer, or a regualr field type)
 	do
 	{
 		token = mTokensSource.GetNextToken();
@@ -1373,9 +1474,9 @@ EStatusCode CPPStatementsParser::ParseVariablesDefinitionStatement(ICPPDeclarato
 		return status;
 
 
-	// got to the type name part, after all qualifiers
 	do
 	{
+		// get the type itself
 		CPPElement* anElement = GetElementFromCurrentLocation();
 		if(!anElement)
 		{
@@ -1392,38 +1493,14 @@ EStatusCode CPPStatementsParser::ParseVariablesDefinitionStatement(ICPPDeclarato
 			break;
 		}
 
+		// setup container with initial flags, before going to repetetive (potentioally) declarators definition
 		if(inContainer->SetFlags(anElement,isAuto,isRegister,isExtern,isConst,isVolatile,isStatic) != eSuccess)
 		{
 			status = eFailure;
 			break;
 		}
 
-
-		// determine how to continue based on whether this is a:
-		// 1. Regular Field definition (in which case the type was the field(s)) type
-		// 2. Function Pointer definition (in which case the type was the return type)
-		token = mTokensSource.GetNextToken();
-		if(!token.first)
-		{
-			TRACE_LOG("CPPStatementsParser::ParseVariablesDefinitionStatement, tokens not found when trying to parse for function pointers");
-			status = eFailure;
-			break;
-		}
-	
-		if(token.second == "(")
-		{
-			status = ParseAndDefineFunctionPointer(inContainer);
-		}
-		else
-		{
-			// Field case
-
-			mTokensSource.PutBackToken(token.second);
-
-			status = ParseAndDefineDeclarators(inContainer);
-		}
-
-
+		status = ParseAndDefineDeclarators(inContainer);
 	}while(false);
 
 	return status;

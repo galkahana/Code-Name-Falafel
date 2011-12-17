@@ -67,18 +67,22 @@ public:
 	~FunctionPointerTypeDescriptor();
 
 	virtual void SetFunctionPointerType(ICPPFunctionPointerDeclerator::EFunctionPointerType inFunctionPointerType);
+	virtual void AppendModifiersForReturnType(const DeclaratorModifierList& inModifiers);
+	virtual void SetHasElipsis();
 	virtual FunctionParameter* CreateParameter(const string& inParameterName,
 												UsedTypeDescriptor* inParameterType);
 
 	ICPPFunctionPointerDeclerator::EFunctionPointerType GetPointerType(); 
 	UsedTypeDescriptor* GetReturnType();
 	Hummus::SingleValueContainerIterator<FunctionParameterList> GetParametersListIterator();
+	bool HasElipsis();
 	
 
 private:
 	ICPPFunctionPointerDeclerator::EFunctionPointerType mPointerType;
 	UsedTypeDescriptor* mReturnType;
 	FunctionParameterList mDeclaredParameters;
+	bool mHasElipsis;
 };
 
 class UsedTypeDescriptor

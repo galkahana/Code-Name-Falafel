@@ -1,12 +1,6 @@
 #pragma once
 #include "DeclaratorModifier.h"
 
-#include <list>
-
-using namespace std;
-
-typedef list<DeclaratorModifier> DeclaratorModifierList;
-
 class ICPPDeclerator
 {
 public:

@@ -58,6 +58,7 @@ FunctionParameter::~FunctionParameter()
 FunctionPointerTypeDescriptor::FunctionPointerTypeDescriptor(UsedTypeDescriptor* inReturnType)
 {
 	mReturnType = inReturnType;
+	mHasElipsis = false;
 }
 
 FunctionPointerTypeDescriptor::~FunctionPointerTypeDescriptor()
@@ -73,6 +74,12 @@ void FunctionPointerTypeDescriptor::SetFunctionPointerType(ICPPFunctionPointerDe
 {
 	mPointerType = inFunctionPointerType;
 }
+
+void FunctionPointerTypeDescriptor::AppendModifiersForReturnType(const DeclaratorModifierList& inModifiers)
+{
+	mReturnType->GetFieldDescriptor()->AppendModifiers(inModifiers);
+}
+
 
 FunctionParameter* FunctionPointerTypeDescriptor::CreateParameter(const string& inParameterName,UsedTypeDescriptor* inParameterType)
 {
@@ -97,6 +104,16 @@ UsedTypeDescriptor* FunctionPointerTypeDescriptor::GetReturnType()
 Hummus::SingleValueContainerIterator<FunctionParameterList> FunctionPointerTypeDescriptor::GetParametersListIterator()
 {
 	return Hummus::SingleValueContainerIterator<FunctionParameterList>(mDeclaredParameters);
+}
+
+void FunctionPointerTypeDescriptor::SetHasElipsis()
+{
+	mHasElipsis = true;
+}
+
+bool FunctionPointerTypeDescriptor::HasElipsis()
+{
+	return mHasElipsis;
 }
 
 
