@@ -14,6 +14,7 @@
 #include "ICPPDeclerator.h"
 #include "ICPPDeclaratorContainer.h"
 #include "CPPTypedef.h"
+#include "UsedTypeDescriptor.h"
 
 using namespace Hummus;
 
@@ -580,14 +581,17 @@ bool CPPStatementsParser::IsTypenamesContainer(CPPElement* inElement)
 class DecleratorAsVariabeContainer : public ICPPDeclaratorContainer
 {
 public:
-	DecleratorAsVariabeContainer(ICPPVariablesContainerElement* inStorage,bool inIsAuto,bool inIsRegister,bool inIsExtern,bool inIsConst,bool inIsVolatile, bool inIsStatic);
+	DecleratorAsVariabeContainer(ICPPVariablesContainerElement* inStorage);
 
-	virtual ICPPDeclerator* AddDeclarator(const string& inVariableName,
-									      CPPElement* inType);
+	virtual EStatusCode SetFlags(CPPElement* inType,bool inIsAuto,bool inIsRegister,bool inIsExtern,bool inIsConst,bool inIsVolatile, bool inIsStatic);
+	virtual ICPPDeclerator* AddDeclarator(const string& inDecleratorName);
+	virtual ICPPFunctionPointerDeclerator* AddFunctionPointerDeclarator(const string& inDecleratorName);
+	virtual bool VerifyDeclaratorStopper(const string& inTokenToExamine);
 
 private:
 
 	ICPPVariablesContainerElement* mStorage;
+	CPPElement* mType;
 	bool mIsAuto;
 	bool mIsRegister;
 	bool mIsExtern;
@@ -596,22 +600,54 @@ private:
 	bool mIsStatic;
 };
 
-DecleratorAsVariabeContainer::DecleratorAsVariabeContainer(ICPPVariablesContainerElement* inStorage,bool inIsAuto,bool inIsRegister,bool inIsExtern,bool inIsConst,bool inIsVolatile,bool inIsStatic)
+DecleratorAsVariabeContainer::DecleratorAsVariabeContainer(ICPPVariablesContainerElement* inStorage)
 {
 	mStorage = inStorage;
+	mIsAuto = false;
+	mIsRegister = false;
+	mIsExtern = false;
+	mIsConst = false;
+	mIsVolatile = false;
+	mIsStatic = false;	
+}
+
+EStatusCode DecleratorAsVariabeContainer::SetFlags(CPPElement* inType,bool inIsAuto,bool inIsRegister,bool inIsExtern,bool inIsConst,bool inIsVolatile, bool inIsStatic)
+{
+	mType = inType;
 	mIsAuto = inIsAuto;
 	mIsRegister = inIsRegister;
 	mIsExtern = inIsExtern;
 	mIsConst = inIsConst;
 	mIsVolatile = inIsVolatile;
-	mIsStatic = inIsStatic;
+	mIsStatic = inIsStatic;	
+
+	return eSuccess;
 }
 
-ICPPDeclerator* DecleratorAsVariabeContainer::AddDeclarator(const string& inVariableName,
-															CPPElement* inType)
+ICPPDeclerator* DecleratorAsVariabeContainer::AddDeclarator(const string& inDecleratorName)
 {
-	return mStorage->CreateVariable(inVariableName,inType,mIsAuto,mIsRegister,mIsExtern,mIsConst,mIsVolatile,mIsStatic);
+	UsedTypeDescriptor* newTypeDescriptor = new UsedTypeDescriptor(mType,mIsAuto,mIsRegister,mIsExtern,mIsConst,mIsVolatile,mIsStatic);
+
+	CPPVariable* aVariable = mStorage->CreateVariable(inDecleratorName,newTypeDescriptor);
+	return aVariable ? aVariable->GetTypeDescriptor()->GetFieldDescriptor() : NULL;
 }
+
+
+ICPPFunctionPointerDeclerator* DecleratorAsVariabeContainer::AddFunctionPointerDeclarator(const string& inDecleratorName)
+{
+	UsedTypeDescriptor* returnTypeDescriptor = new UsedTypeDescriptor(mType,mIsAuto,mIsRegister,mIsExtern,mIsConst,mIsVolatile,mIsStatic);
+	UsedTypeDescriptor* functionPointerDescriptor = new UsedTypeDescriptor(returnTypeDescriptor);
+
+	CPPVariable* aVariable = mStorage->CreateVariable(inDecleratorName,functionPointerDescriptor);
+	return aVariable ? aVariable->GetTypeDescriptor()->GetFunctionPointerDescriptor() : NULL;
+}
+
+
+bool DecleratorAsVariabeContainer::VerifyDeclaratorStopper(const string& inTokenToExamine)
+{
+	return inTokenToExamine == ";";
+}
+
 
 EStatusCode CPPStatementsParser::ParseEnumeratorDeclaration()
 {
@@ -747,9 +783,10 @@ EStatusCode CPPStatementsParser::ParseEnumeratorDeclaration()
 			// variables definition. put back token and parse declarators normally
 			mTokensSource.PutBackToken(token.second);
 
-			DecleratorAsVariabeContainer variablesDefinitionDriver(mDefinitionContextStack.back(),false,false,false,false,false,false);
+			DecleratorAsVariabeContainer variablesDefinitionDriver(mDefinitionContextStack.back());
+			variablesDefinitionDriver.SetFlags(anEnumerator,false,false,false,false,false,false);
 
-			if(ParseAndDefineDeclarators(&variablesDefinitionDriver,anEnumerator) != eSuccess) // will consume the semicolon as well
+			if(ParseAndDefineDeclarators(&variablesDefinitionDriver) != eSuccess) // will consume the semicolon as well
 			{
 				TRACE_LOG1("CPPStatementsParser::ParseEnumeratorDeclaration, failed to parse declarators for enumerator %s",enumeratorName.c_str());
 				break;
@@ -778,8 +815,7 @@ EStatusCode CPPStatementsParser::SkipConstantExpression()
 		return eFailure;
 }
 
-EStatusCode CPPStatementsParser::ParseAndDefineDeclarators(ICPPDeclaratorContainer* inContainer,
-														   CPPElement* inType)
+EStatusCode CPPStatementsParser::ParseAndDefineDeclarators(ICPPDeclaratorContainer* inContainer)
 {
 	// Important : assuming that we are NOT at semicolon, and that there's at least a suspicion for a declarator!!
 	// k. parsing variable declarators at this point is relatively simple.
@@ -790,10 +826,9 @@ EStatusCode CPPStatementsParser::ParseAndDefineDeclarators(ICPPDeclaratorContain
 	// parsing consumes ending semicolon
 
 	EStatusCode status = eSuccess;
-	BoolAndString token;
 	string decleratorName;
 
-	token = mTokensSource.GetNextToken();	
+	BoolAndString token = mTokensSource.GetNextToken();	
 	if(!token.first)
 	{
 		// m.k...no tokens
@@ -841,7 +876,7 @@ EStatusCode CPPStatementsParser::ParseAndDefineDeclarators(ICPPDeclaratorContain
 		}
 
 		decleratorName = token.second;
-		ICPPDeclerator* aDeclarator = inContainer->AddDeclarator(decleratorName,inType);
+		ICPPDeclerator* aDeclarator = inContainer->AddDeclarator(decleratorName);
 		if(!aDeclarator)
 		{
 			TRACE_LOG1("CPPStatementsParser::ParseAndDefineDeclarators, unable to create a declarator with the name %s.",decleratorName.c_str());
@@ -907,18 +942,238 @@ EStatusCode CPPStatementsParser::ParseAndDefineDeclarators(ICPPDeclaratorContain
 			}
 		}
 
-		// k. now expecting either a comma or semicolon
-		if(token.second == ";")
-			break; // semi-colon, done
+		// k. now expecting either a stopper (semicolon for regulaer declarators, comma for parameters)
+		if(inContainer->VerifyDeclaratorStopper(token.second))
+			break;
 
 		if(token.second != ",")
 		{
 			TRACE_LOG1("CPPStatementsParser::ParseAndDefineDeclarators, unexpected token, expecting a comma. got %s",token.second.c_str());
+			status = eFailure;
 			break;
 		}
 		
 		token = mTokensSource.GetNextToken();
 	}while(eSuccess == status && token.first);
+
+	return status;
+
+}
+
+class DecleratorAsParametersContainer : public ICPPDeclaratorContainer
+{
+public:
+
+	DecleratorAsParametersContainer(ICPPFunctionPointerDeclerator* inFunctionPointer);
+	
+	virtual EStatusCode SetFlags(CPPElement* inType,bool inIsAuto,bool inIsRegister,bool inIsExtern,bool inIsConst,bool inIsVolatile, bool inIsStatic);
+	virtual ICPPDeclerator* AddDeclarator(const string& inDecleratorName);
+	virtual ICPPFunctionPointerDeclerator* AddFunctionPointerDeclarator(const string& inDecleratorName);
+	virtual bool VerifyDeclaratorStopper(const string& inTokenToExamine);
+
+	bool FoundStop();
+	void Reset();
+
+private:
+	ICPPFunctionPointerDeclerator* mFunctionPointer;
+
+	bool mIsConst;
+	bool mIsVolatile;	
+	CPPElement* mType;
+	bool mFoundStop;
+	bool mAlreadyDefinedOne;
+};
+
+DecleratorAsParametersContainer::DecleratorAsParametersContainer(ICPPFunctionPointerDeclerator* inFunctionPointer)
+{
+	mFoundStop = false;
+	mFunctionPointer = inFunctionPointer;
+	mAlreadyDefinedOne = true;
+}
+
+EStatusCode DecleratorAsParametersContainer::SetFlags(CPPElement* inType,bool inIsAuto,bool inIsRegister,bool inIsExtern,bool inIsConst,bool inIsVolatile, bool inIsStatic)
+{
+	mIsConst = inIsConst;
+	mIsVolatile = inIsVolatile;
+	mType = inType;
+
+	if(inIsAuto || inIsRegister || inIsExtern || inIsStatic)
+	{
+		TRACE_LOG("DecleratorAsParametersContainer::SetFlags, irelevant flags set for typedef. Should not set auto, extern, register or static. only const and volatile are allowed.");
+		return eFailure;
+	}
+	else
+		return eSuccess;
+}
+
+ICPPDeclerator* DecleratorAsParametersContainer::AddDeclarator(const string& inDecleratorName)
+{	
+	if(mAlreadyDefinedOne)
+	{
+		TRACE_LOG("DecleratorAsParametersContainer::AddDeclarator, typedef statement contains multiple declarator, this is a syntax error");
+		return NULL;
+	}
+
+	mAlreadyDefinedOne = true;
+
+	UsedTypeDescriptor* usedTypeDescriptor = new UsedTypeDescriptor(mType,false,false,false,mIsConst,mIsVolatile,false);
+	FunctionParameter* newParameter = mFunctionPointer->CreateParameter(inDecleratorName,usedTypeDescriptor);
+	return newParameter ? newParameter->Type->GetFieldDescriptor():NULL;
+}
+
+ICPPFunctionPointerDeclerator* DecleratorAsParametersContainer::AddFunctionPointerDeclarator(const string& inDecleratorName)
+{
+	if(mAlreadyDefinedOne)
+	{
+		TRACE_LOG("DecleratorAsParametersContainer::AddFunctionPointerDeclarator, typedef statement contains multiple declarator, this is a syntax error");
+		return NULL;
+	}
+
+	mAlreadyDefinedOne = true;
+
+	UsedTypeDescriptor* returnTypeDescriptor = new UsedTypeDescriptor(mType,false,false,false,mIsConst,mIsVolatile,false);
+	UsedTypeDescriptor* functionPointerDescriptor = new UsedTypeDescriptor(returnTypeDescriptor);
+
+	FunctionParameter* newParameter = mFunctionPointer->CreateParameter(inDecleratorName,functionPointerDescriptor);
+	return newParameter ? newParameter->Type->GetFunctionPointerDescriptor():NULL;
+}
+
+
+void DecleratorAsParametersContainer::Reset()
+{
+	mAlreadyDefinedOne = false;
+	mIsConst = false;
+	mIsVolatile = false;
+}
+
+bool DecleratorAsParametersContainer::VerifyDeclaratorStopper(const string& inTokenToExamine)
+{
+	if(inTokenToExamine == ",")
+		return true;
+	else if(inTokenToExamine == ")")
+	{
+		mFoundStop = true;
+		return true;
+	}
+	else 
+		return false;
+}
+
+bool DecleratorAsParametersContainer::FoundStop()
+{
+	return mFoundStop;
+}
+
+EStatusCode CPPStatementsParser::ParseAndDefineFunctionPointer(ICPPDeclaratorContainer* inContainer)
+{
+	// function pointers look like this:
+	// T (name)(params)
+	// or
+	// T (*name)(params)
+	// or
+	// T (&name)(params)
+	// at this point we already have the "(" part consumed, so now there should be 
+	// either "*" or "&" or the name
+	EStatusCode status = eSuccess;
+	ICPPFunctionPointerDeclerator::EFunctionPointerType pointerType;
+	string decleratorName;
+
+	BoolAndString token = mTokensSource.GetNextToken();	
+	if(!token.first)
+	{
+		TRACE_LOG("CPPStatementsParser::ParseAndDefineDeclarators, tokens not found when trying to parse for function pointers");
+		return eFailure;
+	}
+
+	do
+	{
+		if(token.second == "*" || token.second == "&")
+		{
+			// modifiers to pointer type
+			pointerType = (token.second == "*") ? ICPPFunctionPointerDeclerator::eFunctionPointerTypePointer : ICPPFunctionPointerDeclerator::eFunctionPointerTypeReference;
+
+			// get next token for the name
+			token = mTokensSource.GetNextToken();	
+			if(!token.first)
+			{
+				TRACE_LOG("CPPStatementsParser::ParseAndDefineFunctionPointer, no token when trying to parse for function pointer name");
+				status = eFailure;
+				break;
+			}
+		}
+		else
+			pointerType = ICPPFunctionPointerDeclerator::eFunctionPointerTypeNone;
+
+		decleratorName = token.second;
+
+		token = mTokensSource.GetNextToken();	
+		if(!token.first || token.second != ")")
+		{
+			TRACE_LOG("CPPStatementsParser::ParseAndDefineFunctionPointer, expected ) in parsing function pointer declaration, and not found");
+			status = eFailure;
+			break;
+		}
+		token = mTokensSource.GetNextToken();	
+		if(!token.first || token.second != "(")
+		{
+			TRACE_LOG("CPPStatementsParser::ParseAndDefineFunctionPointer, expected ( in parsing function pointer declaration, and not found");
+			status = eFailure;
+			break;
+		}
+		
+		// ok. we have enough, can create a function pointer object, and go on with parsing parameters later
+		ICPPFunctionPointerDeclerator* aDeclarator = inContainer->AddFunctionPointerDeclarator(decleratorName);
+		if(!aDeclarator)
+		{
+			TRACE_LOG1("CPPStatementsParser::ParseAndDefineFunctionPointer, unable to create a function declarator with the name %s.",decleratorName.c_str());
+			status = eFailure;
+			break;
+		}
+
+		aDeclarator->SetFunctionPointerType(pointerType);
+
+		token = mTokensSource.GetNextToken();	
+		
+
+		DecleratorAsParametersContainer parametersContainer(aDeclarator);
+
+		// Now for parameters parsing
+		while(token.first && token.second != ")" && eSuccess == status)
+		{
+			status = ParseVariablesDefinitionStatement(&parametersContainer);
+			if(status != eSuccess)
+			{
+				TRACE_LOG("CPPStatementsParser::ParseAndDefineFunctionPointer, failed to parase function pointer paremeter");
+				break;
+			}
+			
+			if(parametersContainer.FoundStop())	
+				break;
+
+			parametersContainer.Reset();
+		}
+		if(status != eSuccess)
+			break;
+
+		// next, consume the final ending character (semi colon for regular decalrator, comma for params)
+		token = mTokensSource.GetNextToken();
+		if(!token.first)
+		{
+			TRACE_LOG("CPPStatementsParser::ParseAndDefineFunctionPointer, unexpected end, expecting either comma or semicolon");
+			status = eFailure;
+			break;
+		}
+
+		// k. now expecting either a stopper (semicolon for regulaer declarators, comma for parameters)
+		if(!inContainer->VerifyDeclaratorStopper(token.second))
+		{
+			TRACE_LOG1("CPPStatementsParser::ParseAndDefineFunctionPointer, unexpected token, expecting either comma or semicolon, found %s",token.second.c_str());
+			status = eFailure;
+			break;
+		}
+			
+
+	} while(false);
 
 	return status;
 }
@@ -987,7 +1242,9 @@ EStatusCode CPPStatementsParser::ParseUnionDeclaration()
 				// not done, put back, and define variable
 				mTokensSource.PutBackToken(token.second);
 				
-				if(ParseVariablesDefinitionStatement(aUnion) != eSuccess)
+				DecleratorAsVariabeContainer variablesDefinitionDriver(aUnion);
+
+				if(ParseVariablesDefinitionStatement(&variablesDefinitionDriver) != eSuccess)
 				{
 					TRACE_LOG("CPPStatementsParser::ParseUnionDeclaration, synatx error, unable to parse union");
 					status = eFailure;
@@ -1039,9 +1296,10 @@ EStatusCode CPPStatementsParser::ParseUnionDeclaration()
 			// variables definition. put back token and parse declarators normally
 			mTokensSource.PutBackToken(token.second);
 
-			DecleratorAsVariabeContainer variablesDefinitionDriver(mDefinitionContextStack.back(),false,false,false,false,false,false);
+			DecleratorAsVariabeContainer variablesDefinitionDriver(mDefinitionContextStack.back());
+			variablesDefinitionDriver.SetFlags(aUnion,false,false,false,false,false,false);
 
-			if(ParseAndDefineDeclarators(&variablesDefinitionDriver,aUnion) != eSuccess) // will consume the semicolon as well
+			if(ParseAndDefineDeclarators(&variablesDefinitionDriver) != eSuccess) // will consume the semicolon as well
 			{
 				TRACE_LOG1("CPPStatementsParser::ParseUnionDeclaration, failed to parse declarators for union %s",unionName.c_str());
 				break;
@@ -1053,8 +1311,10 @@ EStatusCode CPPStatementsParser::ParseUnionDeclaration()
 	return status;
 }
 
-EStatusCode CPPStatementsParser::ParseVariablesDefinitionStatement(ICPPVariablesContainerElement* inContainer)
+EStatusCode CPPStatementsParser::ParseVariablesDefinitionStatement(ICPPDeclaratorContainer* inContainer)
 {
+	// This could be either a regular field variable or a function pointer. both are similar but essentially different. so parse in accordance
+
 	// Parse storage specifiers, type and the declarators. assuming we expect to have a definition here
 	// parsing consumes ending semicolon
 	// basically it should look like this: [[auto/register][static/extern][const][volatile]] type
@@ -1132,42 +1392,84 @@ EStatusCode CPPStatementsParser::ParseVariablesDefinitionStatement(ICPPVariables
 			break;
 		}
 
-		DecleratorAsVariabeContainer variablesDefinitionDriver(inContainer,isAuto,isRegister,isExtern,isConst,isVolatile,isStatic);
+		if(inContainer->SetFlags(anElement,isAuto,isRegister,isExtern,isConst,isVolatile,isStatic) != eSuccess)
+		{
+			status = eFailure;
+			break;
+		}
 
-		// move on to declarators
-		status = ParseAndDefineDeclarators(&variablesDefinitionDriver,anElement);
+
+		// determine how to continue based on whether this is a:
+		// 1. Regular Field definition (in which case the type was the field(s)) type
+		// 2. Function Pointer definition (in which case the type was the return type)
+		token = mTokensSource.GetNextToken();
+		if(!token.first)
+		{
+			TRACE_LOG("CPPStatementsParser::ParseVariablesDefinitionStatement, tokens not found when trying to parse for function pointers");
+			status = eFailure;
+			break;
+		}
+	
+		if(token.second == "(")
+		{
+			status = ParseAndDefineFunctionPointer(inContainer);
+		}
+		else
+		{
+			// Field case
+
+			mTokensSource.PutBackToken(token.second);
+
+			status = ParseAndDefineDeclarators(inContainer);
+		}
+
 
 	}while(false);
 
 	return status;
 }
 
-// TODO, contnibnue from here. pass a "container" implementation that inserts a type, and allow just ONE!!!!1
 class DecleratorAsTypedefContainer : public ICPPDeclaratorContainer
 {
 
 public:
-	DecleratorAsTypedefContainer(ICPPDefinitionsContainerElement* inStorage,bool inIsConst,bool inIsVolatile);
+	DecleratorAsTypedefContainer(ICPPDefinitionsContainerElement* inStorage);
 
-	virtual ICPPDeclerator* AddDeclarator(const string& inVariableName,
-									      CPPElement* inType);
+	virtual EStatusCode SetFlags(CPPElement* inType,bool inIsAuto,bool inIsRegister,bool inIsExtern,bool inIsConst,bool inIsVolatile, bool inIsStatic);
+	virtual ICPPDeclerator* AddDeclarator(const string& inDeclaratorName);
+	virtual ICPPFunctionPointerDeclerator* AddFunctionPointerDeclarator(const string& inDecleratorName);
+	virtual bool VerifyDeclaratorStopper(const string& inTokenToExamine);
+
 private:
 	ICPPDefinitionsContainerElement* mStorage;
+	CPPElement* mType;
 	bool mIsConst;
 	bool mIsVolatile;
 	bool mAlreadyDefinedOne;
 };
 
-DecleratorAsTypedefContainer::DecleratorAsTypedefContainer(ICPPDefinitionsContainerElement* inStorage,bool inIsConst,bool inIsVolatile)
+DecleratorAsTypedefContainer::DecleratorAsTypedefContainer(ICPPDefinitionsContainerElement* inStorage)
 {
 	mStorage = inStorage;
-	mIsConst = inIsConst;
-	mIsVolatile = inIsVolatile;
 	mAlreadyDefinedOne = false;
 }
 
-ICPPDeclerator* DecleratorAsTypedefContainer::AddDeclarator(const string& inVariableName,
-															CPPElement* inType)
+EStatusCode DecleratorAsTypedefContainer::SetFlags(CPPElement* inType,bool inIsAuto,bool inIsRegister,bool inIsExtern,bool inIsConst,bool inIsVolatile, bool inIsStatic)
+{
+	mIsConst = inIsConst;
+	mIsVolatile = inIsVolatile;
+	mType = inType;
+
+	if(inIsAuto || inIsRegister || inIsExtern || inIsStatic)
+	{
+		TRACE_LOG("DecleratorAsTypedefContainer::SetFlags, irelevant flags set for typedef. Should not set auto, extern, register or static. only const and volatile are allowed.");
+		return eFailure;
+	}
+	else
+		return eSuccess;
+}
+
+ICPPDeclerator* DecleratorAsTypedefContainer::AddDeclarator(const string& inDeclaratorName)
 {
 	if(mAlreadyDefinedOne)
 	{
@@ -1176,81 +1478,43 @@ ICPPDeclerator* DecleratorAsTypedefContainer::AddDeclarator(const string& inVari
 	}
 
 	mAlreadyDefinedOne = true;
-	return mStorage->CreateTypedef(inVariableName,inType,mIsConst,mIsVolatile);
+
+	UsedTypeDescriptor* usedTypeDescriptor = new UsedTypeDescriptor(mType,false,false,false,mIsConst,mIsVolatile,false);
+
+	CPPTypedef* newTypeDef = mStorage->CreateTypedef(inDeclaratorName,usedTypeDescriptor);
+	return newTypeDef ? newTypeDef->GetTypeDescriptor()->GetFieldDescriptor() : NULL;
 }
+
+ICPPFunctionPointerDeclerator* DecleratorAsTypedefContainer::AddFunctionPointerDeclarator(const string& inDecleratorName)
+{
+	if(mAlreadyDefinedOne)
+	{
+		TRACE_LOG("DecleratorAsTypedefContainer::AddDeclarator, typedef statement contains multiple declarator, this is a syntax error");
+		return NULL;
+	}
+
+	mAlreadyDefinedOne = true;
+
+	UsedTypeDescriptor* returnTypeDescriptor = new UsedTypeDescriptor(mType,false,false,false,mIsConst,mIsVolatile,false);
+	UsedTypeDescriptor* functionPointerDescriptor = new UsedTypeDescriptor(returnTypeDescriptor);
+
+	CPPTypedef* newTypeDef = mStorage->CreateTypedef(inDecleratorName,functionPointerDescriptor);
+	return newTypeDef ? newTypeDef->GetTypeDescriptor()->GetFunctionPointerDescriptor() : NULL;
+}
+
+
+bool DecleratorAsTypedefContainer::VerifyDeclaratorStopper(const string& inTokenToExamine)
+{
+	return inTokenToExamine== ";";
+}
+
 
 EStatusCode CPPStatementsParser::ParseTypedefDeclaration()
 {
-	// typedef type-declaration synonym
-	// well. typedef is like a variable definition in many ways but for the following facts:
-	// 1. It's not. so no storage specifications like static/register/auto/extern
-	// 2. Just one "decalarator", not multiple
-	// 3. it needs to become a type, not a variable
+	// parsing a typedef follows similar syntax rules to variable definition. so let's reuse the main idea there
+	DecleratorAsTypedefContainer typeedefDefinitionDriver(mDefinitionContextStack.back());
 
-	EStatusCode status = eSuccess;
-	bool typenameFound = false;
-	bool isVolatile = false;
-	bool isConst = false;
-	BoolAndString token;
-
-
-	do
-	{
-		token = mTokensSource.GetNextToken();
-		if(!token.first)
-		{
-			TRACE_LOG("CPPStatementsParser::ParseTypedefDeclaration, unexpected end of statement while parsing for a type definition");
-			status = eFailure;
-			break;
-		}
-
-		if(token.second == "const")
-		{
-			isConst = true;
-		}
-		else if(token.second == "volatile")
-		{
-			isVolatile = true;
-		}
-		else
-		{
-			mTokensSource.PutBackToken(token.second);
-			typenameFound = true;
-		}
-	}while(eSuccess == status && !typenameFound);
-
-	if(status != eSuccess)
-		return status;
-
-
-
-	// got to the type name part, after all qualifiers
-	do
-	{
-		CPPElement* anElement = GetElementFromCurrentLocation();
-		if(!anElement)
-		{
-			TRACE_LOG("CPPStatementsParser::ParseTypedefDeclaration, error in typedef declaration, could not find designated type");
-			status = eFailure;
-			break;
-		}
-
-		// make sure it's a type
-		if(!anElement->IsType())
-		{
-			TRACE_LOG1("CPPStatementsParser::ParseTypedefDeclaration, expecting to find type, but found %s",anElement->Name);
-			status = eFailure;
-			break;
-		}
-	
-		DecleratorAsTypedefContainer typeedefDefinitionDriver(mDefinitionContextStack.back(),isConst,isVolatile);
-
-		// move on to declarators
-		status = ParseAndDefineDeclarators(&typeedefDefinitionDriver,anElement);
-
-	}while(false);
-
-	return status;
+	return ParseVariablesDefinitionStatement(&typeedefDefinitionDriver);
 }
 
 // now after having played initial games with types give a shot at variables & functions parsing

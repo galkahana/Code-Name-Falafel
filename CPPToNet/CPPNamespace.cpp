@@ -164,13 +164,7 @@ CPPEnumeratorValue* CPPNamespace::CreateEnumeratorValue(CPPEnumerator* inEnumera
 }
 
 CPPVariable* CPPNamespace::CreateVariable(const string& inVariableName,
-										  CPPElement* inType,
-										  bool inIsAuto,
-										  bool inIsRegister,
-										  bool inIsExtern,
-										  bool inIsConst,
-										  bool inIsVolatile,
-										  bool inIsStatic)
+										  UsedTypeDescriptor* inTypeDescriptor)
 {
 	CPPElement* existingElement = FindElement(inVariableName);
 
@@ -182,7 +176,7 @@ CPPVariable* CPPNamespace::CreateVariable(const string& inVariableName,
 	}
 	else
 	{
-		CPPVariable* aVariable = new CPPVariable(inType,inVariableName,inIsAuto,inIsRegister,inIsExtern,inIsConst,inIsVolatile,inIsStatic);
+		CPPVariable* aVariable = new CPPVariable(inVariableName,inTypeDescriptor);
 
 		mVariables.insert(StringToCPPVariableMap::value_type(inVariableName,aVariable));
 		mTypenames.insert(StringToCPPElementMap::value_type(inVariableName,aVariable));
@@ -235,9 +229,7 @@ EStatusCode CPPNamespace::AppendBasicType(const string& inTypeName,CPPElement* i
 }
 
 CPPTypedef* CPPNamespace::CreateTypedef(const string& inTypedefName,
-										CPPElement* inSubordinateType,
-										bool inIsConst,
-										bool inIsVolatile)
+										UsedTypeDescriptor* inTypeDescriptor)
 {
 	CPPElement* existingElement = FindElement(inTypedefName);
 
@@ -249,7 +241,7 @@ CPPTypedef* CPPNamespace::CreateTypedef(const string& inTypedefName,
 	}
 	else
 	{
-		CPPTypedef* newTypedef = new CPPTypedef(inTypedefName,inSubordinateType,inIsConst,inIsVolatile);
+		CPPTypedef* newTypedef = new CPPTypedef(inTypedefName,inTypeDescriptor);
 		mTypedefs.insert(StringToCPPTypedefMap::value_type(inTypedefName,newTypedef));
 		mTypenames.insert(StringToCPPElementMap::value_type(inTypedefName,newTypedef));
 		mDefinitions.insert(StringToCPPElementMap::value_type(inTypedefName,newTypedef));

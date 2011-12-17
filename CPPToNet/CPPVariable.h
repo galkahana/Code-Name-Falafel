@@ -1,44 +1,22 @@
 #pragma once
 
 #include "CPPElement.h"
-#include "SingleValueContainerIterator.h"
-#include "ICPPDeclerator.h"
 
 #include <list>
 
 using namespace std;
 
-class CPPVariable : public CPPElement, public ICPPDeclerator
+class UsedTypeDescriptor;
+
+class CPPVariable : public CPPElement
 {
 public:
-	CPPVariable(CPPElement* inType, 
-				const string& inVariableName,
-				bool inIsAuto,
-				bool inIsRegister,
-				bool inIsExtern,
-				bool inIsConst,
-				bool inIsVolatile,
-				bool inIsStatic);
+	CPPVariable(const string& inVariableName, 
+				UsedTypeDescriptor* inTypeDescriptor);
 	~CPPVariable(void);
 
-	// ICPPDeclerator implementation
-	virtual void AppendModifiers(const DeclaratorModifierList& inModifiers);
-	virtual void AddSubscript();
-
-	Hummus::SingleValueContainerIterator<DeclaratorModifierList> GetModifiersListIterator();
-	unsigned long GetSubscriptCount();
-	CPPElement* GetType();
-
-
-	bool IsAuto;
-	bool IsRegister;
-	bool IsExtern;
-	bool IsConst;
-	bool IsVolatile;
-	bool IsStatic;
+	UsedTypeDescriptor* GetTypeDescriptor();
 
 private:
-	DeclaratorModifierList mModifiers;
-	unsigned long mSubscriptCount;
-	CPPElement* mType;
+	UsedTypeDescriptor* mTypeDescriptor;
 };

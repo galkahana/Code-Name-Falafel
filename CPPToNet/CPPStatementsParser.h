@@ -80,10 +80,9 @@ private:
 	bool IsTypenamesContainer(CPPElement* inElement);
 	string GetNewUnnamedName();
 
-	Hummus::EStatusCode ParseAndDefineDeclarators(ICPPDeclaratorContainer* inContainer,
-												  CPPElement* inType);
-	Hummus::EStatusCode ParseVariablesDefinitionStatement(ICPPVariablesContainerElement* inContainer);
-
+	Hummus::EStatusCode ParseVariablesDefinitionStatement(ICPPDeclaratorContainer* inContainer);
+	Hummus::EStatusCode ParseAndDefineDeclarators(ICPPDeclaratorContainer* inContainer);
+	Hummus::EStatusCode ParseAndDefineFunctionPointer(ICPPDeclaratorContainer* inContainer);
 
 	void StartLocalContext();
 	void EndLocalContext();

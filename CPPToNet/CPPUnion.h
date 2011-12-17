@@ -21,13 +21,7 @@ public:
 
 	virtual CPPElement* FindElement(const string& inElementName); 
 	virtual CPPVariable* CreateVariable(const string& inVariableName,
-									CPPElement* inType,
-									bool inIsAuto,
-									bool inIsRegister,
-									bool inIsExtern,
-									bool inIsConst,
-									bool inIsVolatile,
-									bool inIsStatic);
+										UsedTypeDescriptor* inTypeDescriptor);
 
 private:
 

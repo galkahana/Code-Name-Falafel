@@ -25,13 +25,7 @@ CPPElement* CPPUnion::FindElement(const string& inElementName)
 }
 
 CPPVariable* CPPUnion::CreateVariable(const string& inVariableName,
-									  CPPElement* inType,
-									  bool inIsAuto,
-									  bool inIsRegister,
-									  bool inIsExtern,
-									  bool inIsConst,
-									  bool inIsVolatile,
-									  bool inIsStatic)
+									  UsedTypeDescriptor* inTypeDescriptor)
 {
 	CPPElement* existingElement = FindElement(inVariableName);
 
@@ -43,7 +37,7 @@ CPPVariable* CPPUnion::CreateVariable(const string& inVariableName,
 	}
 	else
 	{
-		CPPVariable* aVariable = new CPPVariable(inType,inVariableName,inIsAuto,inIsRegister,inIsExtern,inIsConst,inIsVolatile,inIsStatic);
+		CPPVariable* aVariable = new CPPVariable(inVariableName,inTypeDescriptor);
 
 		mVariables.insert(StringToCPPVariableMap::value_type(inVariableName,aVariable));
 		

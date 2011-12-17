@@ -822,7 +822,19 @@
 					>
 				</File>
 				<File
+					RelativePath=".\ICPPFunctionPointerDeclerator.h"
+					>
+				</File>
+				<File
 					RelativePath=".\ICPPVariablesContainerElement.h"
+					>
+				</File>
+				<File
+					RelativePath=".\UsedTypeDescriptor.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\UsedTypeDescriptor.h"
 					>
 				</File>
 			</Filter>

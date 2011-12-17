@@ -1,43 +1,18 @@
 #include "CPPTypedef.h"
+#include "UsedTypeDescriptor.h"
 
-CPPTypedef::CPPTypedef(const string& inTypedefName,
-					   CPPElement* inSubordinateType, 
-					   bool inIsConst,
-					   bool inIsVolatile):CPPElement(inTypedefName,CPPElement::eCPPElementTypedef)
+CPPTypedef::CPPTypedef(const string& inVariableName,
+						 UsedTypeDescriptor* inTypeDescriptor):CPPElement(inVariableName,CPPElement::eCPPElementTypedef)
 {
-	IsConst = inIsConst;
-	IsVolatile = inIsVolatile;
-	mSubordinateType = inSubordinateType;
-	mSubscriptCount = 0;
+	mTypeDescriptor = inTypeDescriptor;
 }
 
 CPPTypedef::~CPPTypedef(void)
 {
+	delete mTypeDescriptor;
 }
 
-
-void CPPTypedef::AppendModifiers(const DeclaratorModifierList& inModifiers)
+UsedTypeDescriptor* CPPTypedef::GetTypeDescriptor()
 {
-	mModifiers.insert(mModifiers.end(),inModifiers.begin(),inModifiers.end());
+	return mTypeDescriptor;
 }
-
-void CPPTypedef::AddSubscript()
-{
-	++mSubscriptCount;
-}
-
-Hummus::SingleValueContainerIterator<DeclaratorModifierList> CPPTypedef::GetModifiersListIterator()
-{
-	return Hummus::SingleValueContainerIterator<DeclaratorModifierList>(mModifiers);
-}
-
-unsigned long CPPTypedef::GetSubscriptCount()
-{
-	return mSubscriptCount;
-}
-
-CPPElement* CPPTypedef::GetSubordinateType()
-{
-	return mSubordinateType;
-}
-

@@ -28,8 +28,6 @@ public:
 
 	// typedefs
 	virtual CPPTypedef* CreateTypedef(const string& inTypedefName,
-									  CPPElement* inSubordinateType,
-									  bool inIsConst,
-									  bool inIsVolatile) = 0;
+									  UsedTypeDescriptor* inTypeDescriptor) = 0;
 
 };

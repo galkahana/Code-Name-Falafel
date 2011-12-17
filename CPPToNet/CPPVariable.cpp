@@ -1,51 +1,18 @@
 #include "CPPVariable.h"
+#include "UsedTypeDescriptor.h"
 
-CPPVariable::CPPVariable(CPPElement* inType, 
-						 const string& inVariableName,
-						 bool inIsAuto,
-						 bool inIsRegister,
-						 bool inIsExtern,
-						 bool inIsConst,
-						 bool inIsVolatile,
-						 bool inIsStatic):CPPElement(inVariableName,CPPElement::eCPPElementVariable)
+CPPVariable::CPPVariable(const string& inVariableName,
+						 UsedTypeDescriptor* inTypeDescriptor):CPPElement(inVariableName,CPPElement::eCPPElementVariable)
 {
-	mType = inType;
-	mSubscriptCount = 0;
-	IsAuto = inIsAuto;
-	IsRegister = inIsRegister;
-	IsExtern = inIsExtern;
-	IsConst = inIsConst;
-	IsVolatile = inIsVolatile;
-	IsStatic = inIsStatic;
+	mTypeDescriptor = inTypeDescriptor;
 }
 
 CPPVariable::~CPPVariable(void)
 {
+	delete mTypeDescriptor;
 }
 
-
-void CPPVariable::AppendModifiers(const DeclaratorModifierList& inModifiers)
+UsedTypeDescriptor* CPPVariable::GetTypeDescriptor()
 {
-	mModifiers.insert(mModifiers.end(),inModifiers.begin(),inModifiers.end());
+	return mTypeDescriptor;
 }
-
-void CPPVariable::AddSubscript()
-{
-	++mSubscriptCount;
-}
-
-Hummus::SingleValueContainerIterator<DeclaratorModifierList> CPPVariable::GetModifiersListIterator()
-{
-	return Hummus::SingleValueContainerIterator<DeclaratorModifierList>(mModifiers);
-}
-
-unsigned long CPPVariable::GetSubscriptCount()
-{
-	return mSubscriptCount;
-}
-
-CPPElement* CPPVariable::GetType()
-{
-	return mType;
-}
-

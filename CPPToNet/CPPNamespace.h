@@ -47,18 +47,10 @@ public:
 	virtual CPPEnumerator* CreateEnumerator(const string& inEnumeratorName);
 	virtual CPPEnumeratorValue* CreateEnumeratorValue(CPPEnumerator* inEnumerator,const string& inEnumeratorValueName);
 	virtual CPPVariable* CreateVariable(const string& inVariableName,
-									CPPElement* inType,
-									bool inIsAuto,
-									bool inIsRegister,
-									bool inIsExtern,
-									bool inIsConst,
-									bool inIsVolatile,
-									bool inIsStatic);
+										UsedTypeDescriptor* inTypeDescriptor);
 	virtual CPPUnion* CreateUnion(const string& inUnionName);
 	virtual CPPTypedef* CreateTypedef(const string& inTypedefName,
-									  CPPElement* inSubordinateType,
-									  bool inIsConst,
-									  bool inIsVolatile);
+									  UsedTypeDescriptor* inTypeDescriptor);
 
 
 private:
