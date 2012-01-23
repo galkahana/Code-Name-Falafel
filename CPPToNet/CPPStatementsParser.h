@@ -3,6 +3,7 @@
 #include "PreProcessor.h"
 #include "BoxingBase.h"
 #include "DeclaratorModifier.h"
+#include "CPPElement.h"
 
 #include <string>
 #include <map>
@@ -14,10 +15,10 @@ using namespace std;
 
 class HeaderUnit;
 class CPPNamespace;
-class CPPElement;
 class ICPPDefinitionsContainerElement;
 class ICPPVariablesContainerElement;
-class ICPPDeclaratorContainer;
+class ICPPDeclarationContainerDriver;
+class ICPPFieldDeclerator;
 
 typedef map<string,string> StringToStringMap;
 typedef list<string> StringList;
@@ -27,7 +28,7 @@ typedef list<CPPNamespace*> CPPNamespaceList;
 typedef set<CPPNamespace*> CPPNamespaceSet;
 typedef list<string> StringList;
 typedef list<ICPPDefinitionsContainerElement*> ICPPDefinitionsContainerElementList;
-
+typedef set<CPPElement::ECPPElementType> ECPPElementTypeSet;
 
 struct LocalContext
 {
@@ -71,20 +72,34 @@ private:
 	Hummus::EStatusCode ParseTemplateDeclaration();
 
 	CPPElement* FindUnqualifiedElement(const string& inElementName);
+	CPPElement* FindUnqualifiedElement(const string& inElementName,CPPElement::ECPPElementType inOfType);
+	CPPElement* FindUnqualifiedElement(const string& inElementName,ECPPElementTypeSet inOfTypes);
 	void AddNamespaceToUnqualifiedSearch(CPPNamespace* inNamespace);
 	Hummus::EStatusCode SkipSemiColon();
-	CPPElement* GetElementFromCurrentLocation();
+	CPPElement* GetElementFromCurrentLocation(bool inRequireType);
 
+	// will return either NULL or an element, if and only if there's just ONE element of this name
+	CPPElement* FindElement(ICPPDefinitionsContainerElement* inContainer,const string& inElementName);
+
+	// will return either NULL or an element, if and only if there's just ONE element of this name and of this type
+	CPPElement* FindElement(ICPPDefinitionsContainerElement* inContainer,const string& inElementName,CPPElement::ECPPElementType inOfType);
+
+	// will return either NULL or an element, if and only if there's just ONE element of this name and of these types
+	CPPElement* FindElement(ICPPDefinitionsContainerElement* inContainer,const string& inElementName,ECPPElementTypeSet inOfTypes);
 
 	Hummus::EStatusCode SkipConstantExpression();
 
 	bool IsTypenamesContainer(CPPElement* inElement);
 	string GetNewUnnamedName();
 
-	Hummus::EStatusCode ParseVariablesDefinitionStatement(ICPPDeclaratorContainer* inContainer);
-	Hummus::EStatusCode ParseAndDefineField(ICPPDeclaratorContainer* inContainer,const DeclaratorModifierList& inFieldModifiersList);
-	Hummus::EStatusCode ParseAndDefineFunctionPointer(ICPPDeclaratorContainer* inContainer,const DeclaratorModifierList& inReturnTypeModifiersList);
-	Hummus::EStatusCode ParseAndDefineDeclarators(ICPPDeclaratorContainer* inContainer);
+	Hummus::EStatusCode ParseGenericDeclerationStatement(ICPPDeclarationContainerDriver* inContainer);
+	Hummus::EStatusCode ParseDeclarators(ICPPDeclarationContainerDriver* inContainer);
+
+	EStatusCodeAndBool ParseFunctionPointer(ICPPDeclarationContainerDriver* inContainer,const DeclaratorModifierList& inReturnTypeModifiersList);
+	EStatusCodeAndBool ParseFieldOrFunction(ICPPDeclarationContainerDriver* inContainer,const DeclaratorModifierList& inFieldModifiersList);
+	EStatusCodeAndBool ParseFunctionDefinition(ICPPDeclarationContainerDriver* inContainer,const DeclaratorModifierList& inReturnTypeModifiersList,const string& inFunctionName);
+	EStatusCodeAndBool ParseFieldDefinition(ICPPFieldDeclerator* inFieldDeclerator);
+
 
 	Hummus::EStatusCode SkipInitializer();
 	Hummus::EStatusCode SkipBlock();

@@ -30,6 +30,9 @@ _.swp
 *.lastbuildstate
 *.ipch
 *.rc
+*.cache
+*.filters
+*.opensdf
 
 #unwanted other sources #
 ########################

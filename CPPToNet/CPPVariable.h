@@ -2,10 +2,6 @@
 
 #include "CPPElement.h"
 
-#include <list>
-
-using namespace std;
-
 class UsedTypeDescriptor;
 
 class CPPVariable : public CPPElement

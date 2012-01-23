@@ -1,0 +1,298 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{9F1060BC-1AD7-4E25-ACDE-F51B06B0351A}</ProjectGuid>
+    <RootNamespace>CPPToNet</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Configuration)\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(Platform)\$(Configuration)\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(Platform)\$(Configuration)\</IntDir>
+    <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
+    <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
+    <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
+    <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
+    <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
+    <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
+    <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Release|x64'">AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
+    <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Midl>
+      <TargetEnvironment>X64</TargetEnvironment>
+    </Midl>
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Midl>
+      <TargetEnvironment>X64</TargetEnvironment>
+    </Midl>
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="DecleratorAsParametersContainer.h" />
+    <ClInclude Include="DecleratorAsTypedefContainer.h" />
+    <ClInclude Include="DecleratorAsVariableContainer.h" />
+    <ClInclude Include="EStatusCode.h" />
+    <ClInclude Include="SafeBufferMacrosDefs.h" />
+    <ClInclude Include="UnicodeString.h" />
+    <ClInclude Include="Log.h" />
+    <ClInclude Include="Trace.h" />
+    <ClInclude Include="AdapterIByteReaderWithPositionToIReadPositionProvider.h" />
+    <ClInclude Include="IByteReader.h" />
+    <ClInclude Include="IByteReaderWithPosition.h" />
+    <ClInclude Include="IByteWriter.h" />
+    <ClInclude Include="IByteWriterWithPosition.h" />
+    <ClInclude Include="InputBufferedStream.h" />
+    <ClInclude Include="InputByteArrayStream.h" />
+    <ClInclude Include="InputFile.h" />
+    <ClInclude Include="InputFileStream.h" />
+    <ClInclude Include="InputLimitedStream.h" />
+    <ClInclude Include="InputStreamSkipperStream.h" />
+    <ClInclude Include="InputStringBufferStream.h" />
+    <ClInclude Include="IOBasicTypes.h" />
+    <ClInclude Include="IReadPositionProvider.h" />
+    <ClInclude Include="MyStringBuf.h" />
+    <ClInclude Include="OutputBufferedStream.h" />
+    <ClInclude Include="OutputFile.h" />
+    <ClInclude Include="OutputFileStream.h" />
+    <ClInclude Include="OutputStreamTraits.h" />
+    <ClInclude Include="OutputStringBufferStream.h" />
+    <ClInclude Include="BoxingBase.h" />
+    <ClInclude Include="ContainerIterator.h" />
+    <ClInclude Include="MapIterator.h" />
+    <ClInclude Include="RefCountObject.h" />
+    <ClInclude Include="RefCountPtr.h" />
+    <ClInclude Include="Singleton.h" />
+    <ClInclude Include="SingleValueContainerIterator.h" />
+    <ClInclude Include="CPPExpression.h" />
+    <ClInclude Include="CPPExpressionFunctionCall.h" />
+    <ClInclude Include="CPPExpressionInteger.h" />
+    <ClInclude Include="CPPExpressionParser.h" />
+    <ClInclude Include="CPPExpressionVariable.h" />
+    <ClInclude Include="CPPOperator.h" />
+    <ClInclude Include="CPPOperatorExpression.h" />
+    <ClInclude Include="CPPPrimitiveTypes.h" />
+    <ClInclude Include="CPPPrimitiveValue.h" />
+    <ClInclude Include="CPPStatementsParser.h" />
+    <ClInclude Include="CPPTokenizer.h" />
+    <ClInclude Include="DefineIdentifierDefinition.h" />
+    <ClInclude Include="HeaderUnit.h" />
+    <ClInclude Include="IExpressionEvaluationContext.h" />
+    <ClInclude Include="IncludeFileTokenProvider.h" />
+    <ClInclude Include="IPreprocessorListener.h" />
+    <ClInclude Include="IPreprocessorTokenProvider.h" />
+    <ClInclude Include="ITokenProvider.h" />
+    <ClInclude Include="ParenthesisConditionalTokenProvider.h" />
+    <ClInclude Include="PreProcessor.h" />
+    <ClInclude Include="PreprocessorFunctionIterator.h" />
+    <ClInclude Include="PreTokenizerDecoder.h" />
+    <ClInclude Include="SimplePreprocessorValueIterator.h" />
+    <ClInclude Include="SingleLineTokenProvider.h" />
+    <ClInclude Include="CPPBoolType.h" />
+    <ClInclude Include="CPPCharType.h" />
+    <ClInclude Include="CPPIntType.h" />
+    <ClInclude Include="CPPLongLongType.h" />
+    <ClInclude Include="CPPLongType.h" />
+    <ClInclude Include="CPPStandardIntegerType.h" />
+    <ClInclude Include="CPPULongLongType.h" />
+    <ClInclude Include="CPPUnsignedCharType.h" />
+    <ClInclude Include="CPPUnsignedIntType.h" />
+    <ClInclude Include="CPPUnsignedLongType.h" />
+    <ClInclude Include="CPPWCharType.h" />
+    <ClInclude Include="ICPPPrimitiveType.h" />
+    <ClInclude Include="CPPElement.h" />
+    <ClInclude Include="CPPEnumerator.h" />
+    <ClInclude Include="CPPFunction.h" />
+    <ClInclude Include="CPPNamespace.h" />
+    <ClInclude Include="CPPPrimitive.h" />
+    <ClInclude Include="CPPTypedef.h" />
+    <ClInclude Include="CPPUnion.h" />
+    <ClInclude Include="CPPVariable.h" />
+    <ClInclude Include="DeclaratorModifier.h" />
+    <ClInclude Include="FunctionParameter.h" />
+    <ClInclude Include="ICPPDeclarationContainerDriver.h" />
+    <ClInclude Include="ICPPDefinitionsContainerElement.h" />
+    <ClInclude Include="ICPPFieldDeclerator.h" />
+    <ClInclude Include="ICPPFunctionDefinitionDeclerator.h" />
+    <ClInclude Include="ICPPFunctionPointerDeclerator.h" />
+    <ClInclude Include="ICPPParametersContainer.h" />
+    <ClInclude Include="ICPPVariablesContainerElement.h" />
+    <ClInclude Include="UsedTypeDescriptor.h" />
+    <ClInclude Include="WindowsFileSystem.h" />
+    <ClInclude Include="WindowsPath.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="DecleratorAsParametersContainer.cpp" />
+    <ClCompile Include="DecleratorAsTypedefContainer.cpp" />
+    <ClCompile Include="DecleratorAsVariableContainer.cpp" />
+    <ClCompile Include="UnicodeString.cpp" />
+    <ClCompile Include="Log.cpp" />
+    <ClCompile Include="Trace.cpp" />
+    <ClCompile Include="InputBufferedStream.cpp" />
+    <ClCompile Include="InputByteArrayStream.cpp" />
+    <ClCompile Include="InputFile.cpp" />
+    <ClCompile Include="InputFileStream.cpp" />
+    <ClCompile Include="InputLimitedStream.cpp" />
+    <ClCompile Include="InputStreamSkipperStream.cpp" />
+    <ClCompile Include="InputStringBufferStream.cpp" />
+    <ClCompile Include="OutputBufferedStream.cpp" />
+    <ClCompile Include="OutputFile.cpp" />
+    <ClCompile Include="OutputFileStream.cpp" />
+    <ClCompile Include="OutputStreamTraits.cpp" />
+    <ClCompile Include="OutputStringBufferStream.cpp" />
+    <ClCompile Include="RefCountObject.cpp" />
+    <ClCompile Include="CPPExpressionFunctionCall.cpp" />
+    <ClCompile Include="CPPExpressionInteger.cpp" />
+    <ClCompile Include="CPPExpressionParser.cpp" />
+    <ClCompile Include="CPPExpressionVariable.cpp" />
+    <ClCompile Include="CPPOperator.cpp" />
+    <ClCompile Include="CPPOperatorExpression.cpp" />
+    <ClCompile Include="CPPStatementsParser.cpp" />
+    <ClCompile Include="CPPTokenizer.cpp" />
+    <ClCompile Include="DefineIdentifierDefinition.cpp" />
+    <ClCompile Include="HeaderUnit.cpp" />
+    <ClCompile Include="IncludeFileTokenProvider.cpp" />
+    <ClCompile Include="ParenthesisConditionalTokenProvider.cpp" />
+    <ClCompile Include="PreProcessor.cpp" />
+    <ClCompile Include="PreprocessorFunctionIterator.cpp" />
+    <ClCompile Include="PreTokenizerDecoder.cpp" />
+    <ClCompile Include="SimplePreprocessorValueIterator.cpp" />
+    <ClCompile Include="SingleLineTokenProvider.cpp" />
+    <ClCompile Include="CPPBoolType.cpp" />
+    <ClCompile Include="CPPCharType.cpp" />
+    <ClCompile Include="CPPIntType.cpp" />
+    <ClCompile Include="CPPLongLongType.cpp" />
+    <ClCompile Include="CPPLongType.cpp" />
+    <ClCompile Include="CPPULongLongType.cpp" />
+    <ClCompile Include="CPPUnsignedCharType.cpp" />
+    <ClCompile Include="CPPUnsignedIntType.cpp" />
+    <ClCompile Include="CPPUnsignedLongType.cpp" />
+    <ClCompile Include="CPPWCharType.cpp" />
+    <ClCompile Include="CPPElement.cpp" />
+    <ClCompile Include="CPPEnumerator.cpp" />
+    <ClCompile Include="CPPFunction.cpp" />
+    <ClCompile Include="CPPNamespace.cpp" />
+    <ClCompile Include="CPPPrimitive.cpp" />
+    <ClCompile Include="CPPTypedef.cpp" />
+    <ClCompile Include="CPPUnion.cpp" />
+    <ClCompile Include="CPPVariable.cpp" />
+    <ClCompile Include="FunctionParameter.cpp" />
+    <ClCompile Include="UsedTypeDescriptor.cpp" />
+    <ClCompile Include="WindowsFileSystem.cpp" />
+    <ClCompile Include="WindowsPath.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -11,16 +11,19 @@ public:
 	{
 		// typenames
 		eCPPElementPrimitive,
-		eCPPElementNamespace,
 		eCPPElementEnumerator,
 		eCPPElementUnion,
 		eCPPElementTypedef,
 		eCPPTypenames, // just a marker for typenames
 		// values
+		eCPPElementNamespace,
 		eCPPElementEnumeratorValue,
-		eCPPElementVariable
+		eCPPElementVariable,
+		eCPPElementFunction,
+		eCPPElementTotalCount
 	};
 
+	static string TypeLabels[eCPPElementTotalCount];
 
 	CPPElement(const string& inName,ECPPElementType inType);
 	~CPPElement(void);

@@ -8,3 +8,8 @@ CPPPrimitive::CPPPrimitive(const string& inName,ECPPPrimitiveType inPrimitiveTyp
 CPPPrimitive::~CPPPrimitive(void)
 {
 }
+
+bool CPPPrimitive::IsEqual(CPPPrimitive* inOther)
+{
+	return PrimitiveType == inOther->PrimitiveType;
+}

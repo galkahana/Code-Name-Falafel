@@ -16,6 +16,8 @@ public:
 				UsedTypeDescriptor* inTypeDescriptor);
 	~CPPTypedef(void);
 
+	bool IsEqual(CPPTypedef* inOther);
+
 	UsedTypeDescriptor* GetTypeDescriptor();
 
 private:

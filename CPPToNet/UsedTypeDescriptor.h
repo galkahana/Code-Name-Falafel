@@ -1,7 +1,8 @@
 #pragma once
 #include "DeclaratorModifier.h"
+#include "FunctionParameter.h"
 #include "SingleValueContainerIterator.h"
-#include "ICPPDeclerator.h"
+#include "ICPPFieldDeclerator.h"
 #include "ICPPFunctionPointerDeclerator.h"
 #include <list>
 
@@ -14,7 +15,7 @@ class UsedTypeDescriptor;
 typedef list<DeclaratorModifier> DeclaratorModifierList;
 
 
-class FieldTypeDescriptor : public ICPPDeclerator
+class FieldTypeDescriptor
 {
 public:
 
@@ -34,13 +35,18 @@ public:
 	bool IsStatic;
 
 
-	// ICPPDeclerator implemenetation
-	virtual void AppendModifiers(const DeclaratorModifierList& inModifiers);
-	virtual void AddSubscript();
+	void AppendModifier(const DeclaratorModifier& inModifier);
+	void AppendModifiers(const DeclaratorModifierList& inModifiers);
+	void AddSubscript();
+	void RemoveSubscript();
 
+	size_t GetModifiersCount();
 	Hummus::SingleValueContainerIterator<DeclaratorModifierList> GetModifiersListIterator();
 	unsigned long GetSubscriptCount();
 	CPPElement* GetType();
+
+	bool IsEqual(FieldTypeDescriptor* inOtherDescriptor);
+	FieldTypeDescriptor* Clone();
 
 private:
 	DeclaratorModifierList mModifiers;
@@ -49,34 +55,24 @@ private:
 
 };
 
-struct FunctionParameter
-{
-	FunctionParameter();
-	~FunctionParameter();
-
-	string Name;
-	UsedTypeDescriptor* Type;
-};
-
-typedef list<FunctionParameter*> FunctionParameterList;
-
-class FunctionPointerTypeDescriptor : public ICPPFunctionPointerDeclerator
+class FunctionPointerTypeDescriptor
 {
 public:
 	FunctionPointerTypeDescriptor(UsedTypeDescriptor* inReturnType);
 	~FunctionPointerTypeDescriptor();
 
-	virtual void SetFunctionPointerType(ICPPFunctionPointerDeclerator::EFunctionPointerType inFunctionPointerType);
-	virtual void AppendModifiersForReturnType(const DeclaratorModifierList& inModifiers);
-	virtual void SetHasElipsis();
-	virtual FunctionParameter* CreateParameter(const string& inParameterName,
-												UsedTypeDescriptor* inParameterType);
+	void SetFunctionPointerType(ICPPFunctionPointerDeclerator::EFunctionPointerType inFunctionPointerType);
+	void AppendModifiersForFunctionPointerReturnType(const DeclaratorModifierList& inModifiers);
+	void SetFunctionPointerHasElipsis();
+	FunctionParameter* CreateParameter(const string& inParameterName, UsedTypeDescriptor* inParameterType);
 
 	ICPPFunctionPointerDeclerator::EFunctionPointerType GetPointerType(); 
 	UsedTypeDescriptor* GetReturnType();
 	Hummus::SingleValueContainerIterator<FunctionParameterList> GetParametersListIterator();
 	bool HasElipsis();
 	
+	bool IsEqual(FunctionPointerTypeDescriptor* inOther);
+	FunctionPointerTypeDescriptor* Clone();
 
 private:
 	ICPPFunctionPointerDeclerator::EFunctionPointerType mPointerType;
@@ -115,7 +111,13 @@ public:
 	FieldTypeDescriptor* GetFieldDescriptor();
 	FunctionPointerTypeDescriptor* GetFunctionPointerDescriptor();
 
+	bool IsEqual(UsedTypeDescriptor* inOtherUsedType);
+
+	UsedTypeDescriptor* Clone();
+
 private:
+	UsedTypeDescriptor();
+
 	EUsedType mUsedType;
 
 	FieldTypeDescriptor* mFieldDescriptor;

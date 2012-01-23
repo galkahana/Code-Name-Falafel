@@ -10,4 +10,6 @@ public:
 	~CPPPrimitive(void);
 
 	ECPPPrimitiveType PrimitiveType;
+
+	bool IsEqual(CPPPrimitive* inOther);
 };

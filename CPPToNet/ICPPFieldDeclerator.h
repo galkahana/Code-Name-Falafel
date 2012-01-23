@@ -1,13 +1,15 @@
 #pragma once
 #include "DeclaratorModifier.h"
+#include "EStatusCode.h"
 
-class ICPPDeclerator
+class ICPPFieldDeclerator
 {
 public:
-	virtual ~ICPPDeclerator(){}
+	virtual ~ICPPFieldDeclerator(){}
 
 
 	virtual void AppendModifiers(const DeclaratorModifierList& inModifiers)= 0;
 	virtual void AddSubscript() = 0;
+	virtual Hummus::EStatusCode FinalizeFieldDefinition() = 0;
 
 };

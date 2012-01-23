@@ -13,6 +13,17 @@ struct DeclaratorModifier
 
 	DeclaratorModifier(){Modifier = eDeclaratorModifierPointer;IsConst = false;IsVolatile = false;}
 
+	bool IsEqual(const DeclaratorModifier& inOther)
+	{
+		if(Modifier != inOther.Modifier)
+			return false;
+
+		if(IsConst != inOther.IsConst)
+			return false;
+
+		return IsVolatile == inOther.IsVolatile;
+	}
+
 	EDeclaratorModifier Modifier;
 	bool IsConst;
 	bool IsVolatile;

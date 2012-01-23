@@ -1,12 +1,9 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual Studio 2008
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CPPToNet", "CPPToNet\CPPToNet.vcproj", "{9F1060BC-1AD7-4E25-ACDE-F51B06B0351A}"
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CPPToNet", "CPPToNet\CPPToNet.vcxproj", "{9F1060BC-1AD7-4E25-ACDE-F51B06B0351A}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CPPToNetTesting", "CPPToNetTesting\CPPToNetTesting.vcproj", "{33185E22-EB5D-4988-8045-0CEB00053423}"
-	ProjectSection(ProjectDependencies) = postProject
-		{9F1060BC-1AD7-4E25-ACDE-F51B06B0351A} = {9F1060BC-1AD7-4E25-ACDE-F51B06B0351A}
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CPPToNetTesting", "CPPToNetTesting\CPPToNetTesting.vcxproj", "{33185E22-EB5D-4988-8045-0CEB00053423}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

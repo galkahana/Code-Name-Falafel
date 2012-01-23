@@ -583,10 +583,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\ICPPDeclerator.h"
-				>
-			</File>
-			<File
 				RelativePath=".\IExpressionEvaluationContext.h"
 				>
 			</File>
@@ -770,6 +766,14 @@
 					>
 				</File>
 				<File
+					RelativePath=".\CPPFunction.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\CPPFunction.h"
+					>
+				</File>
+				<File
 					RelativePath=".\CPPNamespace.cpp"
 					>
 				</File>
@@ -814,7 +818,15 @@
 					>
 				</File>
 				<File
-					RelativePath=".\ICPPDeclaratorContainer.h"
+					RelativePath=".\FunctionParameter.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\FunctionParameter.h"
+					>
+				</File>
+				<File
+					RelativePath=".\ICPPDeclarationContainerDriver.h"
 					>
 				</File>
 				<File
@@ -822,7 +834,19 @@
 					>
 				</File>
 				<File
+					RelativePath=".\ICPPFieldDeclerator.h"
+					>
+				</File>
+				<File
+					RelativePath=".\ICPPFunctionDefinitionDeclerator.h"
+					>
+				</File>
+				<File
 					RelativePath=".\ICPPFunctionPointerDeclerator.h"
+					>
+				</File>
+				<File
+					RelativePath=".\ICPPParametersContainer.h"
 					>
 				</File>
 				<File

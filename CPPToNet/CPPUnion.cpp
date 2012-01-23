@@ -2,8 +2,9 @@
 #include "CPPVariable.h"
 #include "Trace.h"
 
-CPPUnion::CPPUnion(const string& inName):CPPElement(inName,CPPElement::eCPPElementUnion)
+CPPUnion::CPPUnion(const string& inName,bool inIsDefinition):CPPElement(inName,CPPElement::eCPPElementUnion)
 {
+	mIsDefinition = inIsDefinition;
 }
 
 CPPUnion::~CPPUnion(void)
@@ -12,6 +13,17 @@ CPPUnion::~CPPUnion(void)
 
 	for(; it != mVariables.end();++it)
 		delete it->second;
+}
+
+CPPElementList CPPUnion::FindElements(const string& inElementName)
+{
+	CPPElementList result;
+
+	CPPElement* anElement = FindElement(inElementName);
+	if(anElement)
+		result.push_back(anElement);
+
+	return result;
 }
 
 CPPElement* CPPUnion::FindElement(const string& inElementName)
@@ -43,4 +55,24 @@ CPPVariable* CPPUnion::CreateVariable(const string& inVariableName,
 		
 		return aVariable;
 	}		
+}
+
+CPPFunction* CPPUnion::CreateFunction(	const string& inFunctionName,
+										UsedTypeDescriptor* inReturnType,
+										const FunctionParameterList& inParametersList,
+										bool inHasElipsis,
+										bool inIsDefinition)
+{
+	TRACE_LOG("CPPUnion::CreateFunction, syntax error, cannot define a function in a union");
+	return NULL;
+}
+
+bool CPPUnion::IsDefinition()
+{
+	return mIsDefinition;
+}
+
+void CPPUnion::SetIsDefinition()
+{
+	mIsDefinition = true;
 }

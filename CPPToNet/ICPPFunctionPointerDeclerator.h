@@ -1,14 +1,11 @@
 #pragma once
 #include "DeclaratorModifier.h"
+#include "EStatusCode.h"
 
-#include <string>
 
-struct FunctionParameter;
-class UsedTypeDescriptor;
+class ICPPParametersContainer;
 
-using namespace std;
-
-class ICPPFunctionPointerDeclerator
+class ICPPFunctionPointerDeclerator 
 {
 public:
 	// Indicates whether this is a function pointer or function reference
@@ -19,10 +16,9 @@ public:
 		eFunctionPointerTypePointer
 	};
 
+	virtual ICPPParametersContainer* GetParametersContainerForFunctionPointer() = 0;
 	virtual void SetFunctionPointerType(EFunctionPointerType inFunctionPointerType) = 0;
-	virtual void AppendModifiersForReturnType(const DeclaratorModifierList& inModifiers) = 0;
-	virtual void SetHasElipsis() = 0;
-	virtual FunctionParameter* CreateParameter(const string& inParameterName,
-										 UsedTypeDescriptor* inParameterType) = 0;
-
+	virtual void AppendModifiersForFunctionPointerReturnType(const DeclaratorModifierList& inModifiers) = 0;
+	virtual void SetFunctionPointerHasElipsis() = 0;
+	virtual Hummus::EStatusCode FinalizeFunctionPointerDefinition() = 0;
 };

@@ -16,3 +16,8 @@ UsedTypeDescriptor* CPPTypedef::GetTypeDescriptor()
 {
 	return mTypeDescriptor;
 }
+
+bool CPPTypedef::IsEqual(CPPTypedef* inOther)
+{
+	return mTypeDescriptor->IsEqual(inOther->mTypeDescriptor);
+}

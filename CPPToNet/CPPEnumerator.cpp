@@ -7,8 +7,9 @@ CPPEnumeratorValue::CPPEnumeratorValue(const string& inEnumeratorValueName): CPP
 }
 
 
-CPPEnumerator::CPPEnumerator(const string& inEnumeratorName): CPPElement(inEnumeratorName,CPPElement::eCPPElementEnumerator)
+CPPEnumerator::CPPEnumerator(const string& inEnumeratorName,bool inIsDefinition): CPPElement(inEnumeratorName,CPPElement::eCPPElementEnumerator)
 {
+	mIsDefinition = inIsDefinition;
 }
 
 CPPEnumerator::~CPPEnumerator(void)
@@ -46,4 +47,14 @@ CPPEnumeratorValue* CPPEnumerator::GetEnumeratorValue(const string& inEnumerator
 Hummus::SingleValueContainerIterator<CPPEnumeratorValueList> CPPEnumerator::GetEnumeratorValuesIterator()
 {
 	return Hummus::SingleValueContainerIterator<CPPEnumeratorValueList>(mEnumeratorList);
+}
+
+bool CPPEnumerator::IsDefinition()
+{
+	return mIsDefinition;
+}
+
+void CPPEnumerator::SetIsDefinition()
+{
+	mIsDefinition = true;
 }

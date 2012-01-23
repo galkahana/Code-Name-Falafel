@@ -35,7 +35,11 @@ BoolAndCPPExpression CPPExpressionParser::ParseExpressionInternal(ITokenProvider
 	operandResult = ParseOperand(inTokenProvider);
 
 	if(!operandResult.first)
-		return BoolAndCPPExpression(false,NULL);
+	{
+		result.first = false;
+		result.second = NULL;
+		return result;
+	}
 
 	// parse operator (binary or conditional)
 	operatorResult = ParseOperator(inTokenProvider,true);
@@ -80,7 +84,10 @@ BoolAndCPPExpression CPPExpressionParser::ParseExpressionInternal(ITokenProvider
 	{
 		delete anOperator;
 		delete anOperand;
-		return BoolAndCPPExpression(false,NULL);
+		BoolAndCPPExpression result;
+		result.first = false;
+		result.second = NULL;
+		return result;
 	}
 	else
 	{
@@ -192,7 +199,10 @@ BoolAndCPPExpression CPPExpressionParser::ParseSingleExpression(ITokenProvider* 
 		delete additionalOperand;
 		delete anOperator;
 		delete laterOperator;
-		return BoolAndCPPExpression(false,NULL);
+		BoolAndCPPExpression result;
+		result.first = false;
+		result.second = NULL;
+		return result;
 	}
 	else
 	{
@@ -203,12 +213,17 @@ BoolAndCPPExpression CPPExpressionParser::ParseSingleExpression(ITokenProvider* 
 BoolAndCPPOperator CPPExpressionParser::ParseOperator(ITokenProvider* inProvider, bool inIsBinary)
 {
 	BoolAndString tokenizerResult = inProvider->GetNextToken();
+	BoolAndCPPOperator result;
 
 	if(!tokenizerResult.first)
-		return BoolAndCPPOperator(false,NULL);
+	{
+		result.first = false;
+		result.second = NULL;
+		return result;
+	}
 
 	// k. if this is not an operator just put it back where you took it from
-	BoolAndCPPOperator result = MakeOperator(tokenizerResult.second,inIsBinary);
+	result = MakeOperator(tokenizerResult.second,inIsBinary);
 	if(!result.first)
 		inProvider->PutBackToken(tokenizerResult.second);
 	return result;
@@ -278,7 +293,7 @@ BoolAndCPPOperator CPPExpressionParser::MakeOperator(const string& inToken, bool
 	else if(inToken == ":")
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorConditionalSecond));
 	else
-		return BoolAndCPPOperator(false,NULL);
+		return BoolAndCPPOperator(false,(CPPOperator*)NULL);
 }
 
 BoolAndCPPExpression CPPExpressionParser::ParseOperand(ITokenProvider* inProvider)
@@ -464,9 +479,14 @@ BoolAndCPPExpression CPPExpressionParser::ParseOperand(ITokenProvider* inProvide
 
 
 	if(statusOK)
+	{
 		return BoolAndCPPExpression(true,result);
+	}
 	else
-		return BoolAndCPPExpression(false,NULL);
+	{
+		result = NULL;
+		return BoolAndCPPExpression(false,result);
+	}
 }
 
 BoolAndCPPExpression CPPExpressionParser::ParseUnaryOperatorOperand(ITokenProvider* inProvider,CPPOperator* inOperator)
@@ -515,7 +535,10 @@ BoolAndCPPExpression CPPExpressionParser::ParseUnaryOperatorOperand(ITokenProvid
 		{
 			delete inOperator;
 			delete anOperand;
-			return BoolAndCPPExpression(false,NULL);
+			BoolAndCPPExpression result;
+			result.first = false;
+			result.second = NULL;
+			return result;
 		}
 	}
 	else
@@ -529,7 +552,10 @@ BoolAndCPPExpression CPPExpressionParser::ParseUnaryOperatorOperand(ITokenProvid
 		{
 			delete inOperator;
 			TRACE_LOG("CPPExpressionParser::ParseUnaryOperatorOperand, failed to parse operand for operator");
-			return BoolAndCPPExpression(false,NULL);
+			BoolAndCPPExpression result;
+			result.first = false;
+			result.second = NULL;
+			return result;
 		}
 		else
 			return BoolAndCPPExpression(true,MakeExpression(inOperator,operandResult.second,NULL,NULL));
@@ -763,7 +789,12 @@ BoolAndCPPExpression CPPExpressionParser::MakeCharacter(const string& inToken)
 
 		BoolAndWChar parseResult = sParseWChar(inToken,currentPosition);
 		if(!parseResult.first)
-			return BoolAndCPPExpression(false,NULL);
+		{
+			BoolAndCPPExpression result;
+			result.first = false;
+			result.second = NULL;
+			return result;
+		}
 		
 		return BoolAndCPPExpression(true,new CPPExpressionInteger(parseResult.second));
 	}
@@ -771,14 +802,24 @@ BoolAndCPPExpression CPPExpressionParser::MakeCharacter(const string& inToken)
 	{
 		// single byte or multibyte
 		if(inToken.size() < 3 || inToken.at(0) != '\'' || inToken.at(inToken.size() - 1) != '\'')
-			return BoolAndCPPExpression(false,NULL);
+		{
+			BoolAndCPPExpression result;
+			result.first = false;
+			result.second = NULL;
+			return result;
+		}
 
 		string::size_type currentPosition = 1; // skip first
 
 		BoolAndChar parseResult = sParseChar(inToken,currentPosition);
 
 		if(!parseResult.first)
-			return BoolAndCPPExpression(false,NULL);
+		{
+			BoolAndCPPExpression result;
+			result.first = false;
+			result.second = NULL;
+			return result;
+		}
 
 		// single byte case...finish
 		if(currentPosition == (inToken.size() - 1))
@@ -788,7 +829,12 @@ BoolAndCPPExpression CPPExpressionParser::MakeCharacter(const string& inToken)
 		BoolAndChar parseResult2 = sParseChar(inToken,currentPosition);
 
 		if(!parseResult2.first)
-			return BoolAndCPPExpression(false,NULL);
+		{
+				BoolAndCPPExpression result;
+				result.first = false;
+				result.second = NULL;
+				return result;
+		}
 
 		return BoolAndCPPExpression(true,new CPPExpressionInteger((int)( (((unsigned)parseResult.second)<<8) + (unsigned)parseResult2.second)));
 	}
@@ -807,7 +853,12 @@ BoolAndCPPExpression CPPExpressionParser::MakeInteger(const string& inToken)
 		return BoolAndCPPExpression(true,new CPPExpressionInteger(inToken == "true"));
 
 	if(inToken.at(0) < '0' || inToken.at(0) > '9')
-		return BoolAndCPPExpression(false,NULL);
+	{
+			BoolAndCPPExpression result;
+			result.first = false;
+			result.second = NULL;
+			return result;
+	}
 
 
 	if(inToken.at(0) == '0')
@@ -995,7 +1046,11 @@ BoolAndCPPExpression CPPExpressionParser::ParseFunctionCall(const string& inToke
 		CPPExpressionList::iterator it = params.begin();
 		for(; it != params.end(); ++it)
 			delete *it;
-		return BoolAndCPPExpression(false,NULL);
+
+		BoolAndCPPExpression result;
+		result.first = false;
+		result.second = NULL;
+		return result;
 	}
 }
 
@@ -1101,6 +1156,9 @@ BoolAndCPPExpression CPPExpressionParser::ParsePostFixOperatorOperand(ITokenProv
 		delete primaryOperand;
 		delete anOperator;
 		delete secondaryOperand;
-		return BoolAndCPPExpression(false,NULL);
+		BoolAndCPPExpression result;
+		result.first = false;
+		result.second = NULL;
+		return result;
 	}
 }
