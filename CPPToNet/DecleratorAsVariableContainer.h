@@ -27,6 +27,8 @@ public:
 	virtual void AppendModifiersForFunctionDefinitionReturnType(const DeclaratorModifierList& inModifiers);
 	virtual void SetFunctionDefinitionHasElipsis();
 	virtual Hummus::EStatusCode FinalizeFunctionDefinition(bool inIsDefinition); // passing bool to let one know if this is a declaration or definiton
+	virtual void SetReturnType(UsedTypeDescriptor* inSetReturnType);
+	virtual void SetupFunctionPointerReturnTypeDeclerator(FunctionPointerReturnTypeDeclerator* inReturnTypeDeclerator);
 
 	// ICPPFieldDeclerator implementation
 	virtual void AppendModifiers(const DeclaratorModifierList& inModifiers);

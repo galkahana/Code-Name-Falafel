@@ -144,6 +144,7 @@
     <ClInclude Include="DecleratorAsTypedefContainer.h" />
     <ClInclude Include="DecleratorAsVariableContainer.h" />
     <ClInclude Include="EStatusCode.h" />
+    <ClInclude Include="FunctionPointerReturnTypeDeclerator.h" />
     <ClInclude Include="SafeBufferMacrosDefs.h" />
     <ClInclude Include="UnicodeString.h" />
     <ClInclude Include="Log.h" />
@@ -236,6 +237,7 @@
     <ClCompile Include="DecleratorAsParametersContainer.cpp" />
     <ClCompile Include="DecleratorAsTypedefContainer.cpp" />
     <ClCompile Include="DecleratorAsVariableContainer.cpp" />
+    <ClCompile Include="FunctionPointerReturnTypeDeclerator.cpp" />
     <ClCompile Include="UnicodeString.cpp" />
     <ClCompile Include="Log.cpp" />
     <ClCompile Include="Trace.cpp" />

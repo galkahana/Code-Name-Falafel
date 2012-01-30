@@ -1,6 +1,7 @@
 #include "DecleratorAsVariableContainer.h"
 #include "UsedTypeDescriptor.h"
 #include "ICPPVariablesContainerElement.h"
+#include "FunctionPointerReturnTypeDeclerator.h"
 
 using namespace Hummus;
 
@@ -14,6 +15,7 @@ DecleratorAsVariableContainer::DecleratorAsVariableContainer(ICPPVariablesContai
 	mIsVolatile = false;
 	mIsStatic = false;	
 	mHasElipsis = false;
+	mType = NULL;
 	mReturnType = NULL;
 	mFieldType = NULL;
 	mIsFunctionDefinitionParametersImplementation = false;
@@ -75,7 +77,6 @@ ICPPParametersContainer* DecleratorAsVariableContainer::GetParametersContainerFo
 ICPPFunctionDefinitionDeclerator* DecleratorAsVariableContainer::AddFunctionDefinition(const string& inFunctionName)
 {
 	mFunctionName = inFunctionName;
-	mReturnType = new UsedTypeDescriptor(mType,mIsAuto,mIsRegister,mIsExtern,mIsConst,mIsVolatile,mIsStatic);
 	return this;
 }
 
@@ -84,8 +85,31 @@ void DecleratorAsVariableContainer::SetFunctionDefinitionHasElipsis()
 	mHasElipsis = true;
 }
 
+void DecleratorAsVariableContainer::SetReturnType(UsedTypeDescriptor* inSetReturnType)
+{
+	mReturnType = inSetReturnType;
+}
+
+void DecleratorAsVariableContainer::SetupFunctionPointerReturnTypeDeclerator(
+	FunctionPointerReturnTypeDeclerator* inReturnTypeDeclerator)
+{
+	// out of the flags, only const and volatile will refer to the function pointer return type
+	// so set only them
+
+	inReturnTypeDeclerator->SetFlags(mType,mIsConst,mIsVolatile);
+	
+	// null flags (just for kicks, they are irrelevant)
+	mType = NULL;
+	mIsConst = false;
+	mIsVolatile = false;
+}
+
+
 EStatusCode DecleratorAsVariableContainer::FinalizeFunctionDefinition(bool inIsDefinition)
 {
+	if(!mReturnType) // return type may have been set, in the case of function pointer return type
+		mReturnType = new UsedTypeDescriptor(mType,mIsAuto,mIsRegister,mIsExtern,mIsConst,mIsVolatile,mIsStatic);
+
 	CPPFunction* aFunction = mStorage->CreateFunction(mFunctionName,mReturnType,mDeclaredParameters,mHasElipsis,inIsDefinition);
 	
 	if(aFunction)

@@ -95,7 +95,7 @@ private:
 	Hummus::EStatusCode ParseGenericDeclerationStatement(ICPPDeclarationContainerDriver* inContainer);
 	Hummus::EStatusCode ParseDeclarators(ICPPDeclarationContainerDriver* inContainer);
 
-	EStatusCodeAndBool ParseFunctionPointer(ICPPDeclarationContainerDriver* inContainer,const DeclaratorModifierList& inReturnTypeModifiersList);
+	EStatusCodeAndBool ParseFunctionPointerOrFunction(ICPPDeclarationContainerDriver* inContainer,const DeclaratorModifierList& inReturnTypeModifiersList);
 	EStatusCodeAndBool ParseFieldOrFunction(ICPPDeclarationContainerDriver* inContainer,const DeclaratorModifierList& inFieldModifiersList);
 	EStatusCodeAndBool ParseFunctionDefinition(ICPPDeclarationContainerDriver* inContainer,const DeclaratorModifierList& inReturnTypeModifiersList,const string& inFunctionName);
 	EStatusCodeAndBool ParseFieldDefinition(ICPPFieldDeclerator* inFieldDeclerator);

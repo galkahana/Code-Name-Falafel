@@ -22,6 +22,7 @@
 #include "DecleratorAsVariableContainer.h"
 #include "DecleratorAsParametersContainer.h"
 #include "DecleratorAsTypedefContainer.h"
+#include "FunctionPointerReturnTypeDeclerator.h"
 
 using namespace Hummus;
 
@@ -1159,7 +1160,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionDefinition(ICPPDeclarationC
 			}
 		}
 
-		if(!token.first || eSuccess == result.first)
+		if(!token.first || result.first != eSuccess)
 			break;
 
 		result.second = inContainer->VerifyDeclaratorStopper(token.second);
@@ -1197,7 +1198,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionDefinition(ICPPDeclarationC
 }
 
 
-EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointer(ICPPDeclarationContainerDriver* inContainer,const DeclaratorModifierList& inReturnTypeModifiersList)
+EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointerOrFunction(ICPPDeclarationContainerDriver* inContainer,const DeclaratorModifierList& inReturnTypeModifiersList)
 {
 	// function pointers look like this:
 	// T (name)(params)
@@ -1209,14 +1210,20 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointer(ICPPDeclarationCont
 	// either "*" or "&" or the name
 	// this function consumes tokens until function pointer decleration finishes. it doesn't look further for the ending characeter or something. which is good,
 	// cause its parent function should consume it. hence the second parameter of the result here is always remaining "false"
+
+	// note that this could also be a case of a function that returns a function pointer. This is a slightly complex definitions which looks like this:
+	// function pointer return value (*function name(function params))(function pointer params) 
+	
 	EStatusCodeAndBool result(eSuccess,false);
 	ICPPFunctionPointerDeclerator::EFunctionPointerType pointerType;
 	string decleratorName;
+	ICPPFunctionDefinitionDeclerator* functionDeclerator = NULL; // will also serve as indication for this being a function or not
+	FunctionPointerReturnTypeDeclerator returnTypeDeclerator;
 
 	BoolAndString token = mTokensSource.GetNextToken();	
 	if(!token.first)
 	{
-		TRACE_LOG("CPPStatementsParser::ParseAndDefineFunctionPointer, tokens not found when trying to parse for function pointers");
+		TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, tokens not found when trying to parse for function pointers");
 		result.first = eFailure;
 		return result;
 	}
@@ -1232,7 +1239,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointer(ICPPDeclarationCont
 			token = mTokensSource.GetNextToken();	
 			if(!token.first)
 			{
-				TRACE_LOG("CPPStatementsParser::ParseAndDefineFunctionPointer, no token when trying to parse for function pointer name");
+				TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, no token when trying to parse for function pointer name");
 				result.first = eFailure;
 				break;
 			}
@@ -1243,51 +1250,131 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointer(ICPPDeclarationCont
 		decleratorName = token.second;
 
 		token = mTokensSource.GetNextToken();	
-		if(!token.first || token.second != ")")
+		if(!token.first)
 		{
-			TRACE_LOG("CPPStatementsParser::ParseAndDefineFunctionPointer, expected ) in parsing function pointer declaration, and not found");
+			TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, expected ) or ( in parsing function pointer declaration, and not found");
 			result.first = eFailure;
 			break;
 		}
+
+		// function pointer declerator. might be the return value function pointer for a function or an actual declaration of a function pointer
+		ICPPFunctionPointerDeclerator* aFPDeclarator;
+
+		if(token.second == "(")
+		{
+			// Aha! function that returns a function pointer case. oh what a headache
+			functionDeclerator = inContainer->AddFunctionDefinition(decleratorName);
+			if(!functionDeclerator)
+			{
+				TRACE_LOG1("CPPStatementsParser::ParseFunctionPointerOrFunction, unable to create a function declarator with the name %s.",decleratorName.c_str());
+				result.first = eFailure;
+				break;
+			}
+			functionDeclerator->SetupFunctionPointerReturnTypeDeclerator(&returnTypeDeclerator);
+			aFPDeclarator = &returnTypeDeclerator;
+
+			// now parse the parameters of this function. seriously.
+			token = mTokensSource.GetNextToken();	
+		
+			DecleratorAsParametersContainer parametersContainer(functionDeclerator->GetParametersContainerForFunctionDefinition());
+
+			while(token.first && token.second != ")" &&  eSuccess == result.first)
+			{
+				if(token.second == "...")
+				{
+					functionDeclerator->SetFunctionDefinitionHasElipsis();
+					token = mTokensSource.GetNextToken();
+					if(!token.first)
+					{
+						TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, unexpected no tokens after elipsis. expected )");
+						result.first = eFailure;
+					}
+					else if(token.second != ")")
+					{
+						TRACE_LOG1("CPPStatementsParser::ParseFunctionPointerOrFunction, unexpected token after elipsis. expected ), got %s",token.second.c_str());
+						result.first = eFailure;
+					}
+					break;
+				}
+				else
+				{
+					result.first = ParseGenericDeclerationStatement(&parametersContainer);
+					if(result.first != eSuccess)
+					{
+						TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, failed to parase function pointer paremeter");
+						break;
+					}
+				
+					if(parametersContainer.FoundStop())	
+						break;
+
+					parametersContainer.Reset();
+					token = mTokensSource.GetNextToken();
+				}
+			}
+
+			if(!token.first || result.first != eSuccess)
+				break;
+
+			// done with parameters for this function! consume closing parenthesis of function pointer
+			token = mTokensSource.GetNextToken();	
+			if(!token.first || token.second != ")")
+			{
+				TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, expected ) in parsing function pointer declaration, and not found");
+				result.first = eFailure;
+				break;
+			}
+
+		}
+		else if(token.second == ")")
+		{
+			// Aha! regular function pointer declaration. easy
+			// ok. we have enough, can create a function pointer object, and go on with parsing parameters later
+			aFPDeclarator = inContainer->AddFunctionPointerDeclarator(decleratorName);
+			if(!aFPDeclarator)
+			{
+				TRACE_LOG1("CPPStatementsParser::ParseFunctionPointerOrFunction, unable to create a function declarator with the name %s.",decleratorName.c_str());
+				result.first = eFailure;
+				break;
+			}				
+		}
+		else
+		{
+			TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, expected ) or ( in parsing function pointer declaration, and not found");
+			result.first = eFailure;
+			break;
+		}
+
 		token = mTokensSource.GetNextToken();	
 		if(!token.first || token.second != "(")
 		{
-			TRACE_LOG("CPPStatementsParser::ParseAndDefineFunctionPointer, expected ( in parsing function pointer declaration, and not found");
+			TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, expected ( in parsing function pointer declaration, and not found");
 			result.first = eFailure;
 			break;
 		}
 		
-		// ok. we have enough, can create a function pointer object, and go on with parsing parameters later
-		ICPPFunctionPointerDeclerator* aDeclarator = inContainer->AddFunctionPointerDeclarator(decleratorName);
-		if(!aDeclarator)
-		{
-			TRACE_LOG1("CPPStatementsParser::ParseAndDefineFunctionPointer, unable to create a function declarator with the name %s.",decleratorName.c_str());
-			result.first = eFailure;
-			break;
-		}
-
-		aDeclarator->SetFunctionPointerType(pointerType);
-		aDeclarator->AppendModifiersForFunctionPointerReturnType(inReturnTypeModifiersList);
+		aFPDeclarator->SetFunctionPointerType(pointerType);
+		aFPDeclarator->AppendModifiersForFunctionPointerReturnType(inReturnTypeModifiersList);
 
 		token = mTokensSource.GetNextToken();	
 		
-		DecleratorAsParametersContainer parametersContainer(aDeclarator->GetParametersContainerForFunctionPointer());
+		DecleratorAsParametersContainer parametersContainer(aFPDeclarator->GetParametersContainerForFunctionPointer());
 
 		// Now for parameters parsing
 		while(token.first && token.second != ")" && eSuccess == result.first)
 		{
 			if(token.second == "...")
 			{
-				aDeclarator->SetFunctionPointerHasElipsis();
+				aFPDeclarator->SetFunctionPointerHasElipsis();
 				token = mTokensSource.GetNextToken();
 				if(!token.first)
 				{
-					TRACE_LOG("CPPStatementsParser::ParseAndDefineFunctionPointer, unexpected no tokens after elipsis. expected )");
+					TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, unexpected no tokens after elipsis. expected )");
 					result.first = eFailure;
 				}
 				else if(token.second != ")")
 				{
-					TRACE_LOG1("CPPStatementsParser::ParseAndDefineFunctionPointer, unexpected token after elipsis. expected ), got %s",token.second.c_str());
+					TRACE_LOG1("CPPStatementsParser::ParseFunctionPointerOrFunction, unexpected token after elipsis. expected ), got %s",token.second.c_str());
 					result.first = eFailure;
 				}
 				break;
@@ -1297,7 +1384,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointer(ICPPDeclarationCont
 				result.first = ParseGenericDeclerationStatement(&parametersContainer);
 				if(result.first != eSuccess)
 				{
-					TRACE_LOG("CPPStatementsParser::ParseAndDefineFunctionPointer, failed to parase function pointer paremeter");
+					TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, failed to parase function pointer paremeter");
 					break;
 				}
 				
@@ -1311,7 +1398,46 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointer(ICPPDeclarationCont
 		if(result.first != eSuccess)
 			break;
 
-		result.first = aDeclarator->FinalizeFunctionPointerDefinition();
+		// now, finalize function poiner - either declerator or function return type
+		result.first = aFPDeclarator->FinalizeFunctionPointerDefinition();
+		if(result.first != eSuccess)
+			break;
+
+		// if function pointer declerator stop here and return, with function we need to continue a bit, to see if this is a definition
+		if(!functionDeclerator)
+			break;
+
+		functionDeclerator->SetReturnType(returnTypeDeclerator.DetachUsedTypeDescriptor());
+
+		result.second = inContainer->VerifyDeclaratorStopper(token.second);
+		if(result.second)
+		{
+			// done here. expression not continued.
+			result.first = functionDeclerator->FinalizeFunctionDefinition(false);
+			break;
+		}
+
+		// if continued, then it must be a block start, for an actual function definition. skip, and note in the function definition object
+		if(token.second == "{")
+		{
+			result.first = SkipBlock();
+			if(result.first != eSuccess)
+			{
+				TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, failed to skip function definition");
+				break;
+			}
+			result.first = functionDeclerator->FinalizeFunctionDefinition(true);
+			
+			// this is a pacularity of function defintion, which when there's a function definition always ends in "}", and not in the
+			// regular delcearator stopper (normally a semi-colon). hence, mark the ending token as consumed.
+			result.second = true;
+			break;
+		}
+		
+		// if it wasn't a block, fail
+		TRACE_LOG1("CPPStatementsParser::ParseFunctionPointerOrFunction, expected either expression termination or function definition (block). instead got %s",token.second.c_str());
+		result.first = eFailure;
+
 
 	} while(false);
 
@@ -1540,8 +1666,8 @@ Hummus::EStatusCode CPPStatementsParser::ParseDeclarators(ICPPDeclarationContain
 			// if they did, we can finish here.
 			if(token.second == "(")
 			{
-				// Function Pointer. (will always be a single declaration)
-				continuedParsingResult = ParseFunctionPointer(inContainer,modifiers);
+				// Function Pointer, or a function that returns a function pointer. (will always be a single declaration)
+				continuedParsingResult = ParseFunctionPointerOrFunction(inContainer,modifiers);
 			}
 			else
 			{
