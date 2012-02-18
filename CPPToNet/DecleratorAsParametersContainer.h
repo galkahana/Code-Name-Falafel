@@ -14,11 +14,13 @@ public:
 	virtual ~DecleratorAsParametersContainer();
 	
 	// ICPPDeclarationContainerDriver implementation
-	virtual Hummus::EStatusCode SetFlags(CPPElement* inType,bool inIsAuto,bool inIsRegister,bool inIsExtern,bool inIsConst,bool inIsVolatile, bool inIsStatic);
+	virtual Hummus::EStatusCode SetFlags(CPPElement* inType,bool inIsAuto,bool inIsRegister,bool inIsExtern,bool inIsConst,bool inIsVolatile, bool inIsStatic, bool inIsVirtual);
 	virtual ICPPFieldDeclerator* AddFieldDeclerator(const string& inDecleratorName);
 	virtual ICPPFunctionPointerDeclerator* AddFunctionPointerDeclarator(const string& inDecleratorName);
 	virtual ICPPFunctionDefinitionDeclerator* AddFunctionDefinition(const string& inFunctionName);
 	virtual bool VerifyDeclaratorStopper(const string& inTokenToExamine);
+	virtual bool ResetVariablesContainer(ICPPVariablesContainerElement* inNewContainer);
+
 
 	// ICPPFieldDeclerator implementation
 	virtual void AppendModifiers(const DeclaratorModifierList& inModifiers);

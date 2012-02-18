@@ -16,16 +16,18 @@ public:
 	virtual ~DecleratorAsVariableContainer();
 
 	// ICPPDeclarationContainerDriver implementation
-	virtual Hummus::EStatusCode SetFlags(CPPElement* inType,bool inIsAuto,bool inIsRegister,bool inIsExtern,bool inIsConst,bool inIsVolatile, bool inIsStatic);
+	virtual Hummus::EStatusCode SetFlags(CPPElement* inType,bool inIsAuto,bool inIsRegister,bool inIsExtern,bool inIsConst,bool inIsVolatile, bool inIsStatic,bool inIsVirtual);
 	virtual ICPPFieldDeclerator* AddFieldDeclerator(const string& inDecleratorName);
 	virtual ICPPFunctionPointerDeclerator* AddFunctionPointerDeclarator(const string& inDecleratorName);
 	virtual ICPPFunctionDefinitionDeclerator* AddFunctionDefinition(const string& inFunctionName);
 	virtual bool VerifyDeclaratorStopper(const string& inTokenToExamine);
+	virtual bool ResetVariablesContainer(ICPPVariablesContainerElement* inNewContainer);
 
 	// ICPPFunctionDefinitionDeclerator implementation
 	virtual ICPPParametersContainer* GetParametersContainerForFunctionDefinition();
 	virtual void AppendModifiersForFunctionDefinitionReturnType(const DeclaratorModifierList& inModifiers);
 	virtual void SetFunctionDefinitionHasElipsis();
+	virtual void SetPureFunction();
 	virtual Hummus::EStatusCode FinalizeFunctionDefinition(bool inIsDefinition); // passing bool to let one know if this is a declaration or definiton
 	virtual void SetReturnType(UsedTypeDescriptor* inSetReturnType);
 	virtual void SetupFunctionPointerReturnTypeDeclerator(FunctionPointerReturnTypeDeclerator* inReturnTypeDeclerator);
@@ -55,6 +57,8 @@ private:
 	bool mIsConst;
 	bool mIsVolatile;
 	bool mIsStatic;
+	bool mIsVirtual;
+	bool mIsPure;
 
 	bool mIsFunctionDefinitionParametersImplementation;
 

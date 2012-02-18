@@ -25,9 +25,12 @@ public:
 
 	// unions do not contain function defintions, so always return NULL
 	virtual CPPFunction* CreateFunction(const string& inFunctionName,
+										bool inIsVirtual,
+										bool inIsStatic,
 										UsedTypeDescriptor* inReturnType,
 										const FunctionParameterList& inParametersList,
 										bool inHasElipsis,
+										bool inIsPure,
 										bool inIsDefinition);
 
 	CPPElement* FindElement(const string& inElementName); 

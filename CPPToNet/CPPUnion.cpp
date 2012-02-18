@@ -58,9 +58,12 @@ CPPVariable* CPPUnion::CreateVariable(const string& inVariableName,
 }
 
 CPPFunction* CPPUnion::CreateFunction(	const string& inFunctionName,
+										bool inIsVirtual,
+										bool inIsStatic,
 										UsedTypeDescriptor* inReturnType,
 										const FunctionParameterList& inParametersList,
 										bool inHasElipsis,
+										bool inIsPure,
 										bool inIsDefinition)
 {
 	TRACE_LOG("CPPUnion::CreateFunction, syntax error, cannot define a function in a union");

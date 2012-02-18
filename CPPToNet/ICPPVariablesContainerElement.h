@@ -24,8 +24,11 @@ public:
 	virtual CPPVariable* CreateVariable(const string& inVariableName,
 										UsedTypeDescriptor* inTypeDescriptor) = 0;
 	virtual CPPFunction* CreateFunction(const string& inFunctionName,
+										bool inIsVirtual,
+										bool inIsStatic,
 										UsedTypeDescriptor* inReturnType,
 										const FunctionParameterList& inParametersList,
 										bool inHasElipsis,
+										bool inIsPure,
 										bool inIsDefinition) = 0;
 };

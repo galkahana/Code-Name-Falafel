@@ -15,6 +15,8 @@ DecleratorAsVariableContainer::DecleratorAsVariableContainer(ICPPVariablesContai
 	mIsVolatile = false;
 	mIsStatic = false;	
 	mHasElipsis = false;
+	mIsVirtual = false;
+	mIsPure = false;
 	mType = NULL;
 	mReturnType = NULL;
 	mFieldType = NULL;
@@ -33,7 +35,7 @@ DecleratorAsVariableContainer::~DecleratorAsVariableContainer()
 	mDeclaredParameters.clear();
 }
 
-EStatusCode DecleratorAsVariableContainer::SetFlags(CPPElement* inType,bool inIsAuto,bool inIsRegister,bool inIsExtern,bool inIsConst,bool inIsVolatile, bool inIsStatic)
+EStatusCode DecleratorAsVariableContainer::SetFlags(CPPElement* inType,bool inIsAuto,bool inIsRegister,bool inIsExtern,bool inIsConst,bool inIsVolatile, bool inIsStatic,bool inIsVirtual)
 {
 	mType = inType;
 	mIsAuto = inIsAuto;
@@ -42,6 +44,7 @@ EStatusCode DecleratorAsVariableContainer::SetFlags(CPPElement* inType,bool inIs
 	mIsConst = inIsConst;
 	mIsVolatile = inIsVolatile;
 	mIsStatic = inIsStatic;	
+	mIsVirtual = inIsVirtual;
 
 	return eSuccess;
 }
@@ -68,6 +71,13 @@ bool DecleratorAsVariableContainer::VerifyDeclaratorStopper(const string& inToke
 	return inTokenToExamine == ";";
 }
 
+bool DecleratorAsVariableContainer::ResetVariablesContainer(ICPPVariablesContainerElement* inNewContainer)
+{
+	mStorage = inNewContainer;
+	return true;
+}
+
+
 ICPPParametersContainer* DecleratorAsVariableContainer::GetParametersContainerForFunctionDefinition()
 {
 	mIsFunctionDefinitionParametersImplementation = true;
@@ -83,6 +93,11 @@ ICPPFunctionDefinitionDeclerator* DecleratorAsVariableContainer::AddFunctionDefi
 void DecleratorAsVariableContainer::SetFunctionDefinitionHasElipsis()
 {
 	mHasElipsis = true;
+}
+
+void DecleratorAsVariableContainer::SetPureFunction()
+{
+	mIsPure = true;
 }
 
 void DecleratorAsVariableContainer::SetReturnType(UsedTypeDescriptor* inSetReturnType)
@@ -108,9 +123,9 @@ void DecleratorAsVariableContainer::SetupFunctionPointerReturnTypeDeclerator(
 EStatusCode DecleratorAsVariableContainer::FinalizeFunctionDefinition(bool inIsDefinition)
 {
 	if(!mReturnType) // return type may have been set, in the case of function pointer return type
-		mReturnType = new UsedTypeDescriptor(mType,mIsAuto,mIsRegister,mIsExtern,mIsConst,mIsVolatile,mIsStatic);
+		mReturnType = new UsedTypeDescriptor(mType,mIsAuto,mIsRegister,mIsExtern,mIsConst,mIsVolatile,false);
 
-	CPPFunction* aFunction = mStorage->CreateFunction(mFunctionName,mReturnType,mDeclaredParameters,mHasElipsis,inIsDefinition);
+	CPPFunction* aFunction = mStorage->CreateFunction(mFunctionName,mIsVirtual,mIsStatic,mReturnType,mDeclaredParameters,mHasElipsis,mIsPure,inIsDefinition);
 	
 	if(aFunction)
 		return eSuccess;

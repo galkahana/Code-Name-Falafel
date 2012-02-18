@@ -970,7 +970,7 @@ BoolAndBool PreProcessor::EvaluateConstantExpression(const string& inConditionTy
 
 		FlushTillEndOfLine();
 
-		return BoolAndBool(true,(mDefines.find(symbolToken.second) == mDefines.end()) ^ (inConditionType == "#ifdef"));
+		return BoolAndBool(true,(mDefines.find(symbolToken.second) == mDefines.end()) != (inConditionType == "#ifdef"));
 	}
 	else if(inConditionType == "#elif" || inConditionType == "#if")
 	{

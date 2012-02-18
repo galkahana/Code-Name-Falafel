@@ -11,6 +11,7 @@ class CPPEnumeratorValue;
 class CPPUnion;
 class CPPTypedef;
 class CPPFunction;
+class CPPClass;
 
 using namespace std;
 
@@ -34,9 +35,16 @@ public:
 
 	// function [function should be defined as a whole, for overloads to be identified]
 	virtual CPPFunction* CreateFunction(const string& inFunctionName,
+										bool inIsVirtual,
+										bool inIsStatic,
 										UsedTypeDescriptor* inReturnTypeDescriptor,
 										const FunctionParameterList& inParametersList,
-										bool inHasElipsis,		
+										bool inHasElipsis,	
+										bool inIsPure,
 										bool inIsDefinition) = 0;
+
+	// class
+	virtual CPPClass* CreateClass(const string& inClassName,
+								  bool inIsDefinition) = 0;
 
 };											

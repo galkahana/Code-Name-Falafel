@@ -77,6 +77,8 @@ private:
 	void AddNamespaceToUnqualifiedSearch(CPPNamespace* inNamespace);
 	Hummus::EStatusCode SkipSemiColon();
 	CPPElement* GetElementFromCurrentLocation(bool inRequireType);
+	CPPElement* GetElementFromCurrentLocation(CPPElement::ECPPElementType inOfType);
+	CPPElement* GetElementFromCurrentLocation(const ECPPElementTypeSet& inTypeSet);
 
 	// will return either NULL or an element, if and only if there's just ONE element of this name
 	CPPElement* FindElement(ICPPDefinitionsContainerElement* inContainer,const string& inElementName);
@@ -103,6 +105,9 @@ private:
 
 	Hummus::EStatusCode SkipInitializer();
 	Hummus::EStatusCode SkipBlock();
+
+	string ComputeUnqualifiedNameFromCurrentLocation(string inTypeName,const BoolAndString& inNextToken);
+	CPPElement* GetScopingElementFromCurrentLocation();
 
 	void StartLocalContext();
 	void EndLocalContext();

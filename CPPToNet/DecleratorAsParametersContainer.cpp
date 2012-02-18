@@ -17,15 +17,15 @@ DecleratorAsParametersContainer::~DecleratorAsParametersContainer()
 	delete mFieldType;
 }
 
-EStatusCode DecleratorAsParametersContainer::SetFlags(CPPElement* inType,bool inIsAuto,bool inIsRegister,bool inIsExtern,bool inIsConst,bool inIsVolatile, bool inIsStatic)
+EStatusCode DecleratorAsParametersContainer::SetFlags(CPPElement* inType,bool inIsAuto,bool inIsRegister,bool inIsExtern,bool inIsConst,bool inIsVolatile, bool inIsStatic,bool inIsVirtual)
 {
 	mIsConst = inIsConst;
 	mIsVolatile = inIsVolatile;
 	mType = inType;
 
-	if(inIsAuto || inIsRegister || inIsExtern || inIsStatic)
+	if(inIsAuto || inIsRegister || inIsExtern || inIsStatic || inIsVirtual)
 	{
-		TRACE_LOG("DecleratorAsParametersContainer::SetFlags, irelevant flags set for typedef. Should not set auto, extern, register or static. only const and volatile are allowed.");
+		TRACE_LOG("DecleratorAsParametersContainer::SetFlags, irelevant flags set for typedef. Should not set auto, extern, register, static or virtual. only const and volatile are allowed.");
 		return eFailure;
 	}
 	else
@@ -89,6 +89,12 @@ bool DecleratorAsParametersContainer::VerifyDeclaratorStopper(const string& inTo
 	}
 	else 
 		return false;
+}
+
+bool DecleratorAsParametersContainer::ResetVariablesContainer(ICPPVariablesContainerElement* inNewContainer)
+{
+	// variables container is irrelevant for parameters collecting scope, hence refuse.
+	return false;
 }
 
 bool DecleratorAsParametersContainer::FoundStop()

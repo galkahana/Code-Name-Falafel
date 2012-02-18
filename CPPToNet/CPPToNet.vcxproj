@@ -140,6 +140,8 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="AbstractCPPContainer.h" />
+    <ClInclude Include="CPPClass.h" />
     <ClInclude Include="DecleratorAsParametersContainer.h" />
     <ClInclude Include="DecleratorAsTypedefContainer.h" />
     <ClInclude Include="DecleratorAsVariableContainer.h" />
@@ -234,6 +236,8 @@
     <ClInclude Include="WindowsPath.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AbstractCPPContainer.cpp" />
+    <ClCompile Include="CPPClass.cpp" />
     <ClCompile Include="DecleratorAsParametersContainer.cpp" />
     <ClCompile Include="DecleratorAsTypedefContainer.cpp" />
     <ClCompile Include="DecleratorAsVariableContainer.cpp" />

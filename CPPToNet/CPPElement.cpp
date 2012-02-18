@@ -4,6 +4,7 @@ string CPPElement::TypeLabels[eCPPElementTotalCount] =
 {
 		"eCPPElementPrimitive",
 		"eCPPElementNamespace",
+		"eCPPElementClass",
 		"eCPPElementEnumerator",
 		"eCPPElementUnion",
 		"eCPPElementTypedef",

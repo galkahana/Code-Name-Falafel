@@ -8,6 +8,7 @@
 #include "CPPVariable.h"
 #include "CPPUnion.h"
 #include "CPPPrimitive.h"
+#include "CPPClass.h"
 #include "ICPPVariablesContainerElement.h"
 #include "ICPPDefinitionsContainerElement.h"
 #include "CPPPrimitiveTypes.h"
@@ -164,6 +165,25 @@ EStatusCodeAndBool CPPStatementsParser::ParseStatement(HeaderUnit* inUnitModel)
 			// namespace closer (note that namespace must always contain at least one namespace for the global namespace)
 			if(mDefinitionContextStack.size() > 1)
 			{
+				if(((CPPElement*)mDefinitionContextStack.back())->Type == CPPElement::eCPPElementClass)
+				{
+					// in case of a class, consume also the following ';'
+					tokenizerResult = mTokensSource.GetNextToken();
+					if(!tokenizerResult.first)
+					{
+						status = eFailure;
+						TRACE_LOG("CPPStatementsParser::ParseStatement, unexpected end of file while looking statement ending on class definition");
+						break;
+					}
+
+					if(tokenizerResult.second != ";")
+					{
+						status = eFailure;
+						TRACE_LOG1("CPPStatementsParser::ParseStatement, unexpected token when ending class definition statement. should be ';', found '%s' ",tokenizerResult.second.c_str());
+						break;
+					}
+				}
+
 				mDefinitionContextStack.pop_back();
 				status = eSuccess;
 			}
@@ -171,6 +191,41 @@ EStatusCodeAndBool CPPStatementsParser::ParseStatement(HeaderUnit* inUnitModel)
 			{
 				TRACE_LOG("CPPStatementsParser::ParseStatement, syntax error, unexpected block closer '}'");
 				status = eFailure;
+				break;
+			}
+		}
+		else if(tokenizerResult.second == "public" || tokenizerResult.second == "private" || tokenizerResult.second == "protected")
+		{
+			if(((CPPElement*)mDefinitionContextStack.back())->Type == CPPElement::eCPPElementClass)
+			{
+				if(tokenizerResult.second == "private")
+					((CPPClass*)mDefinitionContextStack.back())->SetPrivateAccessLevel();
+				else if(tokenizerResult.second == "protected")
+					((CPPClass*)mDefinitionContextStack.back())->SetProtectedAccessLevel();
+				else
+					((CPPClass*)mDefinitionContextStack.back())->SetPublicAccessLevel();
+
+				// verify that next token is ":"
+				tokenizerResult = mTokensSource.GetNextToken();
+				if(!tokenizerResult.first)
+				{
+					status = eFailure;
+					TRACE_LOG("CPPStatementsParser::ParseStatement, unexpected end of file while looking for ':' in acces token statement");
+					break;
+				}
+
+				if(tokenizerResult.second != ";")
+				{
+					status = eFailure;
+					TRACE_LOG1("CPPStatementsParser::ParseStatement, unexpected token when reading acces token statement. should be ':', found '%s' ",tokenizerResult.second.c_str());
+					break;
+				}
+			}
+			else
+			{
+				TRACE_LOG("CPPStatementsParser::ParseStatement, syntax error. Access token allowed only for classes, and is not in class context at this point");
+				status = eFailure;
+				break;
 			}
 		}
 		else
@@ -189,9 +244,11 @@ EStatusCodeAndBool CPPStatementsParser::ParseStatement(HeaderUnit* inUnitModel)
 			// paranthesis at the name of the function/variable if this is a function. prior to that both kinds of
 			// declarations look exactly the same. after...it's a matter of what is identified.
 
-			DecleratorAsVariableContainer namespaceDefinitionContainerDriver(mDefinitionContextStack.back());
+			DecleratorAsVariableContainer definitionContainerDriver(mDefinitionContextStack.back());
 
-			status =  ParseGenericDeclerationStatement(&namespaceDefinitionContainerDriver);
+			mTokensSource.PutBackToken(tokenizerResult.second);
+
+			status =  ParseGenericDeclerationStatement(&definitionContainerDriver);
 			if(status != eSuccess)
 				TRACE_LOG("CPPStatementsParser::ParseStatement, failed in parsing variable or function definition");
 		}
@@ -458,24 +515,41 @@ CPPElement* CPPStatementsParser::FindElement(ICPPDefinitionsContainerElement* in
 	return foundElement;
 }
 
-
 CPPElement* CPPStatementsParser::GetElementFromCurrentLocation(bool inRequireType)
 {
-	// a name can be either:
-	// XXX
-	// [::]YYY[::AAA::ZZZ...]::XXX
-	CPPElement* anElement = NULL;
-	ECPPElementTypeSet typesetWithNamespace,typeset;
-
+	ECPPElementTypeSet typeset;
+	
 	if(inRequireType)
 	{
 		typeset.insert(CPPElement::eCPPElementPrimitive);
 		typeset.insert(CPPElement::eCPPElementEnumerator);
 		typeset.insert(CPPElement::eCPPElementUnion);
 		typeset.insert(CPPElement::eCPPElementTypedef);
-		typesetWithNamespace = typeset;
-		typesetWithNamespace.insert(CPPElement::eCPPElementNamespace);
+		typeset.insert(CPPElement::eCPPElementClass);
 	}
+	return GetElementFromCurrentLocation(typeset);
+}
+
+CPPElement* CPPStatementsParser::GetElementFromCurrentLocation(CPPElement::ECPPElementType inOfType)
+{
+	ECPPElementTypeSet typeset;
+
+	typeset.insert(inOfType);
+	return GetElementFromCurrentLocation(typeset);
+}
+
+
+CPPElement* CPPStatementsParser::GetElementFromCurrentLocation(const ECPPElementTypeSet& inTypeSet)
+{
+	// a name can be either:
+	// XXX
+	// [::]YYY[::AAA::ZZZ...]::XXX
+	CPPElement* anElement = NULL;
+	ECPPElementTypeSet typesetWithContainers;
+
+	typesetWithContainers = inTypeSet;
+	typesetWithContainers.insert(CPPElement::eCPPElementNamespace);
+	typesetWithContainers.insert(CPPElement::eCPPElementClass);
 
 	BoolAndString firstToken = mTokensSource.GetNextToken();
 	do
@@ -494,16 +568,17 @@ CPPElement* CPPStatementsParser::GetElementFromCurrentLocation(bool inRequireTyp
 			ECPPElementTypeSet typeSet;
 			// get any type that is a container
 			typeSet.insert(CPPElement::eCPPElementNamespace);
+			typeSet.insert(CPPElement::eCPPElementClass);
 
 			// qualified
-			anElement = (firstToken.second == "::") ? mWorkingUnit->GetGlobalNamespace() : FindUnqualifiedElement(firstToken.second,CPPElement::eCPPElementNamespace);
+			anElement = (firstToken.second == "::") ? mWorkingUnit->GetGlobalNamespace() : FindUnqualifiedElement(firstToken.second,typeSet);
 			BoolAndString token = (firstToken.second == "::") ? secondToken : mTokensSource.GetNextToken(); // token should now have the thing next to ::
 			
 			while(anElement && token.first)
 			{
 				// k. now look the element named in token inside it
-				if(inRequireType)
-					anElement = FindElement((ICPPDefinitionsContainerElement*)anElement,token.second,typesetWithNamespace);
+				if(inTypeSet.size() > 0)
+					anElement = FindElement((ICPPDefinitionsContainerElement*)anElement,token.second,typesetWithContainers);
 				else
 					anElement = FindElement((ICPPDefinitionsContainerElement*)anElement,token.second);
 				if(!anElement)
@@ -534,96 +609,11 @@ CPPElement* CPPStatementsParser::GetElementFromCurrentLocation(bool inRequireTyp
 		}
 		else
 		{
-			string elementName = firstToken.second;
+			string elementName = ComputeUnqualifiedNameFromCurrentLocation(firstToken.second,secondToken);
 
-			if(secondToken.first)
-			{
-				// consider some primitive cases (primitives are defined in global namespace, so will be found
-				// by the below. just make sure that the names are right
-				if("unsigned" == elementName)
-				{
-					// options: ,unsigned long, unsigned long long, unsigned int->unsigned,unsigned, unsigned char, unsigned short
-					
-					// unsigned long, unsigned long long
-					if("long" == secondToken.second)
-					{
-						BoolAndString thirdToken = mTokensSource.GetNextToken();
-						// unsigned long long
-						if(thirdToken.first && "long" == thirdToken.second)
-						{
-							elementName = "unsigend long long";
-						}
-						else
-						{
-							elementName = "unsigend long";
-							// unsigned long
-							if(thirdToken.first)
-								mTokensSource.PutBackToken(thirdToken.second);
-						}
-					} // unsigned int
-					else if("int" == secondToken.second)
-					{
-						elementName = "unsigend";
-					} // unsigned char
-					else if("char" == secondToken.second)
-					{
-						elementName = "unsigend char";
-					} // unsigned short
-					else if("short" == secondToken.second)
-					{
-						elementName = "unsigend short";
-					}
-					else
-					{
-						// unsigned
-						mTokensSource.PutBackToken(secondToken.second);
-					}
-
-				}
-				else if("long" == elementName)
-				{
-					// options: long,long int->long, long long, long double
-					if("long" == secondToken.second)
-					{
-						elementName = "long long";
-					}
-					else if("int" == secondToken.second)
-					{
-						elementName = "long";
-					}
-					else if("double" == secondToken.second)
-					{
-						elementName = "long double";
-					}
-					else
-					{
-						// long
-						mTokensSource.PutBackToken(secondToken.second);
-					}
-
-				}
-				else if("short" == elementName)
-				{
-					// options: short, short int->short
-					if("int" == secondToken.second)
-					{
-						elementName = "short";
-					}
-					else
-					{
-						// short
-						mTokensSource.PutBackToken(secondToken.second);
-					}
-				}
-				else
-				{
-					mTokensSource.PutBackToken(secondToken.second);
-				}
-			}
-			
 			// get current context (currently only namespace), and search the element in it
-			if(inRequireType)
-				anElement = FindUnqualifiedElement(elementName,typeset);
+			if(inTypeSet.size() > 0)
+				anElement = FindUnqualifiedElement(elementName,inTypeSet);
 			else
 				anElement = FindUnqualifiedElement(elementName);
 
@@ -826,7 +816,7 @@ EStatusCode CPPStatementsParser::ParseEnumeratorDeclaration()
 				mTokensSource.PutBackToken(token.second);
 
 				DecleratorAsVariableContainer variablesDefinitionDriver(mDefinitionContextStack.back());
-				variablesDefinitionDriver.SetFlags(anEnumerator,false,false,false,false,false,false);
+				variablesDefinitionDriver.SetFlags(anEnumerator,false,false,false,false,false,false,false);
 
 				if(ParseDeclarators(&variablesDefinitionDriver) != eSuccess) // will consume the semicolon as well
 				{
@@ -861,7 +851,7 @@ EStatusCode CPPStatementsParser::ParseEnumeratorDeclaration()
 				mTokensSource.PutBackToken(token.second);
 
 				DecleratorAsVariableContainer variablesDefinitionDriver(mDefinitionContextStack.back());
-				variablesDefinitionDriver.SetFlags(anEnumerator,false,false,false,false,false,false);
+				variablesDefinitionDriver.SetFlags(anEnumerator,false,false,false,false,false,false,false);
 
 				if(ParseDeclarators(&variablesDefinitionDriver) != eSuccess) // will consume the semicolon as well
 				{
@@ -932,8 +922,43 @@ EStatusCodeAndBool CPPStatementsParser::ParseFieldOrFunction(ICPPDeclarationCont
 				result.first = aDeclarator->FinalizeFieldDefinition();
 			break;
 		}
+		else
+		{
+				mTokensSource.PutBackToken(token.second);
+		}
 
-		// else, named declerator. may be a field or a function
+		// if non unnamed - then is named, continue with figuring out an optional scoping factor, and the declarator name
+		// check for scoping element. if so, it means that this is a definition, and that the contianer object should be replaced with the scoping object
+		CPPElement* aScopingElement = GetScopingElementFromCurrentLocation();
+		if(aScopingElement)
+		{
+			if((aScopingElement->Type != CPPElement::eCPPElementClass &&
+				aScopingElement->Type != CPPElement::eCPPElementNamespace))
+			{
+				TRACE_LOG1("CPPStatementsParser::ParseFieldOrFunction, syntax error, trying to define a function or function pointer variables for a particular container, but the container is of type %s",
+							CPPElement::TypeLabels[aScopingElement->Type].c_str());
+				result.first = eFailure;
+				break;
+			}
+
+			if(!inContainer->ResetVariablesContainer((ICPPVariablesContainerElement*)aScopingElement))
+			{
+				TRACE_LOG("CPPStatementsParser::ParseFieldOrFunction, syntax error, trying to define a function or function pointer variables for an inappropriate scope");
+				result.first = eFailure;
+				break;
+			}
+
+		}
+
+		// get next token for the name
+		token = mTokensSource.GetNextToken();	
+		if(!token.first)
+		{
+			TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, no token when trying to parse for function pointer name");
+			result.first = eFailure;
+			break;
+		}
+
 		string decleratorName = token.second;
 		
 		// At this point we it might be that there will be a parenthesis - "(" - in which case this is a function declaration (and could also be a definition)
@@ -1171,7 +1196,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionDefinition(ICPPDeclarationC
 			break;
 		}
 
-		// if continued, then it must be a block start, for an actual function definition. skip, and note in the function definition object
+		// if continued, then it must be a block start, for an actual function definition or a pure function declaration. skip definition, and note in the function definition object or not purity
 		if(token.second == "{")
 		{
 			result.first = SkipBlock();
@@ -1187,8 +1212,34 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionDefinition(ICPPDeclarationC
 			result.second = true;
 			break;
 		}
+		else if(token.second == "=")
+		{
+			// maybe pure. make sure
+			token = mTokensSource.GetNextToken();
+			if(!token.first || token.second != "0")
+			{
+				TRACE_LOG("CPPStatementsParser::ParseFunctionDefinition, syntax error in parsing pure function, saw '=', but no later '0' ");
+				break;
+			}
+
+			// make sure function ends properly
+			token = mTokensSource.GetNextToken();
+			if(!token.first)
+			{
+				TRACE_LOG("CPPStatementsParser::ParseFunctionDefinition, syntax error. ended too soon after pure function declaration, no ending character");
+				break;
+			}
+			result.second = inContainer->VerifyDeclaratorStopper(token.second);
+			if(result.second)
+			{
+				functionDeclerator->SetPureFunction();
+				result.first = functionDeclerator->FinalizeFunctionDefinition(false);
+				break;
+			}
+			// will fail otherwise...cause was supposed to end in this case
+		}
 		
-		// if it wasn't a block, fail
+		// if it wasn't a block or pure function, fail
 		TRACE_LOG1("CPPStatementsParser::ParseFunctionDefinition, expected either expression termination or function definition (block). instead got %s",token.second.c_str());
 		result.first = eFailure;
 
@@ -1230,22 +1281,47 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointerOrFunction(ICPPDecla
 
 	do
 	{
+		// modifiers to pointer type
 		if(token.second == "*" || token.second == "&")
 		{
-			// modifiers to pointer type
 			pointerType = (token.second == "*") ? ICPPFunctionPointerDeclerator::eFunctionPointerTypePointer : ICPPFunctionPointerDeclerator::eFunctionPointerTypeReference;
+		}
+		else
+		{
+			pointerType = ICPPFunctionPointerDeclerator::eFunctionPointerTypeNone;
+			mTokensSource.PutBackToken(token.second);
+		}
 
-			// get next token for the name
-			token = mTokensSource.GetNextToken();	
-			if(!token.first)
+		// check for scoping element. if so, it means that this is a definition, and that the contianer object should be replaced with the scoping object
+		CPPElement* aScopingElement = GetScopingElementFromCurrentLocation();
+		if(aScopingElement)
+		{
+			if((aScopingElement->Type != CPPElement::eCPPElementClass &&
+				aScopingElement->Type != CPPElement::eCPPElementNamespace))
 			{
-				TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, no token when trying to parse for function pointer name");
+				TRACE_LOG1("CPPStatementsParser::ParseFunctionPointerOrFunction, syntax error, trying to define a function or function pointer variables for a particular container, but the container is of type %s",
+							CPPElement::TypeLabels[aScopingElement->Type].c_str());
 				result.first = eFailure;
 				break;
 			}
+
+			if(!inContainer->ResetVariablesContainer((ICPPVariablesContainerElement*)aScopingElement))
+			{
+				TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, syntax error, trying to define a function or function pointer variables for an inappropriate scope");
+				result.first = eFailure;
+				break;
+			}
+
 		}
-		else
-			pointerType = ICPPFunctionPointerDeclerator::eFunctionPointerTypeNone;
+
+		// get next token for the name
+		token = mTokensSource.GetNextToken();	
+		if(!token.first)
+		{
+			TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, no token when trying to parse for function pointer name");
+			result.first = eFailure;
+			break;
+		}
 
 		decleratorName = token.second;
 
@@ -1544,7 +1620,7 @@ EStatusCode CPPStatementsParser::ParseUnionDeclaration()
 				mTokensSource.PutBackToken(token.second);
 
 				DecleratorAsVariableContainer variablesDefinitionDriver(mDefinitionContextStack.back());
-				variablesDefinitionDriver.SetFlags(aUnion,false,false,false,false,false,false);
+				variablesDefinitionDriver.SetFlags(aUnion,false,false,false,false,false,false,false);
 
 				if(ParseDeclarators(&variablesDefinitionDriver) != eSuccess) // will consume the semicolon as well
 				{
@@ -1582,7 +1658,7 @@ EStatusCode CPPStatementsParser::ParseUnionDeclaration()
 				mTokensSource.PutBackToken(token.second);
 
 				DecleratorAsVariableContainer variablesDefinitionDriver(mDefinitionContextStack.back());
-				variablesDefinitionDriver.SetFlags(aUnion,false,false,false,false,false,false);
+				variablesDefinitionDriver.SetFlags(aUnion,false,false,false,false,false,false,false);
 
 				if(ParseDeclarators(&variablesDefinitionDriver) != eSuccess) // will consume the semicolon as well
 				{
@@ -1731,6 +1807,7 @@ EStatusCode CPPStatementsParser::ParseGenericDeclerationStatement(ICPPDeclaratio
 	bool isConst = false;
 	bool isVolatile = false;
 	bool isStatic = false;
+	bool isVirtual = false;
 	BoolAndString token;
 
 	// start by parsing storage specificers for the initial defined type (be it return type for function pointer, or a regualr field type)
@@ -1768,6 +1845,10 @@ EStatusCode CPPStatementsParser::ParseGenericDeclerationStatement(ICPPDeclaratio
 		{
 			isStatic = true;
 		}	
+		else if(token.second == "virtual")
+		{
+			isVirtual = true;
+		}
 		else
 		{
 			mTokensSource.PutBackToken(token.second);
@@ -1781,28 +1862,324 @@ EStatusCode CPPStatementsParser::ParseGenericDeclerationStatement(ICPPDeclaratio
 
 	do
 	{
-		// get the type itself
-		CPPElement* anElement = GetElementFromCurrentLocation(true);
-		if(!anElement)
+		/*
+			The following requires some explanation. at this point we might be parsing for either a return type,
+			or a destructor/constructor identifier (class name or ~ and class name). the meaning of what will be parsed is determined by the later token -
+			if it's a "(" then this is a destructor/constructor. otherwise it's a simple type that will later be following declarators/constructors etc.
+
+			hence - 
+			1. parse for scoping element (if there is any).
+			2. parse for next token (if it is a ~ then this must be a desructor, parse the next token and join with the ~)
+			3. parse for next token. if "(", then continue to parse as constructor/destructor, otherwise parse as regular declarator statement
+
+		*/
+
+		CPPElement* aScopingElement = GetScopingElementFromCurrentLocation();
+
+		// get the next token (this should be the type/~ or class name)
+		token = mTokensSource.GetNextToken();
+		if(!token.first)
 		{
-			TRACE_LOG("CPPStatementsParser::ParseGenericDeclerationStatement, error in using declaration, could not find designated type");
+			TRACE_LOG("CPPStatementsParser::ParseGenericDeclerationStatement, unexpected end of statement, when expecting type name");
 			status = eFailure;
 			break;
 		}
 
-		// setup container with initial flags, before going to repetetive (potentioally) declarators definition
-		if(inContainer->SetFlags(anElement,isAuto,isRegister,isExtern,isConst,isVolatile,isStatic) != eSuccess)
+		bool isDestructor;
+		if(token.second == "~")
 		{
+			isDestructor = true;
+			token = mTokensSource.GetNextToken();
+			if(!token.first)
+			{
+				TRACE_LOG("CPPStatementsParser::ParseGenericDeclerationStatement, unexpected end of statement, when expecting type name after ~");
+				status = eFailure;
+				break;
+			}
+
+		}
+		else
+			isDestructor = false;
+
+		string aTypeName = token.second;
+
+		// now get the next token and determine the role of the previous token accordingly
+		token = mTokensSource.GetNextToken();
+		if(!token.first)
+		{
+			TRACE_LOG("CPPStatementsParser::ParseGenericDeclerationStatement, unexpected end of statement, when expecting type name after typename");
 			status = eFailure;
 			break;
 		}
 
-		// Now continue with parsing declerators - one of more, in the case of fields, or one in the case of function pointer declaration or function definition/declaration
-		// - will consume also statement ending
-		status = ParseDeclarators(inContainer);
+		if(token.second == "(")
+		{
+			// Aha! constructor/desctructor definition. continue to parse as a regular function
+			
+			// assert that the typename is like a current class name
+			CPPElement* classElement = aScopingElement ? aScopingElement : (CPPElement*)mDefinitionContextStack.back();
+			if(classElement->Type != CPPElement::eCPPElementClass
+				||
+				classElement->Name != aTypeName)
+			{
+				TRACE_LOG("CPPStatementsParser::ParseGenericDeclerationStatement, unexpected constructor/destructor syntax. either not in class scope, or constructor/desctructor name differs from container class");
+				status = eFailure;
+				break;
+			}
+			
+			if(isDestructor)
+				aTypeName.insert(aTypeName.begin(),'~');
+
+
+			// if aScopingElement is not null, this means that the constructor/desctructor definition (and it will be an actual definition for sure, so this is a very particular state)
+			// is not on the current top element, but rather on the scoped element
+			if(aScopingElement && !inContainer->ResetVariablesContainer((ICPPVariablesContainerElement*)aScopingElement))
+			{
+				TRACE_LOG("CPPStatementsParser::ParseGenericDeclerationStatement, scoped definitonn of constructor/destructor is unsuitable in the current state");
+				status = eFailure;
+				break;
+			}
+
+			// now continue as regular function parsing, just with some defaults
+			if(inContainer->SetFlags(NULL,isAuto,isRegister,isExtern,isConst,isVolatile,isStatic,isVirtual) != eSuccess)
+			{
+				status = eFailure;
+				break;
+			}
+
+			EStatusCodeAndBool functionParseResult = ParseFunctionDefinition(inContainer,DeclaratorModifierList(),aTypeName);
+			if(functionParseResult.first != eSuccess)
+			{
+				TRACE_LOG("CPPStatementsParser::ParseGenericDeclarationStatement, failed to parse a function. fail");
+				status = eFailure;
+				break;
+			}
+
+			// if not consumed declarator stopper, do so now
+			if(functionParseResult.second)
+				break;
+
+			token = mTokensSource.GetNextToken();
+			if(!token.first)
+			{
+				TRACE_LOG("CPPStatementsParser::ParseGenericDeclarationStatement, unexpected end, expecting a semicolon");
+				status = eFailure;
+				break;
+			}
+
+			// k. now expecting either a stopper (semicolon for regulaer declarators, comma for parameters)
+			if(!inContainer->VerifyDeclaratorStopper(token.second))
+			{
+				TRACE_LOG1("CPPStatementsParser::ParseGenericDeclarationStatement, unexpected token, expecting a semicolon, found %s",token.second);
+				status = eFailure;
+				break;
+			}
+		}
+		else
+		{
+			// regular declaration, complete with getting the type based on the typename
+			CPPElement* anElement;
+			if(aScopingElement)
+				anElement = FindElement((ICPPDefinitionsContainerElement*)aScopingElement,aTypeName);
+			else
+				anElement = FindUnqualifiedElement(ComputeUnqualifiedNameFromCurrentLocation(aTypeName,token));
+
+			if(!anElement)
+			{
+				TRACE_LOG("CPPStatementsParser::ParseGenericDeclerationStatement, error in using declaration, could not find designated type");
+				status = eFailure;
+				break;
+			}
+
+			// setup container with initial flags, before going to repetetive (potentioally) declarators definition
+			if(inContainer->SetFlags(anElement,isAuto,isRegister,isExtern,isConst,isVolatile,isStatic,isVirtual) != eSuccess)
+			{
+				status = eFailure;
+				break;
+			}
+
+			// Now continue with parsing declerators - one of more, in the case of fields, or one in the case of function pointer declaration or function definition/declaration
+			// - will consume also statement ending
+			status = ParseDeclarators(inContainer);
+		}
 	}while(false);
 
 	return status;
+}
+
+CPPElement* CPPStatementsParser::GetScopingElementFromCurrentLocation()
+{
+	// a name can be either:
+	// XXX
+	// [::]YYY[::AAA::ZZZ...]::XXX
+
+	// so this function gets the [::]YYY[::AAA::ZZZ...]:: part
+	CPPElement* anElement = NULL;
+	CPPElement* aScopingElement = NULL;
+	ECPPElementTypeSet typesetWithContainers;
+
+	typesetWithContainers.insert(CPPElement::eCPPElementNamespace);
+	typesetWithContainers.insert(CPPElement::eCPPElementClass);
+
+	BoolAndString firstToken = mTokensSource.GetNextToken();
+	do
+	{
+		if(!firstToken.first)
+		{
+			TRACE_LOG("CPPStatementsParser::GetScopingElementFromCurrentLocation, no symbol in current location");
+			break;
+		}
+
+		BoolAndString secondToken = mTokensSource.GetNextToken();
+
+		// differ qualified from non-qualified states
+		if(firstToken.second == "::" || (secondToken.first && secondToken.second == "::"))
+		{
+			ECPPElementTypeSet typeSet;
+			// get any type that is a container
+			typeSet.insert(CPPElement::eCPPElementNamespace);
+			typeSet.insert(CPPElement::eCPPElementClass);
+
+			// qualified
+			aScopingElement = (firstToken.second == "::") ? mWorkingUnit->GetGlobalNamespace() : FindUnqualifiedElement(firstToken.second,typeSet);
+			BoolAndString token = (firstToken.second == "::") ? secondToken : mTokensSource.GetNextToken(); // token should now have the thing next to ::
+			
+			while(anElement && token.first)
+			{
+				// k. now look the element named in token inside it
+				string aTypeName = token.second;
+				anElement = FindElement((ICPPDefinitionsContainerElement*)aScopingElement,aTypeName,typesetWithContainers);
+				if(anElement)
+				{
+					// found element, now look for next tokens, and see if they are following qualifications
+					token = mTokensSource.GetNextToken();
+					if(!token.first)
+					{
+						// done
+						break;
+					}
+
+					if(token.second != "::")
+					{
+						mTokensSource.PutBackToken(token.second);
+						
+						// also, put back the token for this element...as we only want the scoping element
+						mTokensSource.PutBackToken(aTypeName);
+						break;
+					}
+
+					// nother qualification, continue loop
+					token = mTokensSource.GetNextToken();
+					aScopingElement = anElement;
+				}
+				else
+				{
+					mTokensSource.PutBackToken(aTypeName);
+					break;
+				}
+			}
+		}
+		else
+		{
+			// no scoping case...so put back
+			if(secondToken.first)
+				mTokensSource.PutBackToken(secondToken.second);
+			mTokensSource.PutBackToken(firstToken.second);
+		}
+
+	}while(false);
+
+	return aScopingElement;
+}
+
+string CPPStatementsParser::ComputeUnqualifiedNameFromCurrentLocation(string inTypeName,const BoolAndString& inNextToken)
+{
+	string result = inTypeName;
+	if(inNextToken.first)
+	{
+		// consider some primitive cases (primitives are defined in global namespace, so will be found
+		// by the below. just make sure that the names are right
+		if("unsigned" == inTypeName)
+		{
+			// options: ,unsigned long, unsigned long long, unsigned int->unsigned,unsigned, unsigned char, unsigned short
+					
+			// unsigned long, unsigned long long
+			if("long" == inNextToken.second)
+			{
+				BoolAndString thirdToken = mTokensSource.GetNextToken();
+				// unsigned long long
+				if(thirdToken.first && "long" == thirdToken.second)
+				{
+					result = "unsigend long long";
+				}
+				else
+				{
+					result = "unsigend long";
+					// unsigned long
+					if(thirdToken.first)
+						mTokensSource.PutBackToken(thirdToken.second);
+				}
+			} // unsigned int
+			else if("int" == inNextToken.second)
+			{
+				result = "unsigend";
+			} // unsigned char
+			else if("char" == inNextToken.second)
+			{
+				result = "unsigend char";
+			} // unsigned short
+			else if("short" == inNextToken.second)
+			{
+				result = "unsigend short";
+			}
+			else
+			{
+				// unsigned
+				mTokensSource.PutBackToken(inNextToken.second);
+			}
+
+		}
+		else if("long" == inTypeName)
+		{
+			// options: long,long int->long, long long, long double
+			if("long" == inNextToken.second)
+			{
+				result = "long long";
+			}
+			else if("int" == inNextToken.second)
+			{
+				result = "long";
+			}
+			else if("double" == inNextToken.second)
+			{
+				result = "long double";
+			}
+			else
+			{
+				// long
+				mTokensSource.PutBackToken(inNextToken.second);
+			}
+
+		}
+		else if("short" == inTypeName)
+		{
+			// options: short, short int->short
+			if("int" == inNextToken.second)
+			{
+				result = "short";
+			}
+			else
+			{
+				// short
+				mTokensSource.PutBackToken(inNextToken.second);
+			}
+		}
+		else
+		{
+			mTokensSource.PutBackToken(inNextToken.second);
+		}
+	}
+	return result;
 }
 
 EStatusCode CPPStatementsParser::ParseTypedefDeclaration()
@@ -1817,9 +2194,135 @@ EStatusCode CPPStatementsParser::ParseTypedefDeclaration()
 
 EStatusCode CPPStatementsParser::ParseClassDeclaration()
 {
-	// TODO
+	/*
+		A class statements can be either a declaration or definition.
+		In case of a declaration it would look like this:
 
-	return eFailure;
+		class XXXXX;
+
+		In case of a definition it would look like this:
+
+		class XXXXX : {private/public/protected YYYYY}*
+		{
+			// stuff, with sometimes {private/public/protected:}
+		};
+
+	*/
+	EStatusCode status = eSuccess;
+
+	do
+	{
+		// class name
+		BoolAndString tokenizerResult = mTokensSource.GetNextToken(); 
+
+		if(!tokenizerResult.first)
+		{
+			TRACE_LOG("ParseClassDeclaration: syntax error, class keyword not followed by an identifier");
+			status = eFailure;
+			break;
+		}
+
+		string className = tokenizerResult.second;
+
+		// determine if definition or declaration based on the next token
+		tokenizerResult = mTokensSource.GetNextToken(); 
+
+		if(!tokenizerResult.first)
+		{
+			TRACE_LOG("ParseClassDeclaration: syntax error, class keyword and idetnifier unexpected end");
+			status = eFailure;
+			break;
+		}
+
+
+		CPPClass* aClass = mDefinitionContextStack.back()->CreateClass(className,tokenizerResult.second == ";");
+		if(!aClass)
+		{
+			status = eFailure;
+			break;
+		}
+		// for declaration stop here
+		if(tokenizerResult.second == ";")
+			break;
+
+		// check for bases classes
+		if(tokenizerResult.second == ":")
+		{
+			CPPClass* baseClass;
+			ECPPClassAccessLevel accessLevel;
+
+
+			while(eSuccess == status)
+			{
+				tokenizerResult = mTokensSource.GetNextToken(); 
+
+				if(!tokenizerResult.first)
+				{
+					TRACE_LOG("ParseClassDeclaration: syntax error, unexpected end of statement in class definition");
+					status = eFailure;
+					break;
+				}
+
+				if(tokenizerResult.second == "protected")
+				{
+					accessLevel = eCPPClassAccessLevelProtected;
+				}
+				else if(tokenizerResult.second == "public")
+				{
+					accessLevel = eCPPClassAccessLevelPublic;
+				}
+				else if(tokenizerResult.second == "private")
+				{
+					accessLevel = eCPPClassAccessLevelPrivate;
+				}
+				else
+				{
+					accessLevel = eCPPClassAccessLevelPrivate;
+					mTokensSource.PutBackToken(tokenizerResult.second);
+				}
+
+				baseClass = (CPPClass*)GetElementFromCurrentLocation(CPPElement::eCPPElementClass);
+
+				if(!baseClass)
+				{
+					TRACE_LOG("ParseClassDeclaration: syntax error, unable to find base class");
+					status = eFailure;
+					break;
+				}
+				
+				status = aClass->AddBaseClass(baseClass,accessLevel);
+				if(status != eSuccess)
+					break;
+
+				tokenizerResult = mTokensSource.GetNextToken(); 
+				if(!tokenizerResult.first)
+				{
+					TRACE_LOG("ParseClassDeclaration: syntax error, unexpected end of statement in class definition after finished base class declaration");
+					status = eFailure;
+					break;
+				}
+
+				if(tokenizerResult.second != ",")
+					break;
+			}
+
+
+			// now should be class start statments. only legal char is "{"
+			if(tokenizerResult.second != "{")
+			{
+					TRACE_LOG1("ParseClassDeclaration: syntax error, unexpected token in class definition start - %s",tokenizerResult.second);
+					status = eFailure;
+					break;
+			}
+
+			mDefinitionContextStack.push_back(aClass);		
+		}
+		if(status != eSuccess)
+			break;
+
+	}while(false);
+
+	return status;
 }
 
 EStatusCode CPPStatementsParser::ParseStructDeclaration()

@@ -17,15 +17,15 @@ DecleratorAsTypedefContainer::~DecleratorAsTypedefContainer()
 	delete mFieldType;
 }
 
-EStatusCode DecleratorAsTypedefContainer::SetFlags(CPPElement* inType,bool inIsAuto,bool inIsRegister,bool inIsExtern,bool inIsConst,bool inIsVolatile, bool inIsStatic)
+EStatusCode DecleratorAsTypedefContainer::SetFlags(CPPElement* inType,bool inIsAuto,bool inIsRegister,bool inIsExtern,bool inIsConst,bool inIsVolatile, bool inIsStatic,bool inIsVirtual)
 {
 	mIsConst = inIsConst;
 	mIsVolatile = inIsVolatile;
 	mType = inType;
 
-	if(inIsAuto || inIsRegister || inIsExtern || inIsStatic)
+	if(inIsAuto || inIsRegister || inIsExtern || inIsStatic || inIsVirtual)
 	{
-		TRACE_LOG("DecleratorAsTypedefContainer::SetFlags, irelevant flags set for typedef. Should not set auto, extern, register or static. only const and volatile are allowed.");
+		TRACE_LOG("DecleratorAsTypedefContainer::SetFlags, irelevant flags set for typedef. Should not set auto, extern, register, static or virtual. only const and volatile are allowed.");
 		return eFailure;
 	}
 	else
@@ -72,6 +72,12 @@ ICPPFunctionDefinitionDeclerator* DecleratorAsTypedefContainer::AddFunctionDefin
 bool DecleratorAsTypedefContainer::VerifyDeclaratorStopper(const string& inTokenToExamine)
 {
 	return inTokenToExamine== ";";
+}
+
+bool DecleratorAsTypedefContainer::ResetVariablesContainer(ICPPVariablesContainerElement* inNewContainer)
+{
+	// variables container is irrelevant for typedef, hence refuse to reset with this new container
+	return false;
 }
 
 ICPPParametersContainer* DecleratorAsTypedefContainer::GetParametersContainerForFunctionPointer()
