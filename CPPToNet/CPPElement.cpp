@@ -3,17 +3,17 @@
 string CPPElement::TypeLabels[eCPPElementTotalCount] = 
 {
 		"eCPPElementPrimitive",
-		"eCPPElementNamespace",
-		"eCPPElementClass",
 		"eCPPElementEnumerator",
 		"eCPPElementUnion",
 		"eCPPElementTypedef",
-		"eCPPTypenames", 
+		"eCPPElementClass",
+		"eCPPElementStruct",
+		"eCPPTypenames",
+		"eCPPElementNamespace",
 		"eCPPElementEnumeratorValue",
 		"eCPPElementVariable",
-		"eCPPElementFunction"
+		"eCPPElementFunction",
 };
-
 
 CPPElement::CPPElement(const string& inName,ECPPElementType inType)
 {

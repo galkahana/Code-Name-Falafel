@@ -64,8 +64,7 @@ private:
 	Hummus::EStatusCode ParseNamespaceDeclaration();
 	Hummus::EStatusCode ParseUsingDirective();
 	Hummus::EStatusCode ParseUsingDeclaration();
-	Hummus::EStatusCode ParseClassDeclaration();
-	Hummus::EStatusCode ParseStructDeclaration();
+	Hummus::EStatusCode ParseClassOrStructDeclaration(bool inIsClass);
 	Hummus::EStatusCode ParseUnionDeclaration();
 	Hummus::EStatusCode ParseTypedefDeclaration();
 	Hummus::EStatusCode ParseEnumeratorDeclaration();

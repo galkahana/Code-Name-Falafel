@@ -1,5 +1,5 @@
-#include "Trace.h"
 #include "AbstractCPPContainer.h"
+#include "Trace.h"
 #include "CPPEnumerator.h"
 #include "CPPVariable.h"
 #include "CPPUnion.h"
@@ -8,6 +8,7 @@
 #include "UsedTypeDescriptor.h"
 #include "CPPElement.h"
 #include "CPPClass.h"
+#include "CPPStruct.h"
 
 
 using namespace Hummus;
@@ -54,6 +55,11 @@ AbstractCPPContainer::~AbstractCPPContainer(void)
 		if(mAliases.find(itClasses->second) == mAliases.end())
 			delete itClasses->second;
 
+	StringToCPPStructMap::iterator itStructs = mStructs.begin();
+	for(; itStructs != mStructs.end(); ++itStructs)
+		if(mAliases.find(itStructs->second) == mAliases.end())
+			delete itStructs->second;
+
 	// Enumerator values are owned by their respective enumerators - so don't delete the map that contains them here.
 }
 
@@ -91,6 +97,10 @@ CPPElementList AbstractCPPContainer::FindElements(const string& inElementName)
 	StringToCPPClassMap::iterator itClasses = mClasses.begin();
 	if(itClasses != mClasses.end())
 		result.push_back(itClasses->second);
+
+	StringToCPPStructMap::iterator itStructs = mStructs.begin();
+	if(itStructs != mStructs.end())
+		result.push_back(itStructs->second);
 
 	return result;
 }
@@ -192,6 +202,19 @@ Hummus::EStatusCode AbstractCPPContainer::DefineAlias(const string& inAlias,CPPE
 				if(createdElement != aliasElement)
 				{
 					TRACE_LOG1("AbstractCPPContainer::DefineAlias, failed to define new class alias %s . an incompatible element already exists.",inAlias.c_str());
+					status = eFailure;
+				}
+				break;	
+
+			}
+		case CPPElement::eCPPElementStruct:
+			{
+				CPPStruct* aliasElement = (CPPStruct*)inNewElement;
+				CPPStruct* createdElement = AppendStruct(inAlias,aliasElement->IsDefinition(),aliasElement);
+			
+				if(createdElement != aliasElement)
+				{
+					TRACE_LOG1("AbstractCPPContainer::DefineAlias, failed to define new struct alias %s . an incompatible element already exists.",inAlias.c_str());
 					status = eFailure;
 				}
 				break;	
@@ -694,4 +717,64 @@ CPPClass* AbstractCPPContainer::AppendClass(const string& inClassName,
 	}
 
 	return mClasses.insert(StringToCPPClassMap::value_type(inClassName,inClass ? inClass : new CPPClass(inClassName,inIsDefinition))).first->second;
+}
+
+CPPStruct* AbstractCPPContainer::CreateStruct(const string& inStructName,
+												bool inIsDefinition)
+{
+	return AppendStruct(inStructName,inIsDefinition,NULL);
+}
+
+CPPStruct* AbstractCPPContainer::AppendStruct(const string& inStructName,
+											bool inIsDefinition,
+											CPPStruct* inStruct)
+{
+	CPPElementList existingElements = FindElements(inStructName);
+
+	if(existingElements.size() > 0)
+	{
+		// for enumerators, the following is true:
+		// other values (functions, variables) can share it's name. types cannot.
+		// there may be multiple declerations but only one definition
+
+		bool hasProblematicDefinition = false;
+		CPPStruct* hadDefinedStruct = NULL;
+		CPPElementList::iterator it = existingElements.begin();
+
+		for(; it != existingElements.end(); ++it)
+		{
+			if((*it)->Type == CPPElement::eCPPElementStruct)
+			{
+				CPPStruct* otherStruct = (CPPStruct*)(*it);
+
+				if(otherStruct->IsDefinition() && inIsDefinition)
+				{
+					TRACE_LOG1("AbstractCPPContainer::CreateStruct, problem when creating a new struct declaration/definition. multiple definitons exist for a struct. This is not allowed. for struct %s",inStructName.c_str());
+					hasProblematicDefinition = true;
+					break;
+				}
+
+				if(inIsDefinition)
+					otherStruct->SetIsDefinition();
+
+				hadDefinedStruct = otherStruct;
+
+			}
+			else if (	(*it)->Type <= CPPElement::eCPPTypenames || 
+						(*it)->Type == CPPElement::eCPPElementPrimitive  ||
+						(*it)->Type == CPPElement::eCPPElementNamespace)
+			{
+				hasProblematicDefinition = true;
+				break;
+			}
+		}
+
+		if(hasProblematicDefinition)
+			return NULL;
+
+		if(hadDefinedStruct)
+			return hadDefinedStruct;
+	}
+
+	return mStructs.insert(StringToCPPStructMap::value_type(inStructName,inStruct ? inStruct : new CPPStruct(inStructName,inIsDefinition))).first->second;
 }

@@ -15,6 +15,7 @@ class CPPTypedef;
 class CPPFunction;
 class CPPEnumeratorValue;
 class CPPClass;
+class CPPStruct;
 
 typedef map<string, CPPEnumerator*> StringToCPPEnumeratorMap;
 typedef map<string,CPPElement*> StringToCPPElementMap;
@@ -23,6 +24,7 @@ typedef map<string,CPPUnion*> StringToCPPUnionMap;
 typedef map<string,CPPTypedef*> StringToCPPTypedefMap;
 typedef map<string,CPPEnumeratorValue*> StringToCPPEnumeratorValueMap;
 typedef map<string,CPPClass*> StringToCPPClassMap;
+typedef map<string,CPPStruct*> StringToCPPStructMap;
 
 typedef set<CPPElement*> CPPElementSet;
 typedef list<CPPFunction*> CPPFunctionList;
@@ -57,6 +59,8 @@ public:
 										bool inIsDefinition);
 	virtual CPPClass* CreateClass(const string& inClassName,
 								  bool inIsDefinition);
+	virtual CPPStruct* CreateStruct(const string& inStructName,
+								  bool inIsDefinition);
 
 
 protected:
@@ -89,6 +93,9 @@ protected:
 	virtual CPPClass* AppendClass(const string& inClassName,
 									bool inIsDefinition,
 									CPPClass* inClass);
+	virtual CPPStruct* AppendStruct(const string& inStructName,
+									bool inIsDefinition,
+									CPPStruct* inStruct);
 
 private:
 
@@ -112,6 +119,9 @@ private:
 
 	// classes
 	StringToCPPClassMap mClasses;
+
+	// structs
+	StringToCPPStructMap mStructs;
 
 	bool HasNonTypesWithName(const string& inName);
 	

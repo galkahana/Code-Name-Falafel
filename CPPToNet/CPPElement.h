@@ -15,6 +15,7 @@ public:
 		eCPPElementUnion,
 		eCPPElementTypedef,
 		eCPPElementClass,
+		eCPPElementStruct,
 		eCPPTypenames, // just a marker for typenames
 		// values
 		eCPPElementNamespace,

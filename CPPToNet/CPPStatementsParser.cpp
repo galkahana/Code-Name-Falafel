@@ -9,6 +9,7 @@
 #include "CPPUnion.h"
 #include "CPPPrimitive.h"
 #include "CPPClass.h"
+#include "CPPStruct.h"
 #include "ICPPVariablesContainerElement.h"
 #include "ICPPDefinitionsContainerElement.h"
 #include "CPPPrimitiveTypes.h"
@@ -150,11 +151,11 @@ EStatusCodeAndBool CPPStatementsParser::ParseStatement(HeaderUnit* inUnitModel)
 		}
 		else if(tokenizerResult.second == "class")
 		{
-			status = ParseClassDeclaration();
+			status = ParseClassOrStructDeclaration(true);
 		}
 		else if(tokenizerResult.second == "struct")
 		{
-			status = ParseStructDeclaration();
+			status = ParseClassOrStructDeclaration(false);
 		}
 		else if(tokenizerResult.second == "template")
 		{
@@ -165,9 +166,10 @@ EStatusCodeAndBool CPPStatementsParser::ParseStatement(HeaderUnit* inUnitModel)
 			// namespace closer (note that namespace must always contain at least one namespace for the global namespace)
 			if(mDefinitionContextStack.size() > 1)
 			{
-				if(((CPPElement*)mDefinitionContextStack.back())->Type == CPPElement::eCPPElementClass)
+				if(((CPPElement*)mDefinitionContextStack.back())->Type == CPPElement::eCPPElementClass ||
+					((CPPElement*)mDefinitionContextStack.back())->Type == CPPElement::eCPPElementStruct)
 				{
-					// in case of a class, consume also the following ';'
+					// in case of a class or struct, consume also the following ';'
 					tokenizerResult = mTokensSource.GetNextToken();
 					if(!tokenizerResult.first)
 					{
@@ -196,7 +198,8 @@ EStatusCodeAndBool CPPStatementsParser::ParseStatement(HeaderUnit* inUnitModel)
 		}
 		else if(tokenizerResult.second == "public" || tokenizerResult.second == "private" || tokenizerResult.second == "protected")
 		{
-			if(((CPPElement*)mDefinitionContextStack.back())->Type == CPPElement::eCPPElementClass)
+			if(((CPPElement*)mDefinitionContextStack.back())->Type == CPPElement::eCPPElementClass ||
+				((CPPElement*)mDefinitionContextStack.back())->Type == CPPElement::eCPPElementStruct)
 			{
 				if(tokenizerResult.second == "private")
 					((CPPClass*)mDefinitionContextStack.back())->SetPrivateAccessLevel();
@@ -526,6 +529,7 @@ CPPElement* CPPStatementsParser::GetElementFromCurrentLocation(bool inRequireTyp
 		typeset.insert(CPPElement::eCPPElementUnion);
 		typeset.insert(CPPElement::eCPPElementTypedef);
 		typeset.insert(CPPElement::eCPPElementClass);
+		typeset.insert(CPPElement::eCPPElementStruct);
 	}
 	return GetElementFromCurrentLocation(typeset);
 }
@@ -550,6 +554,7 @@ CPPElement* CPPStatementsParser::GetElementFromCurrentLocation(const ECPPElement
 	typesetWithContainers = inTypeSet;
 	typesetWithContainers.insert(CPPElement::eCPPElementNamespace);
 	typesetWithContainers.insert(CPPElement::eCPPElementClass);
+	typesetWithContainers.insert(CPPElement::eCPPElementStruct);
 
 	BoolAndString firstToken = mTokensSource.GetNextToken();
 	do
@@ -569,6 +574,7 @@ CPPElement* CPPStatementsParser::GetElementFromCurrentLocation(const ECPPElement
 			// get any type that is a container
 			typeSet.insert(CPPElement::eCPPElementNamespace);
 			typeSet.insert(CPPElement::eCPPElementClass);
+			typeSet.insert(CPPElement::eCPPElementStruct);
 
 			// qualified
 			anElement = (firstToken.second == "::") ? mWorkingUnit->GetGlobalNamespace() : FindUnqualifiedElement(firstToken.second,typeSet);
@@ -932,7 +938,8 @@ EStatusCodeAndBool CPPStatementsParser::ParseFieldOrFunction(ICPPDeclarationCont
 		CPPElement* aScopingElement = GetScopingElementFromCurrentLocation();
 		if(aScopingElement)
 		{
-			if((aScopingElement->Type != CPPElement::eCPPElementClass &&
+			if((aScopingElement->Type != CPPElement::eCPPElementStruct &&
+				aScopingElement->Type != CPPElement::eCPPElementClass &&
 				aScopingElement->Type != CPPElement::eCPPElementNamespace))
 			{
 				TRACE_LOG1("CPPStatementsParser::ParseFieldOrFunction, syntax error, trying to define a function or function pointer variables for a particular container, but the container is of type %s",
@@ -1296,7 +1303,8 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointerOrFunction(ICPPDecla
 		CPPElement* aScopingElement = GetScopingElementFromCurrentLocation();
 		if(aScopingElement)
 		{
-			if((aScopingElement->Type != CPPElement::eCPPElementClass &&
+			if((aScopingElement->Type != CPPElement::eCPPElementStruct &&
+				aScopingElement->Type != CPPElement::eCPPElementClass &&
 				aScopingElement->Type != CPPElement::eCPPElementNamespace))
 			{
 				TRACE_LOG1("CPPStatementsParser::ParseFunctionPointerOrFunction, syntax error, trying to define a function or function pointer variables for a particular container, but the container is of type %s",
@@ -1918,11 +1926,12 @@ EStatusCode CPPStatementsParser::ParseGenericDeclerationStatement(ICPPDeclaratio
 			
 			// assert that the typename is like a current class name
 			CPPElement* classElement = aScopingElement ? aScopingElement : (CPPElement*)mDefinitionContextStack.back();
-			if(classElement->Type != CPPElement::eCPPElementClass
+			if((classElement->Type != CPPElement::eCPPElementClass &&
+				classElement->Type != CPPElement::eCPPElementStruct)
 				||
 				classElement->Name != aTypeName)
 			{
-				TRACE_LOG("CPPStatementsParser::ParseGenericDeclerationStatement, unexpected constructor/destructor syntax. either not in class scope, or constructor/desctructor name differs from container class");
+				TRACE_LOG("CPPStatementsParser::ParseGenericDeclerationStatement, unexpected constructor/destructor syntax. either not in class/struct scope, or constructor/desctructor name differs from container class");
 				status = eFailure;
 				break;
 			}
@@ -2020,6 +2029,7 @@ CPPElement* CPPStatementsParser::GetScopingElementFromCurrentLocation()
 
 	typesetWithContainers.insert(CPPElement::eCPPElementNamespace);
 	typesetWithContainers.insert(CPPElement::eCPPElementClass);
+	typesetWithContainers.insert(CPPElement::eCPPElementStruct);
 
 	BoolAndString firstToken = mTokensSource.GetNextToken();
 	do
@@ -2039,6 +2049,7 @@ CPPElement* CPPStatementsParser::GetScopingElementFromCurrentLocation()
 			// get any type that is a container
 			typeSet.insert(CPPElement::eCPPElementNamespace);
 			typeSet.insert(CPPElement::eCPPElementClass);
+			typeSet.insert(CPPElement::eCPPElementStruct);
 
 			// qualified
 			aScopingElement = (firstToken.second == "::") ? mWorkingUnit->GetGlobalNamespace() : FindUnqualifiedElement(firstToken.second,typeSet);
@@ -2192,10 +2203,10 @@ EStatusCode CPPStatementsParser::ParseTypedefDeclaration()
 
 // now after having played initial games with types give a shot at variables & functions parsing
 
-EStatusCode CPPStatementsParser::ParseClassDeclaration()
+EStatusCode CPPStatementsParser::ParseClassOrStructDeclaration(bool inIsClass)
 {
 	/*
-		A class statements can be either a declaration or definition.
+		A class/struct statements can be either a declaration or definition.
 		In case of a declaration it would look like this:
 
 		class XXXXX;
@@ -2235,8 +2246,9 @@ EStatusCode CPPStatementsParser::ParseClassDeclaration()
 		}
 
 
-		CPPClass* aClass = mDefinitionContextStack.back()->CreateClass(className,tokenizerResult.second == ";");
-		if(!aClass)
+		AbstractClassOrStruct* aClassOrStruct = inIsClass ?	(AbstractClassOrStruct*)mDefinitionContextStack.back()->CreateClass(className,tokenizerResult.second == ";") :
+															(AbstractClassOrStruct*)mDefinitionContextStack.back()->CreateStruct(className,tokenizerResult.second == ";");
+		if(!aClassOrStruct)
 		{
 			status = eFailure;
 			break;
@@ -2248,8 +2260,8 @@ EStatusCode CPPStatementsParser::ParseClassDeclaration()
 		// check for bases classes
 		if(tokenizerResult.second == ":")
 		{
-			CPPClass* baseClass;
-			ECPPClassAccessLevel accessLevel;
+			AbstractClassOrStruct* baseClass;
+			EAbstractClassOrStructAccessLevel accessLevel;
 
 
 			while(eSuccess == status)
@@ -2265,32 +2277,35 @@ EStatusCode CPPStatementsParser::ParseClassDeclaration()
 
 				if(tokenizerResult.second == "protected")
 				{
-					accessLevel = eCPPClassAccessLevelProtected;
+					accessLevel = eAbstractClassOrStructAccessLevelProtected;
 				}
 				else if(tokenizerResult.second == "public")
 				{
-					accessLevel = eCPPClassAccessLevelPublic;
+					accessLevel = eAbstractClassOrStructAccessLevelPublic;
 				}
 				else if(tokenizerResult.second == "private")
 				{
-					accessLevel = eCPPClassAccessLevelPrivate;
+					accessLevel = eAbstractClassOrStructAccessLevelPrivate;
 				}
 				else
 				{
-					accessLevel = eCPPClassAccessLevelPrivate;
+					accessLevel = eAbstractClassOrStructAccessLevelPrivate;
 					mTokensSource.PutBackToken(tokenizerResult.second);
 				}
 
-				baseClass = (CPPClass*)GetElementFromCurrentLocation(CPPElement::eCPPElementClass);
+				ECPPElementTypeSet typeset;
+				typeset.insert(CPPElement::eCPPElementClass);
+				typeset.insert(CPPElement::eCPPElementStruct);
+				baseClass = (AbstractClassOrStruct*)GetElementFromCurrentLocation(typeset);
 
 				if(!baseClass)
 				{
-					TRACE_LOG("ParseClassDeclaration: syntax error, unable to find base class");
+					TRACE_LOG("ParseClassDeclaration: syntax error, unable to find base class/struct");
 					status = eFailure;
 					break;
 				}
 				
-				status = aClass->AddBaseClass(baseClass,accessLevel);
+				status = aClassOrStruct->AddBaseClassOrStruct(baseClass,accessLevel);
 				if(status != eSuccess)
 					break;
 
@@ -2315,7 +2330,7 @@ EStatusCode CPPStatementsParser::ParseClassDeclaration()
 					break;
 			}
 
-			mDefinitionContextStack.push_back(aClass);		
+			mDefinitionContextStack.push_back(aClassOrStruct);		
 		}
 		if(status != eSuccess)
 			break;
@@ -2323,13 +2338,6 @@ EStatusCode CPPStatementsParser::ParseClassDeclaration()
 	}while(false);
 
 	return status;
-}
-
-EStatusCode CPPStatementsParser::ParseStructDeclaration()
-{
-	// TODO
-
-	return eFailure;
 }
 
 EStatusCode CPPStatementsParser::ParseTemplateDeclaration()

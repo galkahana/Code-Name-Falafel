@@ -12,6 +12,7 @@ class CPPUnion;
 class CPPTypedef;
 class CPPFunction;
 class CPPClass;
+class CPPStruct;
 
 using namespace std;
 
@@ -47,4 +48,7 @@ public:
 	virtual CPPClass* CreateClass(const string& inClassName,
 								  bool inIsDefinition) = 0;
 
+	// struct
+	virtual CPPStruct* CreateStruct(const string& inStructName,
+								  bool inIsDefinition) = 0;
 };											
