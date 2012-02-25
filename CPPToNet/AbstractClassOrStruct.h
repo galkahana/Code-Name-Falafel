@@ -62,7 +62,7 @@ protected:
 											bool inIsVirtual,
 											bool inIsStatic,											
 											UsedTypeDescriptor* inReturnTypeDescriptor,
-											const FunctionParameterList& inParametersList,
+											const TypedParameterList& inParametersList,
 											bool inHasElipsis,		
 											bool inIsDefinition,
 											bool inIsPure,

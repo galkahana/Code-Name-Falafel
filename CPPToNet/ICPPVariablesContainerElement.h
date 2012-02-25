@@ -1,6 +1,6 @@
 #pragma once
 
-#include "FunctionParameter.h"
+#include "TypedParameter.h"
 #include <string>
 #include <list>
 
@@ -27,7 +27,7 @@ public:
 										bool inIsVirtual,
 										bool inIsStatic,
 										UsedTypeDescriptor* inReturnType,
-										const FunctionParameterList& inParametersList,
+										const TypedParameterList& inParametersList,
 										bool inHasElipsis,
 										bool inIsPure,
 										bool inIsDefinition) = 0;

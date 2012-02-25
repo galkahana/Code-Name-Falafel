@@ -40,7 +40,7 @@ Hummus::EStatusCode FunctionPointerReturnTypeDeclerator::FinalizeFunctionPointer
 	return Hummus::eSuccess;
 }
 
-FunctionParameter* FunctionPointerReturnTypeDeclerator::CreateParameter(const string& inParameterName,
+TypedParameter* FunctionPointerReturnTypeDeclerator::CreateParameter(const string& inParameterName,
 																		UsedTypeDescriptor* inParameterType)
 {
 	return mUsedTypeDescriptor->GetFunctionPointerDescriptor()->CreateParameter(inParameterName,inParameterType);

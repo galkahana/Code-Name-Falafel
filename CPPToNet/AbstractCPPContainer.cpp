@@ -523,7 +523,7 @@ CPPFunction* AbstractCPPContainer::CreateFunction(const string& inFunctionName,
 										bool inIsVirtual,
 										bool inIsStatic,
 										UsedTypeDescriptor* inReturnTypeDescriptor,
-										const FunctionParameterList& inParametersList,
+										const TypedParameterList& inParametersList,
 										bool inHasElipsis,
 										bool inIsPure,
 										bool inIsDefinition)
@@ -535,7 +535,7 @@ CPPFunction* AbstractCPPContainer::AppendFunction(const string& inFunctionName,
 										bool inIsVirtual,
 										bool inIsStatic,
 										UsedTypeDescriptor* inReturnTypeDescriptor,
-										const FunctionParameterList& inParametersList,
+										const TypedParameterList& inParametersList,
 										bool inHasElipsis,		
 										bool inIsPure,
 										bool inIsDefinition,
@@ -564,9 +564,9 @@ CPPFunction* AbstractCPPContainer::AppendFunction(const string& inFunctionName,
 				// compare the parameter list to see if same overload
 				CPPFunction* otherFunction = (CPPFunction*)(*it);
 
-				Hummus::SingleValueContainerIterator<FunctionParameterList> otherIt = otherFunction->GetParametersListIterator();
+				Hummus::SingleValueContainerIterator<TypedParameterList> otherIt = otherFunction->GetParametersListIterator();
 				otherIt.MoveNext();
-				FunctionParameterList::const_iterator newIt = inParametersList.begin();
+				TypedParameterList::const_iterator newIt = inParametersList.begin();
 				bool sameOverload = true;
 
 				while(newIt != inParametersList.end() && !otherIt.IsFinished() && sameOverload)

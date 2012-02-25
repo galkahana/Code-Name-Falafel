@@ -5,7 +5,7 @@
 #include "ICPPFieldDeclerator.h"
 #include "ICPPFunctionPointerDeclerator.h"
 #include "ICPPParametersContainer.h"
-#include "FunctionParameter.h"
+#include "TypedParameter.h"
 
 class ICPPVariablesContainerElement;
 
@@ -45,7 +45,7 @@ public:
 	virtual Hummus::EStatusCode FinalizeFunctionPointerDefinition();
 
 	// ICPPParametersContainer implementation
-	virtual FunctionParameter* CreateParameter(const string& inParameterName,  UsedTypeDescriptor* inParameterType);
+	virtual TypedParameter* CreateParameter(const string& inParameterName,  UsedTypeDescriptor* inParameterType);
 
 private:
 
@@ -66,7 +66,7 @@ private:
 	string mFunctionName;
 	UsedTypeDescriptor* mReturnType;
 	bool mHasElipsis;
-	FunctionParameterList mDeclaredParameters;
+	TypedParameterList mDeclaredParameters;
 
 	// field && function pointer declaration functionality
 	string mFieldName;

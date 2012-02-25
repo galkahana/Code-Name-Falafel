@@ -2,7 +2,7 @@
 
 #include "CPPElement.h"
 #include "SingleValueContainerIterator.h"
-#include "FunctionParameter.h"
+#include "TypedParameter.h"
 
 class UsedTypeDescriptor;
 
@@ -13,7 +13,7 @@ public:
 				bool inIsVirtual,
 				bool inIsStatic,
 				UsedTypeDescriptor* inReturnType,
-				const FunctionParameterList& inParametersList,
+				const TypedParameterList& inParametersList,
 				bool inHasElipsis,
 				bool inIsPure,
 				bool inIsDefinition);
@@ -21,8 +21,8 @@ public:
 
 
 	UsedTypeDescriptor* GetReturnType();
-	FunctionParameterList& GetDeclaredParameterList();
-	Hummus::SingleValueContainerIterator<FunctionParameterList> GetParametersListIterator();
+	TypedParameterList& GetDeclaredParameterList();
+	Hummus::SingleValueContainerIterator<TypedParameterList> GetParametersListIterator();
 	bool HasElipsis();
 	bool IsDefinition();
 	bool IsVirtual();
@@ -35,7 +35,7 @@ public:
 private:
 
 	UsedTypeDescriptor* mReturnType;
-	FunctionParameterList mDeclaredParameters;
+	TypedParameterList mDeclaredParameters;
 	bool mHasElipsis;
 	bool mIsDefinition;
 	bool mIsVirtual;

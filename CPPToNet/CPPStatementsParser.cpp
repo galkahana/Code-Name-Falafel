@@ -25,6 +25,9 @@
 #include "DecleratorAsParametersContainer.h"
 #include "DecleratorAsTypedefContainer.h"
 #include "FunctionPointerReturnTypeDeclerator.h"
+#include "CPPTemplateTypename.h"
+#include "CPPTemplateValue.h"
+#include "CPPTemplateTemplateParameter.h"
 
 using namespace Hummus;
 
@@ -76,6 +79,7 @@ EStatusCodeAndHeaderUnit CPPStatementsParser::ParseUnit()
 	mDefinitionContextStack.clear();
 	EndLocalContext();
 
+	mWorkingUnit = NULL;
 	if(eSuccess == statementParsingResult.first)
 	{
 		return EStatusCodeAndHeaderUnit(eSuccess,result);
@@ -444,17 +448,17 @@ EStatusCode CPPStatementsParser::ParseUsingDeclaration()
 }
 
 // will return either NULL or an element, if and only if there's just ONE element of this name
-CPPElement* CPPStatementsParser::FindElement(ICPPDefinitionsContainerElement* inContainer, const string& inElementName)
+CPPElement* CPPStatementsParser::FindQualifiedElement(ICPPDefinitionsContainerElement* inContainer, const string& inElementName)
 {
 	CPPElementList elementsList = inContainer->FindElements(inElementName);
 	if(elementsList.size() == 0)
 	{
-		TRACE_LOG1("CPPStatementsParser::FindElement, no elements exist with the name %s",inElementName.c_str());
+		TRACE_LOG1("CPPStatementsParser::FindQualifiedElement, no elements exist with the name %s",inElementName.c_str());
 		return NULL;
 	}
 	else if(elementsList.size() > 1)
 	{
-		TRACE_LOG1("CPPStatementsParser::FindElement, ambiguity. multiple elements exist with the name %s",inElementName.c_str());
+		TRACE_LOG1("CPPStatementsParser::FindQualifiedElement, ambiguity. multiple elements exist with the name %s",inElementName.c_str());
 		return NULL;
 	}
 	else
@@ -462,7 +466,7 @@ CPPElement* CPPStatementsParser::FindElement(ICPPDefinitionsContainerElement* in
 }
 
 // will return either NULL or an element, if and only if there's just ONE element of this name and of this type
-CPPElement* CPPStatementsParser::FindElement(ICPPDefinitionsContainerElement* inContainer,const string& inElementName,CPPElement::ECPPElementType inOfType)
+CPPElement* CPPStatementsParser::FindQualifiedElement(ICPPDefinitionsContainerElement* inContainer,const string& inElementName,CPPElement::ECPPElementType inOfType)
 {
 	CPPElementList elementsList = inContainer->FindElements(inElementName);
 	CPPElementList::iterator it = elementsList.begin();
@@ -474,7 +478,7 @@ CPPElement* CPPStatementsParser::FindElement(ICPPDefinitionsContainerElement* in
 		{
 			if(foundElement)
 			{
-				TRACE_LOG1("CPPStatementsParser::FindElement, ambiguity. multiple elements exist with the name %s",inElementName.c_str());
+				TRACE_LOG1("CPPStatementsParser::FindQualifiedElement, ambiguity. multiple elements exist with the name %s",inElementName.c_str());
 				foundElement = NULL;
 				break;
 			}
@@ -486,11 +490,11 @@ CPPElement* CPPStatementsParser::FindElement(ICPPDefinitionsContainerElement* in
 	}
 
 	if(!foundElement)
-		TRACE_LOG1("CPPStatementsParser::FindElement,unable to find a compatible element with the name %s",inElementName.c_str());
+		TRACE_LOG1("CPPStatementsParser::FindQualifiedElement,unable to find a compatible element with the name %s",inElementName.c_str());
 	return foundElement;
 }
 
-CPPElement* CPPStatementsParser::FindElement(ICPPDefinitionsContainerElement* inContainer,const string& inElementName,ECPPElementTypeSet inOfTypes)
+CPPElement* CPPStatementsParser::FindQualifiedElement(ICPPDefinitionsContainerElement* inContainer,const string& inElementName,ECPPElementTypeSet inOfTypes)
 {
 	CPPElementList elementsList = inContainer->FindElements(inElementName);
 	CPPElementList::iterator it = elementsList.begin();
@@ -502,7 +506,7 @@ CPPElement* CPPStatementsParser::FindElement(ICPPDefinitionsContainerElement* in
 		{
 			if(foundElement)
 			{
-				TRACE_LOG1("CPPStatementsParser::FindElement, ambiguity. multiple elements exist with the name %s",inElementName.c_str());
+				TRACE_LOG1("CPPStatementsParser::FindQualifiedElement, ambiguity. multiple elements exist with the name %s",inElementName.c_str());
 				foundElement = NULL;
 				break;
 			}
@@ -514,7 +518,7 @@ CPPElement* CPPStatementsParser::FindElement(ICPPDefinitionsContainerElement* in
 	}
 
 	if(!foundElement)
-		TRACE_LOG1("CPPStatementsParser::FindElement,unable to find a compatible element with the name %s",inElementName.c_str());
+		TRACE_LOG1("CPPStatementsParser::FindQualifiedElement,unable to find a compatible element with the name %s",inElementName.c_str());
 	return foundElement;
 }
 
@@ -530,6 +534,8 @@ CPPElement* CPPStatementsParser::GetElementFromCurrentLocation(bool inRequireTyp
 		typeset.insert(CPPElement::eCPPElementTypedef);
 		typeset.insert(CPPElement::eCPPElementClass);
 		typeset.insert(CPPElement::eCPPElementStruct);
+		typeset.insert(CPPElement::eCPPElemeentTemplateTypename);
+		typeset.insert(CPPElement::eCPPElemeentTemplateTemplateParameter);
 	}
 	return GetElementFromCurrentLocation(typeset);
 }
@@ -584,9 +590,9 @@ CPPElement* CPPStatementsParser::GetElementFromCurrentLocation(const ECPPElement
 			{
 				// k. now look the element named in token inside it
 				if(inTypeSet.size() > 0)
-					anElement = FindElement((ICPPDefinitionsContainerElement*)anElement,token.second,typesetWithContainers);
+					anElement = FindQualifiedElement((ICPPDefinitionsContainerElement*)anElement,token.second,typesetWithContainers);
 				else
-					anElement = FindElement((ICPPDefinitionsContainerElement*)anElement,token.second);
+					anElement = FindQualifiedElement((ICPPDefinitionsContainerElement*)anElement,token.second);
 				if(!anElement)
 				{
 					TRACE_LOG1("CPPStatementsParser::GetElementFromCurrentLocation, element not found, %s",token.second.c_str());
@@ -632,12 +638,29 @@ CPPElement* CPPStatementsParser::GetElementFromCurrentLocation(const ECPPElement
 
 CPPElement* CPPStatementsParser::FindUnqualifiedElement(const string& inElementName,ECPPElementTypeSet inOfTypes)
 {
-	// first go through the current stack (back to front)
-	ICPPDefinitionsContainerElementList::reverse_iterator itStack =  mDefinitionContextStack.rbegin();
 	CPPElement* anElement = NULL;
 
+	// if template params exists, start with them
+	if(mTemplateParametersStack.size() > 0)
+	{
+		StringToCPPElementMapList::reverse_iterator itTemplateParametersStack = mTemplateParametersStack.rbegin();
+		for(; itTemplateParametersStack != mTemplateParametersStack.rend() && !anElement; ++itTemplateParametersStack)
+		{
+			StringToCPPElementMap::iterator itTemplateParameter = (*itTemplateParametersStack)->find(inElementName);
+			if(itTemplateParameter != (*itTemplateParametersStack)->end() && inOfTypes.find(itTemplateParameter->second->Type) != inOfTypes.end())
+				anElement = itTemplateParameter->second;
+		}
+
+		if(anElement)
+			return anElement;
+	}
+
+
+	// then go through the current stack (back to front)
+	ICPPDefinitionsContainerElementList::reverse_iterator itStack =  mDefinitionContextStack.rbegin();
+
 	for(; itStack != mDefinitionContextStack.rend() && !anElement; ++itStack)
-		anElement = FindElement(*itStack,inElementName,inOfTypes);
+		anElement = FindQualifiedElement(*itStack,inElementName,inOfTypes);
 
 	if(anElement)
 		return anElement;
@@ -648,7 +671,7 @@ CPPElement* CPPStatementsParser::FindUnqualifiedElement(const string& inElementN
 	{
 		CPPNamespaceSet::iterator itSet = itContext->mUsedNamespaces.begin();
 		for(; itSet != itContext->mUsedNamespaces.end() && !anElement; ++itSet)
-			anElement = FindElement(*itSet,inElementName,inOfTypes);
+			anElement = FindQualifiedElement(*itSet,inElementName,inOfTypes);
 	}
 	return anElement;	
 }
@@ -656,12 +679,28 @@ CPPElement* CPPStatementsParser::FindUnqualifiedElement(const string& inElementN
 
 CPPElement* CPPStatementsParser::FindUnqualifiedElement(const string& inElementName,CPPElement::ECPPElementType inOfType)
 {
-	// first go through the current stack (back to front)
-	ICPPDefinitionsContainerElementList::reverse_iterator itStack =  mDefinitionContextStack.rbegin();
 	CPPElement* anElement = NULL;
 
+	// if template params exists, start with them
+	if(mTemplateParametersStack.size() > 0)
+	{
+		StringToCPPElementMapList::reverse_iterator itTemplateParametersStack = mTemplateParametersStack.rbegin();
+		for(; itTemplateParametersStack != mTemplateParametersStack.rend() && !anElement; ++itTemplateParametersStack)
+		{
+			StringToCPPElementMap::iterator itTemplateParameter = (*itTemplateParametersStack)->find(inElementName);
+			if(itTemplateParameter != (*itTemplateParametersStack)->end() && itTemplateParameter->second->Type == inOfType)
+				anElement = itTemplateParameter->second;
+		}
+
+		if(anElement)
+			return anElement;
+	}
+
+	// then go through the current stack (back to front)
+	ICPPDefinitionsContainerElementList::reverse_iterator itStack =  mDefinitionContextStack.rbegin();
+
 	for(; itStack != mDefinitionContextStack.rend() && !anElement; ++itStack)
-		anElement = FindElement(*itStack,inElementName,inOfType);
+		anElement = FindQualifiedElement(*itStack,inElementName,inOfType);
 
 	if(anElement)
 		return anElement;
@@ -672,19 +711,35 @@ CPPElement* CPPStatementsParser::FindUnqualifiedElement(const string& inElementN
 	{
 		CPPNamespaceSet::iterator itSet = itContext->mUsedNamespaces.begin();
 		for(; itSet != itContext->mUsedNamespaces.end() && !anElement; ++itSet)
-			anElement = FindElement(*itSet,inElementName,inOfType);
+			anElement = FindQualifiedElement(*itSet,inElementName,inOfType);
 	}
 	return anElement;	
 }
 
 CPPElement* CPPStatementsParser::FindUnqualifiedElement(const string& inElementName)
 {
-	// first go through the current stack (back to front)
-	ICPPDefinitionsContainerElementList::reverse_iterator itStack =  mDefinitionContextStack.rbegin();
 	CPPElement* anElement = NULL;
 
+	// if template params exists, start with them
+	if(mTemplateParametersStack.size() > 0)
+	{
+		StringToCPPElementMapList::reverse_iterator itTemplateParametersStack = mTemplateParametersStack.rbegin();
+		for(; itTemplateParametersStack != mTemplateParametersStack.rend() && !anElement; ++itTemplateParametersStack)
+		{
+			StringToCPPElementMap::iterator itTemplateParameter = (*itTemplateParametersStack)->find(inElementName);
+			if(itTemplateParameter != (*itTemplateParametersStack)->end())
+				anElement = itTemplateParameter->second;
+		}
+
+		if(anElement)
+			return anElement;
+	}
+
+	// then go through the current stack (back to front)
+	ICPPDefinitionsContainerElementList::reverse_iterator itStack =  mDefinitionContextStack.rbegin();
+
 	for(; itStack != mDefinitionContextStack.rend() && !anElement; ++itStack)
-		anElement = FindElement(*itStack,inElementName);
+		anElement = FindQualifiedElement(*itStack,inElementName);
 
 	if(anElement)
 		return anElement;
@@ -695,7 +750,7 @@ CPPElement* CPPStatementsParser::FindUnqualifiedElement(const string& inElementN
 	{
 		CPPNamespaceSet::iterator itSet = itContext->mUsedNamespaces.begin();
 		for(; itSet != itContext->mUsedNamespaces.end() && !anElement; ++itSet)
-			anElement = FindElement(*itSet,inElementName);
+			anElement = FindQualifiedElement(*itSet,inElementName);
 	}
 	return anElement;	
 }
@@ -1154,7 +1209,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionDefinition(ICPPDeclarationC
 
 		token = mTokensSource.GetNextToken();	
 		
-		DecleratorAsParametersContainer parametersContainer(functionDeclerator->GetParametersContainerForFunctionDefinition());
+		DecleratorAsParametersContainer parametersContainer(functionDeclerator->GetParametersContainerForFunctionDefinition(),")");
 
 		// Now for parameters parsing
 		while(token.first && token.second != ")" &&  eSuccess == result.first)
@@ -1180,7 +1235,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionDefinition(ICPPDeclarationC
 				result.first = ParseGenericDeclerationStatement(&parametersContainer);
 				if(result.first != eSuccess)
 				{
-					TRACE_LOG("CPPStatementsParser::ParseFunctionDefinition, failed to parase function pointer paremeter");
+					TRACE_LOG("CPPStatementsParser::ParseFunctionDefinition, failed to parse function pointer paremeter");
 					break;
 				}
 				
@@ -1360,7 +1415,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointerOrFunction(ICPPDecla
 			// now parse the parameters of this function. seriously.
 			token = mTokensSource.GetNextToken();	
 		
-			DecleratorAsParametersContainer parametersContainer(functionDeclerator->GetParametersContainerForFunctionDefinition());
+			DecleratorAsParametersContainer parametersContainer(functionDeclerator->GetParametersContainerForFunctionDefinition(),")");
 
 			while(token.first && token.second != ")" &&  eSuccess == result.first)
 			{
@@ -1442,7 +1497,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointerOrFunction(ICPPDecla
 
 		token = mTokensSource.GetNextToken();	
 		
-		DecleratorAsParametersContainer parametersContainer(aFPDeclarator->GetParametersContainerForFunctionPointer());
+		DecleratorAsParametersContainer parametersContainer(aFPDeclarator->GetParametersContainerForFunctionPointer(),")");
 
 		// Now for parameters parsing
 		while(token.first && token.second != ")" && eSuccess == result.first)
@@ -1989,7 +2044,7 @@ EStatusCode CPPStatementsParser::ParseGenericDeclerationStatement(ICPPDeclaratio
 			// regular declaration, complete with getting the type based on the typename
 			CPPElement* anElement;
 			if(aScopingElement)
-				anElement = FindElement((ICPPDefinitionsContainerElement*)aScopingElement,aTypeName);
+				anElement = FindQualifiedElement((ICPPDefinitionsContainerElement*)aScopingElement,aTypeName);
 			else
 				anElement = FindUnqualifiedElement(ComputeUnqualifiedNameFromCurrentLocation(aTypeName,token));
 
@@ -2059,7 +2114,7 @@ CPPElement* CPPStatementsParser::GetScopingElementFromCurrentLocation()
 			{
 				// k. now look the element named in token inside it
 				string aTypeName = token.second;
-				anElement = FindElement((ICPPDefinitionsContainerElement*)aScopingElement,aTypeName,typesetWithContainers);
+				anElement = FindQualifiedElement((ICPPDefinitionsContainerElement*)aScopingElement,aTypeName,typesetWithContainers);
 				if(anElement)
 				{
 					// found element, now look for next tokens, and see if they are following qualifications
@@ -2340,9 +2395,297 @@ EStatusCode CPPStatementsParser::ParseClassOrStructDeclaration(bool inIsClass)
 	return status;
 }
 
+
+class TemplateParametersParameterCreator : public ICPPParametersContainer
+{
+public:
+
+	TemplateParametersParameterCreator(StringToCPPElementMap& inTemplateParameters):mTemplateParameters(inTemplateParameters)
+	{
+	}
+
+	virtual TypedParameter* CreateParameter(const string& inParameterName,
+										UsedTypeDescriptor* inParameterType)
+	{
+
+		if(mTemplateParameters.find(inParameterName) != mTemplateParameters.end())
+		{
+			TRACE_LOG1("TemplateParametersParameterCreator:CreateParameter syntax error, template parameter %s defined multiple times",inParameterName);
+			return NULL;
+		}
+		else
+		{
+			TypedParameter* newParameter = new TypedParameter();
+			newParameter->Type = inParameterType;
+			newParameter->Name = inParameterName;
+
+			mTemplateParameters.insert(StringToCPPElementMap::value_type(inParameterName,new CPPTemplateValue(newParameter)));
+			return newParameter;
+		}
+	}
+
+private:
+	StringToCPPElementMap& mTemplateParameters;
+};
+
+class TypenameDefaultCreator : public ICPPParametersContainer
+{
+public:
+
+	TypenameDefaultCreator(CPPTemplateTypename* inTemplateTypename)
+	{
+		mTemplateTypename = inTemplateTypename;
+	}
+
+	virtual TypedParameter* CreateParameter(const string& inParameterName,
+										UsedTypeDescriptor* inParameterType)
+	{
+		TypedParameter* newParameter = new TypedParameter();
+		newParameter->Type = inParameterType;
+		newParameter->Name = inParameterName; // name will probably be empty in this case
+
+		mTemplateTypename->SetDefaultTypename(newParameter);
+		return newParameter;
+	}
+
+private:
+	CPPTemplateTypename* mTemplateTypename;
+};
+
 EStatusCode CPPStatementsParser::ParseTemplateDeclaration()
 {
-	// TODO
+	// a template statement, is simply a statement which is preceded by initial parameters definition
+	// So to parse it, parse the parameters and setup a context to them. then parse the next statement
+	// using these parameters. it will be either a class or a function declaration statements
+	EStatusCode status = eSuccess;
 
-	return eFailure;
+	
+	do
+	{
+		status = ParseTemplateParameters(mTemplateParameters);
+		if(status != eSuccess)
+		{
+			TRACE_LOG("CPPStatementsParser::ParseTemplateDeclaration, failed to parse template parameters");
+			break;
+		}
+
+		// After having parsed the parameters, continue with next statement
+		status = ParseStatement(mWorkingUnit).first;
+		if(status != eSuccess)
+		{
+			TRACE_LOG("CPPStatementsParser::ParseTemplateDeclaration, error in parsing template class or functions, in the statement following parameters declaration");
+			break;
+		}
+		mTemplateParameters.clear(); // next statement is supposed to own the template parameters. should find a way to truly determine if owning happened...and otherwise fail
+	}while(false);
+
+	if(status != eSuccess)
+		Destroy(mTemplateParameters);
+	return status;
+}
+
+EStatusCode CPPStatementsParser::ParseTemplateParameters(StringToCPPElementMap& inParametersStorage)
+{
+	EStatusCode status = eSuccess;
+	mTemplateParametersStack.push_back(&inParametersStorage);
+
+	do
+	{
+		DecleratorAsParametersContainer parametersContainer;
+
+		// should be parameters start, now
+		BoolAndString token = mTokensSource.GetNextToken(); 
+		if(!token.first || token.second != "<")
+		{
+			TRACE_LOG("CPPStatementsParser::ParseTemplateParameters: syntax error, expecting '<', but didn't get it");
+			status = eFailure;
+			break;
+		}	
+
+		token = mTokensSource.GetNextToken(); 
+
+		// loop template parameters
+		while(token.first && token.second != ">" && eSuccess == status)
+		{
+			// could be "class" or "typename" or a type parameter (like a function parameter)
+			if(token.second == "class" || token.second == "typename")
+			{
+				
+				// typename and class are virtually the same, a simple named type.
+				token = mTokensSource.GetNextToken();
+				if(!token.first)
+				{
+					TRACE_LOG("CPPStatementsParser::ParseTemplateParameters: syntax error, unexpected end of file while parsing");
+					status = eFailure;
+					break;
+				}
+
+				CPPTemplateTypename* newTypename;
+
+				if(inParametersStorage.find(token.second) != inParametersStorage.end())
+				{
+					TRACE_LOG1("CPPStatementsParser::ParseTemplateParameters: syntax error, template parameter %s defined multiple times",token.second.c_str());
+					status = eFailure;
+					break;					
+				}
+				else
+				{
+					newTypename = new CPPTemplateTypename(token.second);
+					inParametersStorage.insert(StringToCPPElementMap::value_type(token.second,newTypename));
+				}
+
+
+				token = mTokensSource.GetNextToken();
+				if(!token.first)
+				{
+					TRACE_LOG("CPPStatementsParser::ParseTemplateParameters, unexpected end to parameter parsing");
+					status = eFailure;
+					break;
+				}
+				
+				if(token.second == "=")
+				{
+					// parse initializer for class/typename. as an excpetions i'll fully parse those and save them. why? just because
+					TypenameDefaultCreator defaultCreator(newTypename);
+					parametersContainer.SetCreator(&defaultCreator,">");
+					status = ParseGenericDeclerationStatement(&parametersContainer);
+					if(status != eSuccess)
+					{
+						TRACE_LOG("CPPStatementsParser::ParseTemplateDeclaration, failed to parse template value parameter");
+						break;
+					}
+
+					if(parametersContainer.FoundStop())	// declarations find their own ending 
+						break;
+
+					token = mTokensSource.GetNextToken();
+					if(!token.first || token.second != ",")
+					{
+						TRACE_LOG("CPPStatementsParser::ParseTemplateParameters, expecting comma for more template parameters, didn't find one");
+						status = eFailure;
+						break;
+					}
+				}
+				else if(token.second == ">")
+				{
+					// done with parameters
+					break;
+				}
+				else if(token.second != ",")
+				{
+					TRACE_LOG1("CPPStatementsParser::ParseTemplateParameters, expecting comma for more template parameters, but found %s",token.second);
+					status = eFailure;
+					break;
+				}
+
+			}
+			else if(token.second == "template")
+			{
+				// template parameter. oh jolly
+				StringToCPPElementMap nestedTemplateParameters;
+				do
+				{
+					// parse the parameters
+					status = ParseTemplateParameters(nestedTemplateParameters);
+					if(status != eSuccess)
+						break;
+
+					// next there should be either "class" or "typename"
+					token = mTokensSource.GetNextToken();
+					if(!token.first || (token.second != "class" && token.second !="typename"))
+					{
+						TRACE_LOG("CPPStatementsParser::ParseTemplateParameters, error in parsing template parameter of type template. following the parameters list there should be class/typename, but found neither");
+						status = eFailure;
+						break;
+					}
+
+					// now the parameter name
+					token = mTokensSource.GetNextToken();
+					if(!token.first)
+					{
+						TRACE_LOG("CPPStatementsParser::ParseTemplateParameters: syntax error, unexpected end of file while parsing");
+						status = eFailure;
+						break;
+					}
+
+					if(inParametersStorage.find(token.second) != inParametersStorage.end())
+					{
+						TRACE_LOG1("CPPStatementsParser::ParseTemplateParameters: syntax error, template parameter %s defined multiple times",token.second.c_str());
+						status = eFailure;
+						break;					
+					}
+					else
+						inParametersStorage.insert(StringToCPPElementMap::value_type(token.second,new CPPTemplateTemplateParameter(token.second,nestedTemplateParameters)));
+
+				}while(false);
+
+				if(status != eSuccess)
+				{
+					Destroy(nestedTemplateParameters);
+					break;
+				}
+
+				token = mTokensSource.GetNextToken();
+				if(!token.first)
+				{
+					TRACE_LOG("CPPStatementsParser::ParseTemplateParameters, unexpected end to parameter parsing");
+					status = eFailure;
+					break;
+				}
+				
+				if(token.second == "=")
+				{
+					// TODO: parse initializer for template
+				}
+				else if(token.second == ">")
+				{
+					// done with parameters
+					break;
+				}
+				else if(token.second != ",")
+				{
+					TRACE_LOG1("CPPStatementsParser::ParseTemplateParameters, expecting comma for more template parameters, but found %s",token.second);
+					status = eFailure;
+					break;
+				}
+
+			}
+			else
+			{
+				// Otherwise this would be a used type decalaration. parse it as you would do to any parameter type
+				mTokensSource.PutBackToken(token.second);
+				TemplateParametersParameterCreator parametersCreator(inParametersStorage);
+				parametersContainer.SetCreator(&parametersCreator,")");
+
+				status = ParseGenericDeclerationStatement(&parametersContainer);
+				if(status != eSuccess)
+				{
+					TRACE_LOG("CPPStatementsParser::ParseTemplateDeclaration, failed to parse template value parameter");
+					break;
+				}
+
+				if(parametersContainer.FoundStop())	// declarations find their own ending 
+					break;
+
+				parametersContainer.Reset();
+
+			}
+			token = mTokensSource.GetNextToken();
+		}
+	
+		if(!token.first || status != eSuccess)
+			break;
+
+	}while(false);
+
+	mTemplateParametersStack.pop_back();
+	return status;
+}
+
+void CPPStatementsParser::Destroy(StringToCPPElementMap& inMap)
+{
+	StringToCPPElementMap::iterator it = inMap.begin();
+	for(; it != inMap.end(); ++it)
+		delete it->second;
+	inMap.clear();
 }

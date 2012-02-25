@@ -7,14 +7,14 @@ using namespace std;
 
 class UsedTypeDescriptor;
 
-struct FunctionParameter
+struct TypedParameter
 {
-	FunctionParameter();
-	~FunctionParameter();
+	TypedParameter();
+	~TypedParameter();
 
 	string Name;
 	UsedTypeDescriptor* Type;
 };
 
-typedef list<FunctionParameter*> FunctionParameterList;
+typedef list<TypedParameter*> TypedParameterList;
 

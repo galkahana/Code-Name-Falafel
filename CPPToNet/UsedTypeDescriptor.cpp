@@ -127,7 +127,7 @@ FunctionPointerTypeDescriptor::FunctionPointerTypeDescriptor(UsedTypeDescriptor*
 FunctionPointerTypeDescriptor::~FunctionPointerTypeDescriptor()
 {
 	delete mReturnType;
-	FunctionParameterList::iterator it = mDeclaredParameters.begin();	
+	TypedParameterList::iterator it = mDeclaredParameters.begin();	
 
 	for(; it != mDeclaredParameters.end(); ++it)
 		delete *it;
@@ -144,9 +144,9 @@ void FunctionPointerTypeDescriptor::AppendModifiersForFunctionPointerReturnType(
 }
 
 
-FunctionParameter* FunctionPointerTypeDescriptor::CreateParameter(const string& inParameterName,UsedTypeDescriptor* inParameterType)
+TypedParameter* FunctionPointerTypeDescriptor::CreateParameter(const string& inParameterName,UsedTypeDescriptor* inParameterType)
 {
-	FunctionParameter* newParameter = new FunctionParameter();
+	TypedParameter* newParameter = new TypedParameter();
 	newParameter->Type = inParameterType;
 	newParameter->Name = inParameterName;
 
@@ -164,9 +164,9 @@ UsedTypeDescriptor* FunctionPointerTypeDescriptor::GetReturnType()
 	return mReturnType;
 }
 
-Hummus::SingleValueContainerIterator<FunctionParameterList> FunctionPointerTypeDescriptor::GetParametersListIterator()
+Hummus::SingleValueContainerIterator<TypedParameterList> FunctionPointerTypeDescriptor::GetParametersListIterator()
 {
-	return Hummus::SingleValueContainerIterator<FunctionParameterList>(mDeclaredParameters);
+	return Hummus::SingleValueContainerIterator<TypedParameterList>(mDeclaredParameters);
 }
 
 void FunctionPointerTypeDescriptor::SetFunctionPointerHasElipsis()
@@ -190,7 +190,7 @@ bool FunctionPointerTypeDescriptor::IsEqual(FunctionPointerTypeDescriptor* inOth
 	if(mDeclaredParameters.size() != mDeclaredParameters.size())
 		return false;
 
-	FunctionParameterList::iterator itThis,itOther;
+	TypedParameterList::iterator itThis,itOther;
 	itThis = mDeclaredParameters.begin();
 	itOther = inOther->mDeclaredParameters.begin();
 	bool isEqual = true;
@@ -211,7 +211,7 @@ FunctionPointerTypeDescriptor* FunctionPointerTypeDescriptor::Clone()
 	// declared parameters and return type should be cloned
 	FunctionPointerTypeDescriptor* result = new FunctionPointerTypeDescriptor(mReturnType->Clone());
 	result->mPointerType = mPointerType;
-	FunctionParameterList::iterator itParameters = mDeclaredParameters.begin();
+	TypedParameterList::iterator itParameters = mDeclaredParameters.begin();
 	for(; itParameters != mDeclaredParameters.end(); ++itParameters)
 		result->CreateParameter((*itParameters)->Name,(*itParameters)->Type->Clone());
 	result->mHasElipsis = mHasElipsis;

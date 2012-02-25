@@ -1,6 +1,6 @@
 #pragma once
 #include "DeclaratorModifier.h"
-#include "FunctionParameter.h"
+#include "TypedParameter.h"
 #include "SingleValueContainerIterator.h"
 #include "ICPPFieldDeclerator.h"
 #include "ICPPFunctionPointerDeclerator.h"
@@ -64,11 +64,11 @@ public:
 	void SetFunctionPointerType(ICPPFunctionPointerDeclerator::EFunctionPointerType inFunctionPointerType);
 	void AppendModifiersForFunctionPointerReturnType(const DeclaratorModifierList& inModifiers);
 	void SetFunctionPointerHasElipsis();
-	FunctionParameter* CreateParameter(const string& inParameterName, UsedTypeDescriptor* inParameterType);
+	TypedParameter* CreateParameter(const string& inParameterName, UsedTypeDescriptor* inParameterType);
 
 	ICPPFunctionPointerDeclerator::EFunctionPointerType GetPointerType(); 
 	UsedTypeDescriptor* GetReturnType();
-	Hummus::SingleValueContainerIterator<FunctionParameterList> GetParametersListIterator();
+	Hummus::SingleValueContainerIterator<TypedParameterList> GetParametersListIterator();
 	bool HasElipsis();
 	
 	bool IsEqual(FunctionPointerTypeDescriptor* inOther);
@@ -77,7 +77,7 @@ public:
 private:
 	ICPPFunctionPointerDeclerator::EFunctionPointerType mPointerType;
 	UsedTypeDescriptor* mReturnType;
-	FunctionParameterList mDeclaredParameters;
+	TypedParameterList mDeclaredParameters;
 	bool mHasElipsis;
 };
 

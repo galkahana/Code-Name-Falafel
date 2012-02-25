@@ -28,7 +28,7 @@ public:
 										bool inIsVirtual,
 										bool inIsStatic,
 										UsedTypeDescriptor* inReturnType,
-										const FunctionParameterList& inParametersList,
+										const TypedParameterList& inParametersList,
 										bool inHasElipsis,
 										bool inIsPure,
 										bool inIsDefinition);

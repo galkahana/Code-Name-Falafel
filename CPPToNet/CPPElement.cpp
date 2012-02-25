@@ -8,11 +8,14 @@ string CPPElement::TypeLabels[eCPPElementTotalCount] =
 		"eCPPElementTypedef",
 		"eCPPElementClass",
 		"eCPPElementStruct",
+		"eCPPElemeentTemplateTypename",
+		"eCPPElemeentTemplateTemplateParameter",
 		"eCPPTypenames",
 		"eCPPElementNamespace",
 		"eCPPElementEnumeratorValue",
 		"eCPPElementVariable",
 		"eCPPElementFunction",
+		"eCPPElementTemplateValue"
 };
 
 CPPElement::CPPElement(const string& inName,ECPPElementType inType)

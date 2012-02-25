@@ -144,6 +144,9 @@
     <ClInclude Include="AbstractCPPContainer.h" />
     <ClInclude Include="CPPClass.h" />
     <ClInclude Include="CPPStruct.h" />
+    <ClInclude Include="CPPTemplateTemplateParameter.h" />
+    <ClInclude Include="CPPTemplateTypename.h" />
+    <ClInclude Include="CPPTemplateValue.h" />
     <ClInclude Include="DecleratorAsParametersContainer.h" />
     <ClInclude Include="DecleratorAsTypedefContainer.h" />
     <ClInclude Include="DecleratorAsVariableContainer.h" />
@@ -225,7 +228,7 @@
     <ClInclude Include="CPPUnion.h" />
     <ClInclude Include="CPPVariable.h" />
     <ClInclude Include="DeclaratorModifier.h" />
-    <ClInclude Include="FunctionParameter.h" />
+    <ClInclude Include="TypedParameter.h" />
     <ClInclude Include="ICPPDeclarationContainerDriver.h" />
     <ClInclude Include="ICPPDefinitionsContainerElement.h" />
     <ClInclude Include="ICPPFieldDeclerator.h" />
@@ -242,6 +245,9 @@
     <ClCompile Include="AbstractCPPContainer.cpp" />
     <ClCompile Include="CPPClass.cpp" />
     <ClCompile Include="CPPStruct.cpp" />
+    <ClCompile Include="CPPTemplateTemplateParameter.cpp" />
+    <ClCompile Include="CPPTemplateTypename.cpp" />
+    <ClCompile Include="CPPTemplateValue.cpp" />
     <ClCompile Include="DecleratorAsParametersContainer.cpp" />
     <ClCompile Include="DecleratorAsTypedefContainer.cpp" />
     <ClCompile Include="DecleratorAsVariableContainer.cpp" />
@@ -297,7 +303,7 @@
     <ClCompile Include="CPPTypedef.cpp" />
     <ClCompile Include="CPPUnion.cpp" />
     <ClCompile Include="CPPVariable.cpp" />
-    <ClCompile Include="FunctionParameter.cpp" />
+    <ClCompile Include="TypedParameter.cpp" />
     <ClCompile Include="UsedTypeDescriptor.cpp" />
     <ClCompile Include="WindowsFileSystem.cpp" />
     <ClCompile Include="WindowsPath.cpp" />

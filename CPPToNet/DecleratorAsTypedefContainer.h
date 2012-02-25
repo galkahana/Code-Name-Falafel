@@ -35,7 +35,7 @@ public:
 	virtual Hummus::EStatusCode FinalizeFunctionPointerDefinition();
 
 	// ICPPParametersContainer implementation
-	virtual FunctionParameter* CreateParameter(const string& inParameterName,  UsedTypeDescriptor* inParameterType);
+	virtual TypedParameter* CreateParameter(const string& inParameterName,  UsedTypeDescriptor* inParameterType);
 
 private:
 	ICPPDefinitionsContainerElement* mStorage;

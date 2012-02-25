@@ -4,7 +4,7 @@
 
 using namespace std;
 
-struct FunctionParameter;
+struct TypedParameter;
 class UsedTypeDescriptor;
 
 class ICPPParametersContainer
@@ -12,7 +12,7 @@ class ICPPParametersContainer
 public:
 	virtual ~ICPPParametersContainer(){}
 
-	virtual FunctionParameter* CreateParameter(const string& inParameterName,
+	virtual TypedParameter* CreateParameter(const string& inParameterName,
 										 UsedTypeDescriptor* inParameterType) = 0;
 
 };

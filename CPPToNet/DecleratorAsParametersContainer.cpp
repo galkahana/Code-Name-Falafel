@@ -4,17 +4,31 @@
 
 using namespace Hummus;
 
-DecleratorAsParametersContainer::DecleratorAsParametersContainer(ICPPParametersContainer* inParametersContainer)
+DecleratorAsParametersContainer::DecleratorAsParametersContainer()
+{
+	mFoundStop = false;
+	mAlreadyDefinedOne = true;
+	mFieldType = NULL;
+}
+
+DecleratorAsParametersContainer::DecleratorAsParametersContainer(ICPPParametersContainer* inParametersContainer,string inStopperToken)
 {
 	mFoundStop = false;
 	mParametersContainer = inParametersContainer;
 	mAlreadyDefinedOne = true;
 	mFieldType = NULL;
+	mStopperToken = inStopperToken;
 }
 
 DecleratorAsParametersContainer::~DecleratorAsParametersContainer()
 {
 	delete mFieldType;
+}
+
+void DecleratorAsParametersContainer::SetCreator(ICPPParametersContainer* inParametersContainer,string inStopperToken)
+{
+	mParametersContainer = inParametersContainer;
+	mStopperToken = inStopperToken;
 }
 
 EStatusCode DecleratorAsParametersContainer::SetFlags(CPPElement* inType,bool inIsAuto,bool inIsRegister,bool inIsExtern,bool inIsConst,bool inIsVolatile, bool inIsStatic,bool inIsVirtual)
@@ -82,7 +96,7 @@ bool DecleratorAsParametersContainer::VerifyDeclaratorStopper(const string& inTo
 {
 	if(inTokenToExamine == ",")
 		return true;
-	else if(inTokenToExamine == ")")
+	else if(inTokenToExamine == mStopperToken)
 	{
 		mFoundStop = true;
 		return true;
@@ -114,7 +128,7 @@ void DecleratorAsParametersContainer::AddSubscript()
 
 EStatusCode DecleratorAsParametersContainer::FinalizeFieldDefinition()
 {
-	FunctionParameter* newParameter  = mParametersContainer->CreateParameter(mFieldName,mFieldType);
+	TypedParameter* newParameter  = mParametersContainer->CreateParameter(mFieldName,mFieldType);
 
 	if(newParameter)
 		return eSuccess;
@@ -128,7 +142,7 @@ EStatusCode DecleratorAsParametersContainer::FinalizeFieldDefinition()
 	return eFailure;
 }
 
-FunctionParameter* DecleratorAsParametersContainer::CreateParameter(const string& inParameterName,  UsedTypeDescriptor* inParameterType)
+TypedParameter* DecleratorAsParametersContainer::CreateParameter(const string& inParameterName,  UsedTypeDescriptor* inParameterType)
 {
 	return mFieldType->GetFunctionPointerDescriptor()->CreateParameter(inParameterName,inParameterType);
 }
@@ -155,7 +169,7 @@ void DecleratorAsParametersContainer::SetFunctionPointerHasElipsis()
 
 EStatusCode DecleratorAsParametersContainer::FinalizeFunctionPointerDefinition()
 {
-	FunctionParameter* newParameter  = mParametersContainer->CreateParameter(mFieldName,mFieldType);
+	TypedParameter* newParameter  = mParametersContainer->CreateParameter(mFieldName,mFieldType);
 
 	if(newParameter)
 		return eSuccess;

@@ -3,16 +3,20 @@
 #include "ICPPFieldDeclerator.h"
 #include "ICPPFunctionPointerDeclerator.h"
 #include "ICPPParametersContainer.h"
-#include "FunctionParameter.h"
+#include "TypedParameter.h"
 
 
 class DecleratorAsParametersContainer : public ICPPDeclarationContainerDriver, public ICPPFieldDeclerator, public ICPPFunctionPointerDeclerator, public ICPPParametersContainer
 {
 public:
 
-	DecleratorAsParametersContainer(ICPPParametersContainer* inParametersContainer);
+	DecleratorAsParametersContainer();
+	DecleratorAsParametersContainer(ICPPParametersContainer* inParametersContainer,string inStopperToken);
 	virtual ~DecleratorAsParametersContainer();
 	
+	// must be called if empty constructor was called...before any usage
+	void SetCreator(ICPPParametersContainer* inParametersContainer,string inStopperToken);
+
 	// ICPPDeclarationContainerDriver implementation
 	virtual Hummus::EStatusCode SetFlags(CPPElement* inType,bool inIsAuto,bool inIsRegister,bool inIsExtern,bool inIsConst,bool inIsVolatile, bool inIsStatic, bool inIsVirtual);
 	virtual ICPPFieldDeclerator* AddFieldDeclerator(const string& inDecleratorName);
@@ -35,7 +39,7 @@ public:
 	virtual Hummus::EStatusCode FinalizeFunctionPointerDefinition();
 
 	// ICPPParametersContainer implementation
-	virtual FunctionParameter* CreateParameter(const string& inParameterName,  UsedTypeDescriptor* inParameterType);
+	virtual TypedParameter* CreateParameter(const string& inParameterName,  UsedTypeDescriptor* inParameterType);
 
 	bool FoundStop();
 	void Reset();
@@ -48,8 +52,9 @@ private:
 	CPPElement* mType;
 	bool mFoundStop;
 	bool mAlreadyDefinedOne;
+	string mStopperToken;
 
-	FunctionParameterList mDeclaredParameters;
+	TypedParameterList mDeclaredParameters;
 
 	// field && function pointer declaration functionality
 	string mFieldName;

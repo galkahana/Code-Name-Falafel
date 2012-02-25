@@ -29,6 +29,8 @@ typedef set<CPPNamespace*> CPPNamespaceSet;
 typedef list<string> StringList;
 typedef list<ICPPDefinitionsContainerElement*> ICPPDefinitionsContainerElementList;
 typedef set<CPPElement::ECPPElementType> ECPPElementTypeSet;
+typedef map<string,CPPElement*> StringToCPPElementMap;
+typedef list<StringToCPPElementMap*> StringToCPPElementMapList;
 
 struct LocalContext
 {
@@ -55,6 +57,8 @@ private:
 	LocalContextList mLocalContext;
 	Hummus::Long mUnnamedSequance;
 	HeaderUnit* mWorkingUnit;
+	StringToCPPElementMap mTemplateParameters;
+	StringToCPPElementMapList mTemplateParametersStack;
 	
 
 	EStatusCodeAndHeaderUnit ParseUnit();
@@ -80,13 +84,13 @@ private:
 	CPPElement* GetElementFromCurrentLocation(const ECPPElementTypeSet& inTypeSet);
 
 	// will return either NULL or an element, if and only if there's just ONE element of this name
-	CPPElement* FindElement(ICPPDefinitionsContainerElement* inContainer,const string& inElementName);
+	CPPElement* FindQualifiedElement(ICPPDefinitionsContainerElement* inContainer,const string& inElementName);
 
 	// will return either NULL or an element, if and only if there's just ONE element of this name and of this type
-	CPPElement* FindElement(ICPPDefinitionsContainerElement* inContainer,const string& inElementName,CPPElement::ECPPElementType inOfType);
+	CPPElement* FindQualifiedElement(ICPPDefinitionsContainerElement* inContainer,const string& inElementName,CPPElement::ECPPElementType inOfType);
 
 	// will return either NULL or an element, if and only if there's just ONE element of this name and of these types
-	CPPElement* FindElement(ICPPDefinitionsContainerElement* inContainer,const string& inElementName,ECPPElementTypeSet inOfTypes);
+	CPPElement* FindQualifiedElement(ICPPDefinitionsContainerElement* inContainer,const string& inElementName,ECPPElementTypeSet inOfTypes);
 
 	Hummus::EStatusCode SkipConstantExpression();
 
@@ -110,5 +114,8 @@ private:
 
 	void StartLocalContext();
 	void EndLocalContext();
+
+	EStatusCode ParseTemplateParameters(StringToCPPElementMap& inParametersStorage);
+	void Destroy(StringToCPPElementMap& inMap);
 
 };

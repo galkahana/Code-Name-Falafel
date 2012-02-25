@@ -85,7 +85,7 @@ ICPPParametersContainer* DecleratorAsTypedefContainer::GetParametersContainerFor
 	return this;
 }
 
-FunctionParameter* DecleratorAsTypedefContainer::CreateParameter(const string& inParameterName,  UsedTypeDescriptor* inParameterType)
+TypedParameter* DecleratorAsTypedefContainer::CreateParameter(const string& inParameterName,  UsedTypeDescriptor* inParameterType)
 {
 	return mFieldType->GetFunctionPointerDescriptor()->CreateParameter(inParameterName,inParameterType);
 }

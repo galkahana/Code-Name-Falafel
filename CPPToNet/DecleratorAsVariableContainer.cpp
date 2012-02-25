@@ -28,7 +28,7 @@ DecleratorAsVariableContainer::~DecleratorAsVariableContainer()
 	delete mReturnType;
 	delete mFieldType;
 
-	FunctionParameterList::iterator it = mDeclaredParameters.begin();
+	TypedParameterList::iterator it = mDeclaredParameters.begin();
 
 	for(; it != mDeclaredParameters.end(); ++it)
 		delete *it;
@@ -137,7 +137,7 @@ EStatusCode DecleratorAsVariableContainer::FinalizeFunctionDefinition(bool inIsD
 	mReturnType = NULL;
 
 	// and empty parameters list
-	FunctionParameterList::iterator it = mDeclaredParameters.begin();
+	TypedParameterList::iterator it = mDeclaredParameters.begin();
 
 	for(; it != mDeclaredParameters.end(); ++it)
 		delete *it;
@@ -208,12 +208,12 @@ EStatusCode DecleratorAsVariableContainer::FinalizeFunctionPointerDefinition()
 	return eFailure;
 }
 
-FunctionParameter* DecleratorAsVariableContainer::CreateParameter(const string& inParameterName,
+TypedParameter* DecleratorAsVariableContainer::CreateParameter(const string& inParameterName,
 															     UsedTypeDescriptor* inParameterType)
 {
 	if(mIsFunctionDefinitionParametersImplementation)
 	{
-		FunctionParameter* newParameter = new FunctionParameter();
+		TypedParameter* newParameter = new TypedParameter();
 		newParameter->Type = inParameterType;
 		newParameter->Name = inParameterName;
 

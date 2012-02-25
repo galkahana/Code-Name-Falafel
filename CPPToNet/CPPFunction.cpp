@@ -7,7 +7,7 @@ CPPFunction::CPPFunction(const string& inFunctionName,
 						bool inIsVirtual,
 						bool inIsStatic,
 						UsedTypeDescriptor* inReturnType,
-						const FunctionParameterList& inParametersList,
+						const TypedParameterList& inParametersList,
 						bool inHasElipsis,
 						bool inIsPure,
 						bool inIsDefinition) : CPPElement(inFunctionName,CPPElement::eCPPElementFunction)
@@ -25,7 +25,7 @@ CPPFunction::CPPFunction(const string& inFunctionName,
 CPPFunction::~CPPFunction(void)
 {
 	delete mReturnType;
-	FunctionParameterList::iterator it = mDeclaredParameters.begin();	
+	TypedParameterList::iterator it = mDeclaredParameters.begin();	
 
 	for(; it != mDeclaredParameters.end(); ++it)
 		delete *it;
@@ -36,9 +36,9 @@ UsedTypeDescriptor* CPPFunction::GetReturnType()
 	return mReturnType;
 }
 
-SingleValueContainerIterator<FunctionParameterList> CPPFunction::GetParametersListIterator()
+SingleValueContainerIterator<TypedParameterList> CPPFunction::GetParametersListIterator()
 {
-	return SingleValueContainerIterator<FunctionParameterList>(mDeclaredParameters);
+	return SingleValueContainerIterator<TypedParameterList>(mDeclaredParameters);
 }
 
 bool CPPFunction::HasElipsis()
@@ -56,7 +56,7 @@ void CPPFunction::SetIsDefinition()
 	mIsDefinition = true;
 }
 
-FunctionParameterList& CPPFunction::GetDeclaredParameterList()
+TypedParameterList& CPPFunction::GetDeclaredParameterList()
 {
 	return mDeclaredParameters;
 }

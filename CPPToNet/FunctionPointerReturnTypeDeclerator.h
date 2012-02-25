@@ -20,7 +20,7 @@ public:
 	virtual Hummus::EStatusCode FinalizeFunctionPointerDefinition();
 
 	// ICPPParametersContainer implementation
-	virtual FunctionParameter* CreateParameter(const string& inParameterName,
+	virtual TypedParameter* CreateParameter(const string& inParameterName,
 										 UsedTypeDescriptor* inParameterType);
 
 	void SetFlags(CPPElement* inType,bool inIsConst, bool inIsVolatile);

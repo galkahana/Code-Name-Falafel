@@ -2,7 +2,7 @@
 
 #include "EStatusCode.h"
 #include "ICPPVariablesContainerElement.h"
-#include "FunctionParameter.h"
+#include "TypedParameter.h"
 #include <string>
 
 class CPPElement;
@@ -39,7 +39,7 @@ public:
 										bool inIsVirtual,
 										bool inIsStatic,
 										UsedTypeDescriptor* inReturnTypeDescriptor,
-										const FunctionParameterList& inParametersList,
+										const TypedParameterList& inParametersList,
 										bool inHasElipsis,	
 										bool inIsPure,
 										bool inIsDefinition) = 0;

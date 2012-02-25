@@ -16,12 +16,15 @@ public:
 		eCPPElementTypedef,
 		eCPPElementClass,
 		eCPPElementStruct,
+		eCPPElemeentTemplateTypename,
+		eCPPElemeentTemplateTemplateParameter,
 		eCPPTypenames, // just a marker for typenames
 		// values
 		eCPPElementNamespace,
 		eCPPElementEnumeratorValue,
 		eCPPElementVariable,
 		eCPPElementFunction,
+		eCPPElementTemplateValue,
 		eCPPElementTotalCount
 	};
 
