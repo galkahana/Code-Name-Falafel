@@ -1,8 +1,11 @@
 #pragma once
 
 #include "TypedParameter.h"
+#include "UsedTypeOrExpression.h"
+#include "ICPPElementsContainer.h"
 #include <string>
 #include <list>
+
 
 
 class CPPElement;
@@ -14,12 +17,10 @@ using namespace std;
 
 typedef list<CPPElement*> CPPElementList;
 
-class ICPPVariablesContainerElement
+class ICPPVariablesContainerElement : public ICPPElementsContainer
 {
 public:
 	virtual ~ICPPVariablesContainerElement(){};
-
-	virtual CPPElementList FindElements(const string& inElementName) = 0;
 
 	virtual CPPVariable* CreateVariable(const string& inVariableName,
 										UsedTypeDescriptor* inTypeDescriptor) = 0;
@@ -30,5 +31,17 @@ public:
 										const TypedParameterList& inParametersList,
 										bool inHasElipsis,
 										bool inIsPure,
+										const UsedTypeOrExpressionList& inTemplateSpecializationList,
+										bool inIsTemplateInstantiation,
 										bool inIsDefinition) = 0;
+	virtual CPPFunction* CreateFunctionTemplate(const string& inFunctionName,
+										bool inIsVirtual,
+										bool inIsStatic,
+										UsedTypeDescriptor* inReturnType,
+										const TypedParameterList& inParametersList,
+										bool inHasElipsis,
+										bool inIsPure,
+										bool inIsDefinition,
+										const CPPElementList& inTemplateParameters,
+										const UsedTypeOrExpressionList& inTemplateParametersSpecialization) = 0;
 };

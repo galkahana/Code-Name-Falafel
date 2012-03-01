@@ -152,6 +152,7 @@
     <ClInclude Include="DecleratorAsVariableContainer.h" />
     <ClInclude Include="EStatusCode.h" />
     <ClInclude Include="FunctionPointerReturnTypeDeclerator.h" />
+    <ClInclude Include="ICPPElementsContainer.h" />
     <ClInclude Include="SafeBufferMacrosDefs.h" />
     <ClInclude Include="UnicodeString.h" />
     <ClInclude Include="Log.h" />
@@ -237,6 +238,7 @@
     <ClInclude Include="ICPPParametersContainer.h" />
     <ClInclude Include="ICPPVariablesContainerElement.h" />
     <ClInclude Include="UsedTypeDescriptor.h" />
+    <ClInclude Include="UsedTypeOrExpression.h" />
     <ClInclude Include="WindowsFileSystem.h" />
     <ClInclude Include="WindowsPath.h" />
   </ItemGroup>

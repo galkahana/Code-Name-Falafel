@@ -34,16 +34,6 @@ public:
 	virtual CPPTypedef* CreateTypedef(const string& inTypedefName,
 									  UsedTypeDescriptor* inTypeDescriptor) = 0;
 
-	// function [function should be defined as a whole, for overloads to be identified]
-	virtual CPPFunction* CreateFunction(const string& inFunctionName,
-										bool inIsVirtual,
-										bool inIsStatic,
-										UsedTypeDescriptor* inReturnTypeDescriptor,
-										const TypedParameterList& inParametersList,
-										bool inHasElipsis,	
-										bool inIsPure,
-										bool inIsDefinition) = 0;
-
 	// class
 	virtual CPPClass* CreateClass(const string& inClassName,
 								  bool inIsDefinition) = 0;

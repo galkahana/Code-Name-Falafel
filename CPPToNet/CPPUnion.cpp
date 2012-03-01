@@ -64,9 +64,26 @@ CPPFunction* CPPUnion::CreateFunction(	const string& inFunctionName,
 										const TypedParameterList& inParametersList,
 										bool inHasElipsis,
 										bool inIsPure,
+										const UsedTypeOrExpressionList& inTemplateSpecializationList,
+										bool inIsTemplateInstantiation,
 										bool inIsDefinition)
 {
 	TRACE_LOG("CPPUnion::CreateFunction, syntax error, cannot define a function in a union");
+	return NULL;
+}
+
+CPPFunction* CPPUnion::CreateFunctionTemplate(const string& inFunctionName,
+									bool inIsVirtual,
+									bool inIsStatic,
+									UsedTypeDescriptor* inReturnType,
+									const TypedParameterList& inParametersList,
+									bool inHasElipsis,
+									bool inIsPure,
+									bool inIsDefinition,
+									const CPPElementList& inTemplateParameters,
+									const UsedTypeOrExpressionList& inTemplateSpecializationList)
+{
+	TRACE_LOG("CPPUnion::CreateFunctionTemplate, syntax error, cannot define a function template in a union");
 	return NULL;
 }
 

@@ -23,7 +23,7 @@ public:
 		eCPPElementNamespace,
 		eCPPElementEnumeratorValue,
 		eCPPElementVariable,
-		eCPPElementFunction,
+		eCPPElementFunction, // can be also function template
 		eCPPElementTemplateValue,
 		eCPPElementTotalCount
 	};

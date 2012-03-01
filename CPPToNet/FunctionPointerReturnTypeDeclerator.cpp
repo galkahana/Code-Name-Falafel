@@ -1,6 +1,7 @@
 #include "FunctionPointerReturnTypeDeclerator.h"
 #include "UsedTypeDescriptor.h"
 
+using namespace Hummus;
 
 FunctionPointerReturnTypeDeclerator::FunctionPointerReturnTypeDeclerator(void)
 {
@@ -34,13 +35,13 @@ void FunctionPointerReturnTypeDeclerator::SetFunctionPointerHasElipsis()
 	mUsedTypeDescriptor->GetFunctionPointerDescriptor()->SetFunctionPointerHasElipsis();
 }
 
-Hummus::EStatusCode FunctionPointerReturnTypeDeclerator::FinalizeFunctionPointerDefinition()
+EStatusCode FunctionPointerReturnTypeDeclerator::FinalizeFunctionPointerDefinition()
 {
 	// nothing much to do here :) consider removing from common interface
-	return Hummus::eSuccess;
+	return eSuccess;
 }
 
-TypedParameter* FunctionPointerReturnTypeDeclerator::CreateParameter(const string& inParameterName,
+EStatusCode FunctionPointerReturnTypeDeclerator::CreateParameter(const string& inParameterName,
 																		UsedTypeDescriptor* inParameterType)
 {
 	return mUsedTypeDescriptor->GetFunctionPointerDescriptor()->CreateParameter(inParameterName,inParameterType);

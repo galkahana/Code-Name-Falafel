@@ -174,14 +174,16 @@ EStatusCode CPPNamespace::AppendPrimitive(const string& inTypeName,CPPPrimitive*
 
 
 CPPFunction* CPPNamespace::AppendFunction(const string& inFunctionName,
-										bool inIsVirtual,
-										bool inIsStatic,											
-										UsedTypeDescriptor* inReturnTypeDescriptor,
-										const TypedParameterList& inParametersList,
-										bool inHasElipsis,	
-										bool inIsPure,
-										bool inIsDefinition,
-										CPPFunction* inFunction)
+											bool inIsVirtual,
+											bool inIsStatic,											
+											UsedTypeDescriptor* inReturnTypeDescriptor,
+											const TypedParameterList& inParametersList,
+											bool inHasElipsis,		
+											bool inIsPure,
+											const UsedTypeOrExpressionList& inTemplateSpecializationList,
+											bool inIsTemplateInstantiation,
+											bool inIsDefinition,
+											CPPFunction* inFunction)
 {
 	if(inIsVirtual || inIsPure)
 	{
@@ -191,5 +193,50 @@ CPPFunction* CPPNamespace::AppendFunction(const string& inFunctionName,
 	}
 	else
 		return AbstractCPPContainer::AppendFunction(inFunctionName,false,inIsStatic,inReturnTypeDescriptor,inParametersList,
-																		inHasElipsis,inIsPure,inIsDefinition,inFunction);
+																		inHasElipsis,inIsPure,inTemplateSpecializationList,inIsTemplateInstantiation,inIsDefinition,inFunction);
+}
+
+CPPFunction* CPPNamespace::AppendFunctionTemplate(const string& inFunctionName,
+										bool inIsVirtual,
+										bool inIsStatic,											
+										UsedTypeDescriptor* inReturnTypeDescriptor,
+										const TypedParameterList& inParametersList,
+										bool inHasElipsis,	
+										bool inIsPure,
+										bool inIsDefinition,
+										const CPPElementList& inTemplateParameters,
+										CPPFunction* inFunctionTemplate)
+{
+	if(inIsVirtual || inIsPure)
+	{
+		TRACE_LOG1("CPPNamespace::AppendFunctionTemplate, syntax error,cannot have virtual  or pure specified on a non-class method %s",
+					inFunctionName.c_str());	
+		return NULL;
+	}
+	else
+		return AbstractCPPContainer::AppendFunctionTemplate(inFunctionName,false,inIsStatic,inReturnTypeDescriptor,inParametersList,
+																		inHasElipsis,inIsPure,inIsDefinition,inTemplateParameters,inFunctionTemplate);
+}
+
+CPPFunction* CPPNamespace::AppendFunctionTemplateSpecialization(
+										const string& inFunctionName,
+										bool inIsVirtual,
+										bool inIsStatic,											
+										UsedTypeDescriptor* inReturnTypeDescriptor,
+										const TypedParameterList& inParametersList,
+										bool inHasElipsis,		
+										bool inIsPure,
+										bool inIsDefinition,
+										const UsedTypeOrExpressionList& inTemplateParametersSpecialization,
+										CPPFunction* inFunctionTemplate)
+{
+	if(inIsVirtual || inIsPure)
+	{
+		TRACE_LOG1("CPPNamespace::AppendFunctionTemplateSpecialization, syntax error,cannot have virtual  or pure specified on a non-class method %s",
+					inFunctionName.c_str());	
+		return NULL;
+	}
+	else
+		return AbstractCPPContainer::AppendFunctionTemplateSpecialization(inFunctionName,false,inIsStatic,inReturnTypeDescriptor,inParametersList,
+																		inHasElipsis,inIsPure,inIsDefinition,inTemplateParametersSpecialization,inFunctionTemplate);
 }

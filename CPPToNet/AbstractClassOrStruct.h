@@ -25,11 +25,7 @@ class AbstractClassOrStruct : public CPPElement, public AbstractCPPContainer
 public:
 
 
-	// inType may be either class or struct
-	AbstractClassOrStruct(const string& inName,
-						  bool inIsDefinition,
-						  CPPElement::ECPPElementType inType,
-						  EAbstractClassOrStructAccessLevel inDefaultAccessLevel);
+
 	virtual ~AbstractClassOrStruct(void);
 
 
@@ -49,6 +45,12 @@ public:
 
 protected:
 
+	// inType may be either class or struct
+	AbstractClassOrStruct(const string& inName,
+						  bool inIsDefinition,
+						  CPPElement::ECPPElementType inType,
+						  EAbstractClassOrStructAccessLevel inDefaultAccessLevel);
+
 	// all methods overriden to introduce the objects into acces levels
 	virtual CPPEnumerator* AppendEnumerator(const string& inEnumeratorName,bool inIsDefinition,CPPEnumerator* inEnumerator);
 	virtual CPPUnion* AppendUnion(const string& inUnionName,bool inIsDefinition,CPPUnion* inUnion);
@@ -64,9 +66,32 @@ protected:
 											UsedTypeDescriptor* inReturnTypeDescriptor,
 											const TypedParameterList& inParametersList,
 											bool inHasElipsis,		
-											bool inIsDefinition,
 											bool inIsPure,
+											const UsedTypeOrExpressionList& inTemplateSpecializationList,
+											bool inIsTemplateInstantiation,
+											bool inIsDefinition,
 											CPPFunction* inFunction);
+	virtual CPPFunction* AppendFunctionTemplate(const string& inFunctionName,
+											bool inIsVirtual,
+											bool inIsStatic,											
+											UsedTypeDescriptor* inReturnTypeDescriptor,
+											const TypedParameterList& inParametersList,
+											bool inHasElipsis,		
+											bool inIsPure,
+											bool inIsDefinition,
+											const CPPElementList& inTemplateParameters,
+											CPPFunction* inFunctionTemplate);
+	virtual CPPFunction* AppendFunctionTemplateSpecialization(
+											const string& inFunctionName,
+											bool inIsVirtual,
+											bool inIsStatic,											
+											UsedTypeDescriptor* inReturnTypeDescriptor,
+											const TypedParameterList& inParametersList,
+											bool inHasElipsis,		
+											bool inIsPure,
+											bool inIsDefinition,
+											const UsedTypeOrExpressionList& inTemplateParametersSpecialization,
+											CPPFunction* inFunctionTemplate);
 	virtual CPPClass* AppendClass(const string& inClassName,
 									bool inIsDefinition,
 									CPPClass* inClass);

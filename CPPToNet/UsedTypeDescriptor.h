@@ -64,7 +64,7 @@ public:
 	void SetFunctionPointerType(ICPPFunctionPointerDeclerator::EFunctionPointerType inFunctionPointerType);
 	void AppendModifiersForFunctionPointerReturnType(const DeclaratorModifierList& inModifiers);
 	void SetFunctionPointerHasElipsis();
-	TypedParameter* CreateParameter(const string& inParameterName, UsedTypeDescriptor* inParameterType);
+	Hummus::EStatusCode CreateParameter(const string& inParameterName, UsedTypeDescriptor* inParameterType);
 
 	ICPPFunctionPointerDeclerator::EFunctionPointerType GetPointerType(); 
 	UsedTypeDescriptor* GetReturnType();

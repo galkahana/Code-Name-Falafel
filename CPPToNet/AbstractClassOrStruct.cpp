@@ -122,6 +122,8 @@ CPPFunction* AbstractClassOrStruct::AppendFunction(const string& inFunctionName,
 										const TypedParameterList& inParametersList,
 										bool inHasElipsis,		
 										bool inIsPure,
+										const UsedTypeOrExpressionList& inTemplateSpecializationList,
+										bool inIsTemplateInstantiation,
 										bool inIsDefinition,
 										CPPFunction* inFunction)
 {
@@ -132,7 +134,58 @@ CPPFunction* AbstractClassOrStruct::AppendFunction(const string& inFunctionName,
 	}
 
 	CPPFunction* appendResult = AbstractCPPContainer::AppendFunction(inFunctionName,inIsVirtual,inIsStatic,inReturnTypeDescriptor,inParametersList,
-																	inHasElipsis,inIsPure,inIsDefinition,inFunction);
+																	inHasElipsis,inIsPure,inTemplateSpecializationList,inIsTemplateInstantiation,inIsDefinition,inFunction);
+	if(appendResult)
+		mAccessDefinition->insert(appendResult);
+
+	return appendResult;
+}
+
+CPPFunction* AbstractClassOrStruct::AppendFunctionTemplate(const string& inFunctionName,
+										bool inIsVirtual,
+										bool inIsStatic,											
+										UsedTypeDescriptor* inReturnTypeDescriptor,
+										const TypedParameterList& inParametersList,
+										bool inHasElipsis,		
+										bool inIsPure,
+										bool inIsDefinition,
+										const CPPElementList& inTemplateParameters,
+										CPPFunction* inFunctionTemplate)
+{
+	if(inIsPure && !inIsVirtual)
+	{
+		TRACE_LOG1("AbstractClassOrStruct::AppendFunctionTemplate, syntax error, pure function defined which is not virtual, for function template %s",inFunctionName.c_str());
+		return NULL;
+	}
+
+	CPPFunction* appendResult = AbstractCPPContainer::AppendFunctionTemplate(inFunctionName,inIsVirtual,inIsStatic,inReturnTypeDescriptor,inParametersList,
+																	inHasElipsis,inIsPure,inIsDefinition,inTemplateParameters,inFunctionTemplate);
+	if(appendResult)
+		mAccessDefinition->insert(appendResult);
+
+	return appendResult;
+}
+
+CPPFunction* AbstractClassOrStruct::AppendFunctionTemplateSpecialization(
+										const string& inFunctionName,
+										bool inIsVirtual,
+										bool inIsStatic,											
+										UsedTypeDescriptor* inReturnTypeDescriptor,
+										const TypedParameterList& inParametersList,
+										bool inHasElipsis,		
+										bool inIsPure,
+										bool inIsDefinition,
+										const UsedTypeOrExpressionList& inTemplateParametersSpecialization,
+										CPPFunction* inFunctionTemplate)
+{
+	if(inIsPure && !inIsVirtual)
+	{
+		TRACE_LOG1("AbstractClassOrStruct::AppendFunctionTemplateSpecialization, syntax error, pure function defined which is not virtual, for function template %s",inFunctionName.c_str());
+		return NULL;
+	}
+
+	CPPFunction* appendResult = AbstractCPPContainer::AppendFunctionTemplateSpecialization(inFunctionName,inIsVirtual,inIsStatic,inReturnTypeDescriptor,inParametersList,
+																						inHasElipsis,inIsPure,inIsDefinition,inTemplateParametersSpecialization,inFunctionTemplate);
 	if(appendResult)
 		mAccessDefinition->insert(appendResult);
 

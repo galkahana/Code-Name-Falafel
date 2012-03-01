@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ICPPDefinitionsContainerElement.h"
+#include "UsedTypeOrExpression.h"
 
 #include <string>
 #include <map>
@@ -56,7 +57,19 @@ public:
 										const TypedParameterList& inParametersList,
 										bool inHasElipsis,		
 										bool inIsPure,
+										const UsedTypeOrExpressionList& inTemplateSpecializationList,
+										bool inIsTemplateInstantiation,
 										bool inIsDefinition);
+	virtual CPPFunction* CreateFunctionTemplate(const string& inFunctionName,
+										bool inIsVirtual,
+										bool inIsStatic,
+										UsedTypeDescriptor* inReturnType,
+										const TypedParameterList& inParametersList,
+										bool inHasElipsis,
+										bool inIsPure,
+										bool inIsDefinition,
+										const CPPElementList& inTemplateParameters,
+										const UsedTypeOrExpressionList& inTemplateParametersSpecialization);
 	virtual CPPClass* CreateClass(const string& inClassName,
 								  bool inIsDefinition);
 	virtual CPPStruct* CreateStruct(const string& inStructName,
@@ -88,8 +101,31 @@ protected:
 											const TypedParameterList& inParametersList,
 											bool inHasElipsis,		
 											bool inIsPure,
+											const UsedTypeOrExpressionList& inTemplateSpecializationList,
+											bool inIsTemplateInstantiation,
 											bool inIsDefinition,
 											CPPFunction* inFunction);
+	virtual CPPFunction* AppendFunctionTemplate(const string& inFunctionName,
+											bool inIsVirtual,
+											bool inIsStatic,											
+											UsedTypeDescriptor* inReturnTypeDescriptor,
+											const TypedParameterList& inParametersList,
+											bool inHasElipsis,		
+											bool inIsPure,
+											bool inIsDefinition,
+											const CPPElementList& inTemplateParameters,
+											CPPFunction* inFunctionTemplate);
+	virtual CPPFunction* AppendFunctionTemplateSpecialization(
+											const string& inFunctionName,
+											bool inIsVirtual,
+											bool inIsStatic,											
+											UsedTypeDescriptor* inReturnTypeDescriptor,
+											const TypedParameterList& inParametersList,
+											bool inHasElipsis,		
+											bool inIsPure,
+											bool inIsDefinition,
+											const UsedTypeOrExpressionList& inTemplateParametersSpecialization,
+											CPPFunction* inFunctionTemplate);
 	virtual CPPClass* AppendClass(const string& inClassName,
 									bool inIsDefinition,
 									CPPClass* inClass);
@@ -117,6 +153,9 @@ private:
 	// functions
 	StringToCPPFunctionListMap mFunctions;
 
+	// function templates
+	StringToCPPFunctionListMap mFunctionTemplates;
+
 	// classes
 	StringToCPPClassMap mClasses;
 
@@ -130,6 +169,15 @@ private:
 	// Since typedefs may point to other types and add modifications on them...there needs be an accumulation
 	// hence the returned type is "accumulated".
 	UsedTypeDescriptor* CreateRealTypeDescriptor(UsedTypeDescriptor* inTypeDescriptor);
+
+	// for function parameters (and can handle template function parameters as well)
+	bool IsEquivalentParametersList(const TypedParameterList& inParametersListLeft,const TypedParameterList& inParametersListRight);
+	// for templates
+	bool IsEquivalentParametersList(const TypedParameterList& inParametersListLeft,
+										const CPPElementList& inTemplateParametersListLeft,
+										const TypedParameterList& inParametersListRight,
+										const CPPElementList& inTemplateParametersListRight);
+	bool IsEquivalentTemplateParametersList(const CPPElementList& inTemplateParametersListLeft,const CPPElementList& inTemplateParametersListRight);
 
 };
 

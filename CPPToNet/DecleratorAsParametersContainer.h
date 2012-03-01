@@ -39,10 +39,12 @@ public:
 	virtual Hummus::EStatusCode FinalizeFunctionPointerDefinition();
 
 	// ICPPParametersContainer implementation
-	virtual TypedParameter* CreateParameter(const string& inParameterName,  UsedTypeDescriptor* inParameterType);
+	virtual Hummus::EStatusCode CreateParameter(const string& inParameterName,  UsedTypeDescriptor* inParameterType);
 
 	bool FoundStop();
 	void Reset();
+
+	const string& GetStopperCarry();
 
 private:
 	ICPPParametersContainer* mParametersContainer;
@@ -53,6 +55,7 @@ private:
 	bool mFoundStop;
 	bool mAlreadyDefinedOne;
 	string mStopperToken;
+	string mStopparCarry;
 
 	TypedParameterList mDeclaredParameters;
 

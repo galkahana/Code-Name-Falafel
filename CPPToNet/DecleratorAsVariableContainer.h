@@ -28,9 +28,10 @@ public:
 	virtual void AppendModifiersForFunctionDefinitionReturnType(const DeclaratorModifierList& inModifiers);
 	virtual void SetFunctionDefinitionHasElipsis();
 	virtual void SetPureFunction();
-	virtual Hummus::EStatusCode FinalizeFunctionDefinition(bool inIsDefinition); // passing bool to let one know if this is a declaration or definiton
 	virtual void SetReturnType(UsedTypeDescriptor* inSetReturnType);
 	virtual void SetupFunctionPointerReturnTypeDeclerator(FunctionPointerReturnTypeDeclerator* inReturnTypeDeclerator);
+	virtual Hummus::EStatusCode FinalizeFunctionDefinition(const UsedTypeOrExpressionList& inTemplateSpecializationList,bool inIsTemplateInstantiation,bool inIsDefinition); // for function definitions. passing bool to let one know if this is a declaration or definiton
+	virtual Hummus::EStatusCode FinalizeFunctionTemplateDefinition(const CPPElementList& inTemplateParameters,const UsedTypeOrExpressionList& inTemplateSpecializationList,bool inIsDefinition); // for function template definitions, passing 
 
 	// ICPPFieldDeclerator implementation
 	virtual void AppendModifiers(const DeclaratorModifierList& inModifiers);
@@ -45,7 +46,7 @@ public:
 	virtual Hummus::EStatusCode FinalizeFunctionPointerDefinition();
 
 	// ICPPParametersContainer implementation
-	virtual TypedParameter* CreateParameter(const string& inParameterName,  UsedTypeDescriptor* inParameterType);
+	virtual Hummus::EStatusCode CreateParameter(const string& inParameterName,  UsedTypeDescriptor* inParameterType);
 
 private:
 
@@ -71,4 +72,6 @@ private:
 	// field && function pointer declaration functionality
 	string mFieldName;
 	UsedTypeDescriptor* mFieldType;
+
+	void CleanupFunction();
 };

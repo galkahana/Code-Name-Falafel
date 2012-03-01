@@ -90,6 +90,7 @@ void DecleratorAsParametersContainer::Reset()
 	mIsVolatile = false;
 	delete mFieldType;
 	mFieldType = NULL;
+	mStopparCarry.clear();
 }
 
 bool DecleratorAsParametersContainer::VerifyDeclaratorStopper(const string& inTokenToExamine)
@@ -98,6 +99,13 @@ bool DecleratorAsParametersContainer::VerifyDeclaratorStopper(const string& inTo
 		return true;
 	else if(inTokenToExamine == mStopperToken)
 	{
+		mFoundStop = true;
+		return true;
+	}
+	else if(mStopperToken == ">" && inTokenToExamine.at(0) == '>') // special case to avoid the template problem with >>
+	{
+		if(inTokenToExamine.size() > 1)
+			mStopparCarry = inTokenToExamine.substr(1);
 		mFoundStop = true;
 		return true;
 	}
@@ -128,9 +136,9 @@ void DecleratorAsParametersContainer::AddSubscript()
 
 EStatusCode DecleratorAsParametersContainer::FinalizeFieldDefinition()
 {
-	TypedParameter* newParameter  = mParametersContainer->CreateParameter(mFieldName,mFieldType);
+	EStatusCode status  = mParametersContainer->CreateParameter(mFieldName,mFieldType);
 
-	if(newParameter)
+	if(eSuccess == status)
 		return eSuccess;
 
 	// if failed - move to cleanup
@@ -142,7 +150,7 @@ EStatusCode DecleratorAsParametersContainer::FinalizeFieldDefinition()
 	return eFailure;
 }
 
-TypedParameter* DecleratorAsParametersContainer::CreateParameter(const string& inParameterName,  UsedTypeDescriptor* inParameterType)
+EStatusCode DecleratorAsParametersContainer::CreateParameter(const string& inParameterName,  UsedTypeDescriptor* inParameterType)
 {
 	return mFieldType->GetFunctionPointerDescriptor()->CreateParameter(inParameterName,inParameterType);
 }
@@ -169,9 +177,9 @@ void DecleratorAsParametersContainer::SetFunctionPointerHasElipsis()
 
 EStatusCode DecleratorAsParametersContainer::FinalizeFunctionPointerDefinition()
 {
-	TypedParameter* newParameter  = mParametersContainer->CreateParameter(mFieldName,mFieldType);
+	EStatusCode status = mParametersContainer->CreateParameter(mFieldName,mFieldType);
 
-	if(newParameter)
+	if(eSuccess == status)
 		return eSuccess;
 
 	// if failed - move to cleanup
@@ -181,4 +189,9 @@ EStatusCode DecleratorAsParametersContainer::FinalizeFunctionPointerDefinition()
 	mFieldType = NULL;
 
 	return eFailure;
+}
+
+const string& DecleratorAsParametersContainer::GetStopperCarry()
+{
+	return mStopparCarry;
 }

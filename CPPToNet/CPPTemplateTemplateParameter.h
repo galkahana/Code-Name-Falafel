@@ -1,26 +1,42 @@
 #pragma once
 
 #include "CPPElement.h"
-#include "MapIterator.h"
+#include "SingleValueContainerIterator.h"
+#include "ICPPElementsContainer.h"
 
-#include <string>
 #include <map>
+#include <string>
+#include <list>
 
 
 using namespace std;
 
+class CPPTemplateTypename;
 
-typedef map<string,CPPElement*> StringToCPPElementMap;
+typedef list<CPPElement*> CPPElementList;
+typedef map<string,CPPTemplateTypename*> StringToCPPTemplateTypenameMap;
 
-class CPPTemplateTemplateParameter : public CPPElement
+class CPPTemplateTemplateParameter : public CPPElement, public ICPPElementsContainer
 {
 public:
-	CPPTemplateTemplateParameter(const string& inName,StringToCPPElementMap& inTemplateParameters);
+	CPPTemplateTemplateParameter(const string& inName,unsigned long inParameterIndex,CPPElementList& inTemplateParameters);
 	virtual ~CPPTemplateTemplateParameter(void);
 
-	Hummus::MapIterator<StringToCPPElementMap> GetParametersIterator();
+	// ICPPElementsContainer implementation
+	virtual CPPElementList FindElements(const string& inElementName);
+
+	Hummus::SingleValueContainerIterator<CPPElementList> GetParametersIterator();
+	CPPElementList& GetTemplateParameters();
+
+	unsigned long GetParameterIndex();
+
+	// checks for equivalency. which is the position in the parent parameters list, and the equivalency of the template parameters
+	bool IsEqual(CPPTemplateTemplateParameter* inOther);
 
 private:
-	StringToCPPElementMap mTemplateParameters;
+	CPPElementList mTemplateParameters;
+	unsigned long mParameterIndex;
+
+	StringToCPPTemplateTypenameMap mTypenames;
 };
 

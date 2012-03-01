@@ -2,6 +2,7 @@
 
 #include "CPPElement.h"
 #include "ICPPVariablesContainerElement.h"
+#include "UsedTypeOrExpression.h"
 
 #include <string>
 #include <map>
@@ -31,7 +32,20 @@ public:
 										const TypedParameterList& inParametersList,
 										bool inHasElipsis,
 										bool inIsPure,
+										const UsedTypeOrExpressionList& inTemplateSpecializationList,
+										bool inIsTemplateInstantiation,
 										bool inIsDefinition);
+	virtual CPPFunction* CreateFunctionTemplate(const string& inFunctionName,
+										bool inIsVirtual,
+										bool inIsStatic,
+										UsedTypeDescriptor* inReturnType,
+										const TypedParameterList& inParametersList,
+										bool inHasElipsis,
+										bool inIsPure,
+										bool inIsDefinition,
+										const CPPElementList& inTemplateParameters,
+										const UsedTypeOrExpressionList& inTemplateSpecializationList);
+
 
 	CPPElement* FindElement(const string& inElementName); 
 

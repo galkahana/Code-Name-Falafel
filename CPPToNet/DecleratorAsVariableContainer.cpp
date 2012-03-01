@@ -120,18 +120,24 @@ void DecleratorAsVariableContainer::SetupFunctionPointerReturnTypeDeclerator(
 }
 
 
-EStatusCode DecleratorAsVariableContainer::FinalizeFunctionDefinition(bool inIsDefinition)
+EStatusCode DecleratorAsVariableContainer::FinalizeFunctionDefinition(const UsedTypeOrExpressionList& inTemplateSpecializationList,bool inIsTemplateInstantiation,bool inIsDefinition)
 {
 	if(!mReturnType) // return type may have been set, in the case of function pointer return type
 		mReturnType = new UsedTypeDescriptor(mType,mIsAuto,mIsRegister,mIsExtern,mIsConst,mIsVolatile,false);
 
-	CPPFunction* aFunction = mStorage->CreateFunction(mFunctionName,mIsVirtual,mIsStatic,mReturnType,mDeclaredParameters,mHasElipsis,mIsPure,inIsDefinition);
+	CPPFunction* aFunction = mStorage->CreateFunction(mFunctionName,mIsVirtual,mIsStatic,mReturnType,mDeclaredParameters,mHasElipsis,mIsPure,inTemplateSpecializationList,inIsTemplateInstantiation,inIsDefinition);
 	
 	if(aFunction)
 		return eSuccess;
 
 	// if failed - move to cleanup
+	CleanupFunction();
 
+	return eFailure;
+}
+
+void DecleratorAsVariableContainer::CleanupFunction()
+{
 	// kill return type
 	delete mReturnType;
 	mReturnType = NULL;
@@ -142,6 +148,20 @@ EStatusCode DecleratorAsVariableContainer::FinalizeFunctionDefinition(bool inIsD
 	for(; it != mDeclaredParameters.end(); ++it)
 		delete *it;
 	mDeclaredParameters.clear();
+}
+
+EStatusCode DecleratorAsVariableContainer::FinalizeFunctionTemplateDefinition(const CPPElementList& inTemplateParameters,const UsedTypeOrExpressionList& inTemplateSpecializationList,bool inIsDefinition)
+{
+	if(!mReturnType) // return type may have been set, in the case of function pointer return type
+		mReturnType = new UsedTypeDescriptor(mType,mIsAuto,mIsRegister,mIsExtern,mIsConst,mIsVolatile,false);
+
+	CPPFunction* aFunction = mStorage->CreateFunctionTemplate(mFunctionName,mIsVirtual,mIsStatic,mReturnType,mDeclaredParameters,mHasElipsis,mIsPure,inIsDefinition,inTemplateParameters,inTemplateSpecializationList);
+	
+	if(aFunction)
+		return eSuccess;
+
+	// if failed - move to cleanup
+	CleanupFunction();
 
 	return eFailure;
 }
@@ -208,7 +228,7 @@ EStatusCode DecleratorAsVariableContainer::FinalizeFunctionPointerDefinition()
 	return eFailure;
 }
 
-TypedParameter* DecleratorAsVariableContainer::CreateParameter(const string& inParameterName,
+EStatusCode DecleratorAsVariableContainer::CreateParameter(const string& inParameterName,
 															     UsedTypeDescriptor* inParameterType)
 {
 	if(mIsFunctionDefinitionParametersImplementation)
@@ -218,7 +238,7 @@ TypedParameter* DecleratorAsVariableContainer::CreateParameter(const string& inP
 		newParameter->Name = inParameterName;
 
 		mDeclaredParameters.push_back(newParameter);
-		return newParameter;
+		return eSuccess;
 	}
 	else
 	{

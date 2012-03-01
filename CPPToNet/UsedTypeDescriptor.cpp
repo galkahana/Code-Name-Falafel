@@ -2,6 +2,9 @@
 #include "CPPElement.h"
 #include "Trace.h"
 #include "CPPTypedef.h"
+#include "CPPTemplateTemplateParameter.h"
+#include "CPPTemplateTypename.h"
+#include "CPPTemplateValue.h"
 
 using namespace Hummus;
 
@@ -103,11 +106,25 @@ bool FieldTypeDescriptor::IsEqual(FieldTypeDescriptor* inOtherDescriptor)
 		return false;
 
 	// typedefs should be internally compared, being only aliases. anything else, should just have pointer comparison
-	if(mType->Type == CPPElement::eCPPElementTypedef)
-		return ((CPPTypedef*)mType)->IsEqual((CPPTypedef*)inOtherDescriptor->mType);
-	else
-		return mType == mType;
-	return isEqual;
+	// templates have their own equivalence rules
+	switch(mType->Type)
+	{
+		case CPPElement::eCPPElementTypedef:
+			isEqual =  ((CPPTypedef*)mType)->IsEqual((CPPTypedef*)inOtherDescriptor->mType);
+			break;
+		case CPPElement::eCPPElemeentTemplateTemplateParameter:
+			isEqual	= ((CPPTemplateTemplateParameter*)mType)->IsEqual((CPPTemplateTemplateParameter*)inOtherDescriptor->mType);
+			break;
+		case CPPElement::eCPPElemeentTemplateTypename:
+			isEqual	= ((CPPTemplateTypename*)mType)->IsEqual((CPPTemplateTypename*)inOtherDescriptor->mType);
+			break;
+		case CPPElement::eCPPElementTemplateValue:
+			isEqual	= ((CPPTemplateValue*)mType)->IsEqual((CPPTemplateValue*)inOtherDescriptor->mType);
+			break;
+		default:
+			isEqual = (mType == inOtherDescriptor->mType);
+
+	}
 }
 
 FieldTypeDescriptor* FieldTypeDescriptor::Clone()
@@ -144,14 +161,14 @@ void FunctionPointerTypeDescriptor::AppendModifiersForFunctionPointerReturnType(
 }
 
 
-TypedParameter* FunctionPointerTypeDescriptor::CreateParameter(const string& inParameterName,UsedTypeDescriptor* inParameterType)
+Hummus::EStatusCode FunctionPointerTypeDescriptor::CreateParameter(const string& inParameterName,UsedTypeDescriptor* inParameterType)
 {
 	TypedParameter* newParameter = new TypedParameter();
 	newParameter->Type = inParameterType;
 	newParameter->Name = inParameterName;
 
 	mDeclaredParameters.push_back(newParameter);
-	return newParameter;
+	return eSuccess;
 }
 
 ICPPFunctionPointerDeclerator::EFunctionPointerType FunctionPointerTypeDescriptor::GetPointerType()

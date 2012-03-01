@@ -1,9 +1,17 @@
 #pragma once
 #include "DeclaratorModifier.h"
+#include "UsedTypeOrExpression.h"
+
+#include <string>
+#include <list>
+
+using namespace std;
 
 class ICPPParametersContainer;
 class UsedTypeDescriptor;
 class FunctionPointerReturnTypeDeclerator;
+
+typedef list<CPPElement*> CPPElementList;
 
 class ICPPFunctionDefinitionDeclerator
 {
@@ -14,9 +22,10 @@ public:
 	virtual void AppendModifiersForFunctionDefinitionReturnType(const DeclaratorModifierList& inModifiers) = 0;
 	virtual void SetFunctionDefinitionHasElipsis() = 0;
 	virtual void SetPureFunction() = 0;
-	virtual Hummus::EStatusCode FinalizeFunctionDefinition(bool inIsDefinition) = 0; // as oppose to just mere decleration
+	virtual Hummus::EStatusCode FinalizeFunctionDefinition(const UsedTypeOrExpressionList& inTemplateSpecializationList,bool inIsTemplateInstantiation,bool inIsDefinition) = 0;
+	virtual Hummus::EStatusCode FinalizeFunctionTemplateDefinition(const CPPElementList& inTemplateParameters,const UsedTypeOrExpressionList& inTemplateSpecializationList,bool inIsDefinition) = 0; 
 	
-	// specifc (at least now) for function pointer return value
+	// specific (at least now) for function pointer return value
 	
 	// setup an external object with the return type definitions (which actually are meant to be its return type)
 	// and reset them for this object
