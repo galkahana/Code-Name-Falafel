@@ -57,8 +57,18 @@ AbstractCPPContainer::~AbstractCPPContainer(void)
 	{
 		CPPFunctionList::iterator itFunctions = itFunctionLists->second.begin();
 		for(; itFunctions != itFunctionLists->second.end(); ++itFunctions)
-		if(mAliases.find(*itFunctions) == mAliases.end())
-			delete *itFunctions;
+			if(mAliases.find(*itFunctions) == mAliases.end())
+				delete *itFunctions;
+
+	}
+
+	itFunctionLists = mFunctionTemplateInstances.begin();
+	for(; itFunctionLists != mFunctionTemplates.end(); ++itFunctionLists)
+	{
+		CPPFunctionList::iterator itFunctions = itFunctionLists->second.begin();
+		for(; itFunctions != itFunctionLists->second.end(); ++itFunctions)
+			if(mAliases.find(*itFunctions) == mAliases.end())
+				delete *itFunctions;
 
 	}
 
@@ -67,10 +77,38 @@ AbstractCPPContainer::~AbstractCPPContainer(void)
 		if(mAliases.find(itClasses->second) == mAliases.end())
 			delete itClasses->second;
 
+	StringToCPPClassMap::iterator itClassTemplates = mClassTemplates.begin();
+	for(; itClassTemplates!= mClassTemplates.end(); ++itClassTemplates)
+		if(mAliases.find(itClassTemplates->second) == mAliases.end())
+			delete itClassTemplates->second;
+
+	StringToCPPClassListMap::iterator itClassSpecializations = mClassTemplateSpecializations.begin();
+	for(; itClassSpecializations != mClassTemplateSpecializations.end(); ++itClassSpecializations)
+	{
+		CPPClassList::iterator itClassTemplatSpecializations = itClassSpecializations->second.begin();
+		for(; itClassTemplatSpecializations != itClassSpecializations->second.end(); ++itClassTemplatSpecializations)
+			if(mAliases.find(*itClassTemplatSpecializations) == mAliases.end())
+				delete *itClassTemplatSpecializations;
+	}
+
 	StringToCPPStructMap::iterator itStructs = mStructs.begin();
 	for(; itStructs != mStructs.end(); ++itStructs)
 		if(mAliases.find(itStructs->second) == mAliases.end())
 			delete itStructs->second;
+
+	StringToCPPStructMap::iterator itStructTemplates = mStructTemplates.begin();
+	for(; itStructTemplates!= mStructTemplates.end(); ++itStructTemplates)
+		if(mAliases.find(itStructTemplates->second) == mAliases.end())
+			delete itStructTemplates->second;
+
+	StringToCPPStructListMap::iterator itStructSpecializations = mStructTemplateSpecializations.begin();
+	for(; itStructSpecializations != mStructTemplateSpecializations.end(); ++itStructSpecializations)
+	{
+		CPPStructList::iterator itStructTemplatSpecializations = itStructSpecializations->second.begin();
+		for(; itStructTemplatSpecializations != itStructSpecializations->second.end(); ++itStructTemplatSpecializations)
+			if(mAliases.find(*itStructTemplatSpecializations) == mAliases.end())
+				delete *itStructTemplatSpecializations;
+	}
 
 	// Enumerator values are owned by their respective enumerators - so don't delete the map that contains them here.
 }
@@ -114,9 +152,21 @@ CPPElementList AbstractCPPContainer::FindElements(const string& inElementName)
 	if(itClasses != mClasses.end())
 		result.push_back(itClasses->second);
 
+	StringToCPPClassMap::iterator itClassTemplates = mClassTemplates.find(inElementName);
+	if(itClassTemplates != mClassTemplates.end())
+		result.push_back(itClassTemplates->second);
+
+
 	StringToCPPStructMap::iterator itStructs = mStructs.find(inElementName);
 	if(itStructs != mStructs.end())
 		result.push_back(itStructs->second);
+
+
+	StringToCPPStructMap::iterator itStructTemplates = mStructTemplates.find(inElementName);
+	if(itStructTemplates != mStructTemplates.end())
+		result.push_back(itStructTemplates->second);
+
+	// Note that not looking for class/struct template specializations! this is important. want to fetch the main template, always. 
 
 	return result;
 }
@@ -194,32 +244,17 @@ Hummus::EStatusCode AbstractCPPContainer::DefineAlias(const string& inAlias,CPPE
 			{
 				CPPFunction* aliasElement = (CPPFunction*)inNewElement;
 				CPPFunction* createdElement = aliasElement->IsFunctionTemplate() ?
-
-													(
-														aliasElement->GetFunctionTemplateParameters().size() == 0 ?
-
-															AppendFunctionTemplateSpecialization(inAlias,
-																		aliasElement->IsVirtual(),
-																		aliasElement->IsStatic(),
-																		aliasElement->GetReturnType(),
-																		aliasElement->GetDeclaredParameterList(),
-																		aliasElement->HasElipsis(),
-																		aliasElement->IsPure(),
-																		aliasElement->IsDefinition(),
-																		aliasElement->GetFunctionTemplateSpecializationParametrs(),
-																		aliasElement) :
-															AppendFunctionTemplate(inAlias,
-																		aliasElement->IsVirtual(),
-																		aliasElement->IsStatic(),
-																		aliasElement->GetReturnType(),
-																		aliasElement->GetDeclaredParameterList(),
-																		aliasElement->HasElipsis(),
-																		aliasElement->IsPure(),
-																		aliasElement->IsDefinition(),
-																		aliasElement->GetFunctionTemplateParameters(),
-																		aliasElement)
-													) :
-
+													AppendFunctionTemplate(inAlias,
+																	aliasElement->IsVirtual(),
+																	aliasElement->IsStatic(),
+																	aliasElement->GetReturnType(),
+																	aliasElement->GetDeclaredParameterList(),
+																	aliasElement->HasElipsis(),
+																	aliasElement->IsPure(),
+																	aliasElement->GetFunctionTemplateParameters(),
+																	aliasElement->GetFunctionTemplateSpecializationParametrs(),
+																	aliasElement->IsDefinition(),
+																	aliasElement) :
 													AppendFunction(	
 																inAlias,
 																aliasElement->IsVirtual(),
@@ -229,7 +264,6 @@ Hummus::EStatusCode AbstractCPPContainer::DefineAlias(const string& inAlias,CPPE
 																aliasElement->HasElipsis(),
 																aliasElement->IsPure(),
 																aliasElement->GetFunctionTemplateSpecializationParametrs(),
-																aliasElement->IsTemplateInsantiation(),
 																aliasElement->IsDefinition(),
 																aliasElement);
 			
@@ -243,7 +277,16 @@ Hummus::EStatusCode AbstractCPPContainer::DefineAlias(const string& inAlias,CPPE
 		case CPPElement::eCPPElementClass:
 			{
 				CPPClass* aliasElement = (CPPClass*)inNewElement;
-				CPPClass* createdElement = AppendClass(inAlias,aliasElement->IsDefinition(),aliasElement);
+				CPPClass* createdElement = aliasElement->IsTemplate() ?
+											AppendClassTemplate(inAlias,
+																aliasElement->GetTemplateParameters(),
+																aliasElement->GetTemplateParameterAssignments(),
+																aliasElement->IsDefinition(),
+																aliasElement) :
+					
+											AppendClass(inAlias,
+														aliasElement->IsDefinition(),
+														aliasElement);
 			
 				if(createdElement != aliasElement)
 				{
@@ -256,7 +299,16 @@ Hummus::EStatusCode AbstractCPPContainer::DefineAlias(const string& inAlias,CPPE
 		case CPPElement::eCPPElementStruct:
 			{
 				CPPStruct* aliasElement = (CPPStruct*)inNewElement;
-				CPPStruct* createdElement = AppendStruct(inAlias,aliasElement->IsDefinition(),aliasElement);
+				CPPStruct* createdElement = aliasElement->IsTemplate() ?
+											AppendStructTemplate(inAlias,
+																aliasElement->GetTemplateParameters(),
+																aliasElement->GetTemplateParameterAssignments(),
+																aliasElement->IsDefinition(),
+																aliasElement) :
+					
+											AppendStruct(inAlias,
+														aliasElement->IsDefinition(),
+														aliasElement);
 			
 				if(createdElement != aliasElement)
 				{
@@ -575,10 +627,9 @@ CPPFunction* AbstractCPPContainer::CreateFunction(const string& inFunctionName,
 										bool inHasElipsis,
 										bool inIsPure,
 										const UsedTypeOrExpressionList& inTemplateSpecializationList,
-										bool inIsTemplateInstantiation,
 										bool inIsDefinition)
 {
-	return AppendFunction(inFunctionName,inIsVirtual,inIsStatic,inReturnTypeDescriptor,inParametersList,inHasElipsis,inIsPure,inTemplateSpecializationList,inIsTemplateInstantiation,inIsDefinition,NULL);
+	return AppendFunction(inFunctionName,inIsVirtual,inIsStatic,inReturnTypeDescriptor,inParametersList,inHasElipsis,inIsPure,inTemplateSpecializationList,inIsDefinition,NULL);
 }
 
 CPPFunction* AbstractCPPContainer::AppendFunction(const string& inFunctionName,
@@ -588,8 +639,7 @@ CPPFunction* AbstractCPPContainer::AppendFunction(const string& inFunctionName,
 										const TypedParameterList& inParametersList,
 										bool inHasElipsis,		
 										bool inIsPure,
-										const UsedTypeOrExpressionList& inTemplateSpecializationList,
-										bool inIsTemplateInstantiation,
+										const UsedTypeOrExpressionList& inTemplateAssignmentList,
 										bool inIsDefinition,
 										CPPFunction* inFunction)
 {
@@ -613,8 +663,7 @@ CPPFunction* AbstractCPPContainer::AppendFunction(const string& inFunctionName,
 
 			if((*it)->Type == CPPElement::eCPPElementFunction && 
 				!((CPPFunction*)(*it))->IsFunctionTemplate() &&
-				!inIsTemplateInstantiation &&
-				!((CPPFunction*)(*it))->IsTemplateInsantiation())
+				!(inTemplateAssignmentList.size() > 0))
 			{
 				// compare the parameter list to see if same overload
 				CPPFunction* otherFunction = (CPPFunction*)(*it);
@@ -678,7 +727,7 @@ CPPFunction* AbstractCPPContainer::AppendFunction(const string& inFunctionName,
 			}
 			else if((*it)->Type == CPPElement::eCPPElementFunction)
 			{
-				// allow functions and function template to share names
+				// allow functions, functions instances and function template to share names
 				continue;
 			}
 			else if((*it)->Type >= CPPElement::eCPPTypenames)
@@ -695,16 +744,46 @@ CPPFunction* AbstractCPPContainer::AppendFunction(const string& inFunctionName,
 			return hasDefinedFunction;
 	}
 
-	StringToCPPFunctionListMap::iterator it = mFunctions.find(inFunctionName);
-	if(it == mFunctions.end())
-		it = mFunctions.insert(StringToCPPFunctionListMap::value_type(inFunctionName, CPPFunctionList())).first;
+	if(inTemplateAssignmentList.size() > 0)
+	{
+		StringToCPPFunctionListMap::iterator it = mFunctionTemplateInstances.find(inFunctionName);
+		if(it == mFunctions.end())
+			it = mFunctions.insert(StringToCPPFunctionListMap::value_type(inFunctionName, CPPFunctionList())).first;
 
-	CPPFunction* aFunction = inFunction ? inFunction : 
-		(inIsTemplateInstantiation ? 
-			new CPPFunction(inFunctionName,inIsStatic,inIsVirtual,inReturnTypeDescriptor,inParametersList,inHasElipsis,inIsPure,inIsDefinition,inTemplateSpecializationList) :
-			new CPPFunction(inFunctionName,inIsStatic,inIsVirtual,inReturnTypeDescriptor,inParametersList,inHasElipsis,inIsPure,inIsDefinition));
-	it->second.push_back(aFunction);
-	return aFunction;
+		CPPFunction* aFunction = inFunction ? 
+								inFunction : 
+								new CPPFunction(inFunctionName,
+												inIsStatic,
+												inIsVirtual,
+												inReturnTypeDescriptor,
+												inParametersList,
+												inHasElipsis,
+												inIsPure,
+												inIsDefinition,
+												inTemplateAssignmentList);
+		it->second.push_back(aFunction);
+		return aFunction;
+	}
+	else
+	{
+		StringToCPPFunctionListMap::iterator it = mFunctions.find(inFunctionName);
+		if(it == mFunctions.end())
+			it = mFunctions.insert(StringToCPPFunctionListMap::value_type(inFunctionName, CPPFunctionList())).first;
+
+
+		CPPFunction* aFunction = inFunction ? 
+								inFunction : 
+								new CPPFunction(inFunctionName,
+												inIsStatic,
+												inIsVirtual,
+												inReturnTypeDescriptor,
+												inParametersList,
+												inHasElipsis,
+												inIsPure,
+												inIsDefinition);
+		it->second.push_back(aFunction);
+		return aFunction;
+	}
 }
 
 bool AbstractCPPContainer::IsEquivalentParametersList(const TypedParameterList& inParametersListLeft,const TypedParameterList& inParametersListRight)
@@ -731,14 +810,11 @@ CPPFunction* AbstractCPPContainer::CreateFunctionTemplate(
 														const TypedParameterList& inParametersList,
 														bool inHasElipsis,
 														bool inIsPure,
-														bool inIsDefinition,
 														const CPPElementList& inTemplateParameters,
-														const UsedTypeOrExpressionList& inTemplateParametersSpecialization)
+														const UsedTypeOrExpressionList& inTemplateParametersSpecialization,
+														bool inIsDefinition)
 {
-	if(inTemplateParameters.size() == 0)
-		return AppendFunctionTemplateSpecialization(inFunctionName,inIsVirtual,inIsStatic,inReturnTypeDescriptor,inParametersList,inHasElipsis,inIsPure,inIsDefinition,inTemplateParametersSpecialization,NULL);
-	else
-		return AppendFunctionTemplate(inFunctionName,inIsVirtual,inIsStatic,inReturnTypeDescriptor,inParametersList,inHasElipsis,inIsPure,inIsDefinition,inTemplateParameters,NULL);
+	return AppendFunctionTemplate(inFunctionName,inIsVirtual,inIsStatic,inReturnTypeDescriptor,inParametersList,inHasElipsis,inIsPure,inTemplateParameters,inTemplateParametersSpecialization,inIsDefinition,NULL);
 }
 
 CPPFunction* AbstractCPPContainer::AppendFunctionTemplate(const string& inFunctionName,
@@ -748,8 +824,9 @@ CPPFunction* AbstractCPPContainer::AppendFunctionTemplate(const string& inFuncti
 										const TypedParameterList& inParametersList,
 										bool inHasElipsis,		
 										bool inIsPure,
-										bool inIsDefinition,
 										const CPPElementList& inTemplateParameters,
+										const UsedTypeOrExpressionList& inTemplateParametersSpecialization,
+										bool inIsDefinition,
 										CPPFunction* inFunctionTemplate)
 {
 	CPPElementList existingElements = FindElements(inFunctionName);
@@ -851,7 +928,29 @@ CPPFunction* AbstractCPPContainer::AppendFunctionTemplate(const string& inFuncti
 	if(it == mFunctionTemplates.end())
 		it = mFunctionTemplates.insert(StringToCPPFunctionListMap::value_type(inFunctionName, CPPFunctionList())).first;
 
-	CPPFunction* aFunction = inFunctionTemplate ? inFunctionTemplate : new CPPFunction(inFunctionName,inIsStatic,inIsVirtual,inReturnTypeDescriptor,inParametersList,inHasElipsis,inIsPure,inIsDefinition,inTemplateParameters);
+	CPPFunction* aFunction = inFunctionTemplate ? 
+							inFunctionTemplate : 
+							(inTemplateParametersSpecialization.size() > 0 ?
+								new CPPFunction(inFunctionName,
+											inIsStatic,
+											inIsVirtual,
+											inReturnTypeDescriptor,
+											inParametersList,
+											inHasElipsis,
+											inIsPure,
+											inIsDefinition,
+											inTemplateParameters) :
+								new CPPFunction(inFunctionName,
+											inIsStatic,
+											inIsVirtual,
+											inReturnTypeDescriptor,
+											inParametersList,
+											inHasElipsis,
+											inIsPure,
+											inIsDefinition,
+											inTemplateParameters,
+											inTemplateParametersSpecialization)
+								);
 	it->second.push_back(aFunction);
 	return aFunction;
 }
@@ -919,77 +1018,20 @@ bool AbstractCPPContainer::IsEquivalentTemplateParametersList(const CPPElementLi
 	return sameTemplate;
 }
 
-CPPFunction* AbstractCPPContainer::AppendFunctionTemplateSpecialization(											
-											const string& inFunctionName,
-											bool inIsVirtual,
-											bool inIsStatic,											
-											UsedTypeDescriptor* inReturnTypeDescriptor,
-											const TypedParameterList& inParametersList,
-											bool inHasElipsis,		
-											bool inIsPure,
-											bool inIsDefinition,
-											const UsedTypeOrExpressionList& inTemplateParametersSpecialization,
-											CPPFunction* inFunctionTemplate)
-{
-	// k. function template specializations is where i get off.
-	// i'm just gonna store them, not validating no nothing.
-	// i ain't gonna do anything with templates anyways, so it's just for the sake of being
-	// able to succesfuly parse. so just do minimal checks, and add them
-
-	CPPElementList existingElements = FindElements(inFunctionName);
-
-	if(existingElements.size() > 0)
-	{
-
-		// function templates are much like functions, only they also have the template parameters to check, according to the rules of specialization
-
-		bool hasProblematicDefinition = false;
-		CPPElementList::iterator it = existingElements.begin();
-
-		for(; it != existingElements.end(); ++it)
-		{
-
-			if((*it)->Type == CPPElement::eCPPElementFunction)
-			{
-				continue; // allow any recurrance of function or function template. a more powerful parser would go into details here and validate, and check...and determine definition from declarations...
-			}
-			else if((*it)->Type >= CPPElement::eCPPTypenames)
-			{
-				hasProblematicDefinition = true;
-				break;
-			}
-		}
-
-		if(hasProblematicDefinition)
-			return NULL;
-	}
-
-	StringToCPPFunctionListMap::iterator it = mFunctionTemplates.find(inFunctionName);
-	if(it == mFunctionTemplates.end())
-		it = mFunctionTemplates.insert(StringToCPPFunctionListMap::value_type(inFunctionName, CPPFunctionList())).first;
-
-	CPPFunction* aFunction = inFunctionTemplate ? inFunctionTemplate : new CPPFunction(inFunctionName,inIsStatic,inIsVirtual,inReturnTypeDescriptor,inParametersList,inHasElipsis,inIsPure,inIsDefinition,inTemplateParametersSpecialization);
-	it->second.push_back(aFunction);
-	return aFunction;
-}
-
 CPPClass* AbstractCPPContainer::CreateClass(const string& inClassName,
 											bool inIsDefinition)
 {
 	return AppendClass(inClassName,inIsDefinition,NULL);
 }
 
-CPPClass* AbstractCPPContainer::AppendClass(const string& inClassName,
-											bool inIsDefinition,
-											CPPClass* inClass)
+CPPClass* AbstractCPPContainer::AppendClass(  const string& inClassName,
+											  bool inIsDefinition,
+											  CPPClass* inClass)
 {
 	CPPElementList existingElements = FindElements(inClassName);
 
 	if(existingElements.size() > 0)
 	{
-		// for enumerators, the following is true:
-		// other values (functions, variables) can share it's name. types cannot.
-		// there may be multiple declerations but only one definition
 
 		bool hasProblematicDefinition = false;
 		CPPClass* hadDefinedClass = NULL;
@@ -997,13 +1039,13 @@ CPPClass* AbstractCPPContainer::AppendClass(const string& inClassName,
 
 		for(; it != existingElements.end(); ++it)
 		{
-			if((*it)->Type == CPPElement::eCPPElementClass)
+			if((*it)->Type == CPPElement::eCPPElementClass && !((CPPClass*)(*it))->IsTemplate())
 			{
 				CPPClass* otherClass = (CPPClass*)(*it);
 
 				if(otherClass->IsDefinition() && inIsDefinition)
 				{
-					TRACE_LOG1("AbstractCPPContainer::CreateClass, problem when creating a new class declaration/definition. multiple definitons exist for a class. This is not allowed. for class %s",inClassName.c_str());
+					TRACE_LOG1("AbstractCPPContainer::AppendClass, problem when creating a new class declaration/definition. multiple definitons exist for a class. This is not allowed. for class %s",inClassName.c_str());
 					hasProblematicDefinition = true;
 					break;
 				}
@@ -1033,23 +1075,100 @@ CPPClass* AbstractCPPContainer::AppendClass(const string& inClassName,
 	return mClasses.insert(StringToCPPClassMap::value_type(inClassName,inClass ? inClass : new CPPClass(inClassName,inIsDefinition))).first->second;
 }
 
+CPPClass* AbstractCPPContainer::CreateClassTemplate(
+								const string& inClassName,
+								const CPPElementList& inTemplateParameters,
+								const UsedTypeOrExpressionList& inTemplateParametersSpecialization,
+								bool inIsDefinition)
+{
+	return AppendClassTemplate(inClassName,inTemplateParameters,inTemplateParametersSpecialization,inIsDefinition,NULL);
+}
+
+CPPClass* AbstractCPPContainer::AppendClassTemplate(  
+	  										    const string& inClassName,
+												const CPPElementList& inTemplateParameters,
+												const UsedTypeOrExpressionList& inTemplateAssigmentList,
+												bool inIsDefinition,
+												CPPClass* inClass)
+{
+	CPPElementList existingElements = FindElements(inClassName);
+
+	if(existingElements.size() > 0)
+	{
+
+		bool hasProblematicDefinition = false;
+		CPPClass* hadDefinedClass = NULL;
+		CPPElementList::iterator it = existingElements.begin();
+
+		for(; it != existingElements.end(); ++it)
+		{
+			if((*it)->Type == CPPElement::eCPPElementClass && ((CPPClass*)(*it))->IsTemplate())
+			{
+				if(inTemplateAssigmentList.size() > 0)
+					continue; // if the new object is specialization...always allow
+
+				CPPClass* otherClass = (CPPClass*)(*it);
+
+				if(otherClass->IsDefinition() && inIsDefinition)
+				{
+					TRACE_LOG1("AbstractCPPContainer::AppendClassTemplate, problem when creating a new class declaration/definition. multiple definitons exist for a class. This is not allowed. for class %s",inClassName.c_str());
+					hasProblematicDefinition = true;
+					break;
+				}
+
+				if(inIsDefinition)
+					otherClass->SetIsDefinition();
+
+				hadDefinedClass = otherClass;
+
+			}
+			else if (	(*it)->Type <= CPPElement::eCPPTypenames || 
+						(*it)->Type == CPPElement::eCPPElementPrimitive  ||
+						(*it)->Type == CPPElement::eCPPElementNamespace)
+			{
+				hasProblematicDefinition = true;
+				break;
+			}
+		}
+
+		if(hasProblematicDefinition)
+			return NULL;
+
+		if(hadDefinedClass)
+			return hadDefinedClass;
+	}
+
+	if(inTemplateAssigmentList.size() > 0)
+	{
+		// specializations go into their own owner
+		StringToCPPClassListMap::iterator itSpecialization = mClassTemplateSpecializations.find(inClassName);
+		if(itSpecialization == mClassTemplateSpecializations.end())
+			itSpecialization = mClassTemplateSpecializations.insert(StringToCPPClassListMap::value_type(inClassName,CPPClassList())).first;
+		CPPClass* aClass = inClass ? inClass:new CPPClass(inClassName,inTemplateParameters,inIsDefinition);
+		itSpecialization->second.push_back(aClass);
+		return aClass;
+	}
+	else
+		return mClassTemplates.insert(StringToCPPClassMap::value_type(inClassName,inClass ? 
+									inClass:new CPPClass(inClassName,inTemplateParameters,inIsDefinition))).first->second;
+
+}
+
+
 CPPStruct* AbstractCPPContainer::CreateStruct(const string& inStructName,
-												bool inIsDefinition)
+											bool inIsDefinition)
 {
 	return AppendStruct(inStructName,inIsDefinition,NULL);
 }
 
-CPPStruct* AbstractCPPContainer::AppendStruct(const string& inStructName,
-											bool inIsDefinition,
-											CPPStruct* inStruct)
+CPPStruct* AbstractCPPContainer::AppendStruct( const string& inStructName,
+											  bool inIsDefinition,
+											  CPPStruct* inStruct)
 {
 	CPPElementList existingElements = FindElements(inStructName);
 
 	if(existingElements.size() > 0)
 	{
-		// for enumerators, the following is true:
-		// other values (functions, variables) can share it's name. types cannot.
-		// there may be multiple declerations but only one definition
 
 		bool hasProblematicDefinition = false;
 		CPPStruct* hadDefinedStruct = NULL;
@@ -1057,13 +1176,13 @@ CPPStruct* AbstractCPPContainer::AppendStruct(const string& inStructName,
 
 		for(; it != existingElements.end(); ++it)
 		{
-			if((*it)->Type == CPPElement::eCPPElementStruct)
+			if((*it)->Type == CPPElement::eCPPElementStruct && !((CPPStruct*)(*it))->IsTemplate())
 			{
 				CPPStruct* otherStruct = (CPPStruct*)(*it);
 
 				if(otherStruct->IsDefinition() && inIsDefinition)
 				{
-					TRACE_LOG1("AbstractCPPContainer::CreateStruct, problem when creating a new struct declaration/definition. multiple definitons exist for a struct. This is not allowed. for struct %s",inStructName.c_str());
+					TRACE_LOG1("AbstractCPPContainer::AppendStruct, problem when creating a new Struct declaration/definition. multiple definitons exist for a Struct. This is not allowed. for Struct %s",inStructName.c_str());
 					hasProblematicDefinition = true;
 					break;
 				}
@@ -1093,4 +1212,81 @@ CPPStruct* AbstractCPPContainer::AppendStruct(const string& inStructName,
 	return mStructs.insert(StringToCPPStructMap::value_type(inStructName,inStruct ? inStruct : new CPPStruct(inStructName,inIsDefinition))).first->second;
 }
 
+CPPStruct* AbstractCPPContainer::CreateStructTemplate(
+								const string& inStructName,
+								const CPPElementList& inTemplateParameters,
+								const UsedTypeOrExpressionList& inTemplateParametersSpecialization,
+								bool inIsDefinition)
+{
+	return AppendStructTemplate(inStructName,inTemplateParameters,inTemplateParametersSpecialization,inIsDefinition,NULL);
+}
 
+CPPStruct* AbstractCPPContainer::AppendStructTemplate(  
+	  										    const string& inStructName,
+												const CPPElementList& inTemplateParameters,
+												const UsedTypeOrExpressionList& inTemplateAssigmentList,
+												bool inIsDefinition,
+												CPPStruct* inStruct)
+{
+	CPPElementList existingElements = FindElements(inStructName);
+
+	if(existingElements.size() > 0)
+	{
+
+		bool hasProblematicDefinition = false;
+		CPPStruct* hadDefinedStruct = NULL;
+		CPPElementList::iterator it = existingElements.begin();
+
+		for(; it != existingElements.end(); ++it)
+		{
+			if((*it)->Type == CPPElement::eCPPElementStruct && ((CPPStruct*)(*it))->IsTemplate())
+			{
+				if(inTemplateAssigmentList.size() > 0)
+					continue; // if the new object is specialization...always allow
+
+				CPPStruct* otherStruct = (CPPStruct*)(*it);
+
+				if(otherStruct->IsDefinition() && inIsDefinition)
+				{
+					TRACE_LOG1("AbstractCPPContainer::AppendStructTemplate, problem when creating a new Struct declaration/definition. multiple definitons exist for a Struct. This is not allowed. for Struct %s",inStructName.c_str());
+					hasProblematicDefinition = true;
+					break;
+				}
+
+				if(inIsDefinition)
+					otherStruct->SetIsDefinition();
+
+				hadDefinedStruct = otherStruct;
+
+			}
+			else if (	(*it)->Type <= CPPElement::eCPPTypenames || 
+						(*it)->Type == CPPElement::eCPPElementPrimitive  ||
+						(*it)->Type == CPPElement::eCPPElementNamespace)
+			{
+				hasProblematicDefinition = true;
+				break;
+			}
+		}
+
+		if(hasProblematicDefinition)
+			return NULL;
+
+		if(hadDefinedStruct)
+			return hadDefinedStruct;
+	}
+
+	if(inTemplateAssigmentList.size() > 0)
+	{
+		// specializations go into their own owner
+		StringToCPPStructListMap::iterator itSpecialization = mStructTemplateSpecializations.find(inStructName);
+		if(itSpecialization == mStructTemplateSpecializations.end())
+			itSpecialization = mStructTemplateSpecializations.insert(StringToCPPStructListMap::value_type(inStructName,CPPStructList())).first;
+		CPPStruct* aStruct = inStruct ? inStruct:new CPPStruct(inStructName,inTemplateParameters,inIsDefinition);
+		itSpecialization->second.push_back(aStruct);
+		return aStruct;
+	}
+	else
+		return mStructTemplates.insert(StringToCPPStructMap::value_type(inStructName,inStruct ? 
+									inStruct:new CPPStruct(inStructName,inTemplateParameters,inIsDefinition))).first->second;
+
+}

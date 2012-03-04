@@ -22,7 +22,7 @@ public:
 	virtual void AppendModifiersForFunctionDefinitionReturnType(const DeclaratorModifierList& inModifiers) = 0;
 	virtual void SetFunctionDefinitionHasElipsis() = 0;
 	virtual void SetPureFunction() = 0;
-	virtual Hummus::EStatusCode FinalizeFunctionDefinition(const UsedTypeOrExpressionList& inTemplateSpecializationList,bool inIsTemplateInstantiation,bool inIsDefinition) = 0;
+	virtual Hummus::EStatusCode FinalizeFunctionDefinition(const UsedTypeOrExpressionList& inTemplateSpecializationList,bool inIsDefinition) = 0;
 	virtual Hummus::EStatusCode FinalizeFunctionTemplateDefinition(const CPPElementList& inTemplateParameters,const UsedTypeOrExpressionList& inTemplateSpecializationList,bool inIsDefinition) = 0; 
 	
 	// specific (at least now) for function pointer return value

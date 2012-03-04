@@ -18,6 +18,8 @@ public:
 		eCPPElementStruct,
 		eCPPElemeentTemplateTypename,
 		eCPPElemeentTemplateTemplateParameter,
+		eCPPElementClassTemplateInstance,
+		eCPPElementStructTemplateInstance,
 		eCPPTypenames, // just a marker for typenames
 		// values
 		eCPPElementNamespace,

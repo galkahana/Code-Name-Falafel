@@ -32,8 +32,7 @@ public:
 										const TypedParameterList& inParametersList,
 										bool inHasElipsis,
 										bool inIsPure,
-										const UsedTypeOrExpressionList& inTemplateSpecializationList,
-										bool inIsTemplateInstantiation,
+										const UsedTypeOrExpressionList& inTemplateAssignmentList,
 										bool inIsDefinition);
 	virtual CPPFunction* CreateFunctionTemplate(const string& inFunctionName,
 										bool inIsVirtual,
@@ -42,9 +41,9 @@ public:
 										const TypedParameterList& inParametersList,
 										bool inHasElipsis,
 										bool inIsPure,
-										bool inIsDefinition,
 										const CPPElementList& inTemplateParameters,
-										const UsedTypeOrExpressionList& inTemplateSpecializationList);
+										const UsedTypeOrExpressionList& inTemplateParametersSpecialization,
+										bool inIsDefinition);
 
 
 	CPPElement* FindElement(const string& inElementName); 

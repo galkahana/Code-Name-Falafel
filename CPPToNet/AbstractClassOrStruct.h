@@ -18,16 +18,17 @@ enum EAbstractClassOrStructAccessLevel
 class AbstractClassOrStruct;
 
 typedef set<CPPElement*> CPPElementSet;
-typedef map<AbstractClassOrStruct*,EAbstractClassOrStructAccessLevel> AbstractClassOrStructToEAbstractClassOrStructAccessLevelMap;
+typedef map<CPPElement*,EAbstractClassOrStructAccessLevel> CPPElementToEAbstractClassOrStructAccessLevelMap;
 
 class AbstractClassOrStruct : public CPPElement, public AbstractCPPContainer
 {
 public:
 
-
-
 	virtual ~AbstractClassOrStruct(void);
 
+
+	// overrides on ICPPDefinitionsContainerElement to include template parameters, where make sense
+	virtual CPPElementList FindElements(const string& inElementName);
 
 	bool IsDefinition();
 
@@ -35,7 +36,7 @@ public:
 	void SetIsDefinition();
 
 	// setup base class, will fail if class is already defined as derived
-	Hummus::EStatusCode AddBaseClassOrStruct(AbstractClassOrStruct* inBaseClass,EAbstractClassOrStructAccessLevel inAccessLevel);
+	Hummus::EStatusCode AddBase(CPPElement* inBaseClass,EAbstractClassOrStructAccessLevel inAccessLevel);
 
 
 	// when parsing, set the current access level, for any definition
@@ -43,13 +44,35 @@ public:
 	void SetPrivateAccessLevel();
 	void SetPublicAccessLevel();
 
+	// template class/struct methods
+	// tempalte functions functionalities
+	bool IsTemplate();
+	bool IsTemplateSpecializaton();
+	Hummus::SingleValueContainerIterator<CPPElementList> GetTemplateParametersIterator();
+	CPPElementList& GetTemplateParameters();
+	Hummus::SingleValueContainerIterator<UsedTypeOrExpressionList> GetTemplateParameterAssignmentsIterator();
+	UsedTypeOrExpressionList& GetTemplateParameterAssignments();
+
 protected:
 
-	// inType may be either class or struct
+	// struct/class initialization
 	AbstractClassOrStruct(const string& inName,
 						  bool inIsDefinition,
 						  CPPElement::ECPPElementType inType,
 						  EAbstractClassOrStructAccessLevel inDefaultAccessLevel);
+	// template struct/class initialization
+	AbstractClassOrStruct(const string& inName,
+						  bool inIsDefinition,
+						  CPPElement::ECPPElementType inType,
+						  EAbstractClassOrStructAccessLevel inDefaultAccessLevel,
+						  const CPPElementList& inTemplateParameters);
+	// template struct/class specialization (either partial or full)
+	AbstractClassOrStruct(const string& inName,
+						  bool inIsDefinition,
+						  CPPElement::ECPPElementType inType,
+						  EAbstractClassOrStructAccessLevel inDefaultAccessLevel,
+						  const CPPElementList& inTemplateParameters,
+						  const UsedTypeOrExpressionList& inTemplateParametersAssignments);
 
 	// all methods overriden to introduce the objects into acces levels
 	virtual CPPEnumerator* AppendEnumerator(const string& inEnumeratorName,bool inIsDefinition,CPPEnumerator* inEnumerator);
@@ -67,8 +90,7 @@ protected:
 											const TypedParameterList& inParametersList,
 											bool inHasElipsis,		
 											bool inIsPure,
-											const UsedTypeOrExpressionList& inTemplateSpecializationList,
-											bool inIsTemplateInstantiation,
+											const UsedTypeOrExpressionList& inTemplateAssignmentList,
 											bool inIsDefinition,
 											CPPFunction* inFunction);
 	virtual CPPFunction* AppendFunctionTemplate(const string& inFunctionName,
@@ -78,26 +100,28 @@ protected:
 											const TypedParameterList& inParametersList,
 											bool inHasElipsis,		
 											bool inIsPure,
-											bool inIsDefinition,
 											const CPPElementList& inTemplateParameters,
-											CPPFunction* inFunctionTemplate);
-	virtual CPPFunction* AppendFunctionTemplateSpecialization(
-											const string& inFunctionName,
-											bool inIsVirtual,
-											bool inIsStatic,											
-											UsedTypeDescriptor* inReturnTypeDescriptor,
-											const TypedParameterList& inParametersList,
-											bool inHasElipsis,		
-											bool inIsPure,
-											bool inIsDefinition,
 											const UsedTypeOrExpressionList& inTemplateParametersSpecialization,
+											bool inIsDefinition,
 											CPPFunction* inFunctionTemplate);
 	virtual CPPClass* AppendClass(const string& inClassName,
+								  bool inIsDefinition,
+							      CPPClass* inClass);
+	virtual CPPClass* AppendClassTemplate(
+									const string& inClassName,
+									const CPPElementList& inTemplateParameters,
+									const UsedTypeOrExpressionList& inTemplateAssigmentList,
 									bool inIsDefinition,
 									CPPClass* inClass);
-	virtual CPPStruct* AppendStruct(const string& inClassName,
+	virtual CPPStruct* AppendStruct(const string& inStructName,
 									bool inIsDefinition,
 									CPPStruct* inStruct);
+	virtual CPPStruct* AppendStructTemplate(const string& inStructName,
+									const CPPElementList& inTemplateParameters,
+									const UsedTypeOrExpressionList& inTemplateAssigmentList,
+									bool inIsDefinition,
+									CPPStruct* inStruct);
+
 private:
 	bool mIsDefinition;
 
@@ -105,7 +129,13 @@ private:
 	CPPElementSet mPrivateDefinitions;
 	CPPElementSet mProtectedDefinitions;
 	CPPElementSet mPublicDefinitions;
-	AbstractClassOrStructToEAbstractClassOrStructAccessLevelMap mBaseClasses;
+	CPPElementToEAbstractClassOrStructAccessLevelMap mBaseClasses;
+	bool mIsTemplate;
+	CPPElementList mTemplateParameters;
+	UsedTypeOrExpressionList mTemplateParametersAssignments;
+
+
+	void  SetCommonItems(bool inIsDefinition,EAbstractClassOrStructAccessLevel inDefaultAccessLevel);
 
 };
 

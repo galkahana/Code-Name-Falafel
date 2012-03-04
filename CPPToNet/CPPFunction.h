@@ -65,7 +65,7 @@ public:
 				bool inHasElipsis,
 				bool inIsPure,
 				bool inIsDefinition,
-				const UsedTypeOrExpressionList& inTemplateSpecializationParameters);
+				const UsedTypeOrExpressionList& inTemplateAssignmentParameters);
 	~CPPFunction(void);
 
 

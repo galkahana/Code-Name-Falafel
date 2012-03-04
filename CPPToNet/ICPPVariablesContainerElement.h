@@ -31,8 +31,7 @@ public:
 										const TypedParameterList& inParametersList,
 										bool inHasElipsis,
 										bool inIsPure,
-										const UsedTypeOrExpressionList& inTemplateSpecializationList,
-										bool inIsTemplateInstantiation,
+										const UsedTypeOrExpressionList& inTemplateAssignmentList,
 										bool inIsDefinition) = 0;
 	virtual CPPFunction* CreateFunctionTemplate(const string& inFunctionName,
 										bool inIsVirtual,
@@ -41,7 +40,7 @@ public:
 										const TypedParameterList& inParametersList,
 										bool inHasElipsis,
 										bool inIsPure,
-										bool inIsDefinition,
 										const CPPElementList& inTemplateParameters,
-										const UsedTypeOrExpressionList& inTemplateParametersSpecialization) = 0;
+										const UsedTypeOrExpressionList& inTemplateParametersSpecialization,
+										bool inIsDefinition) = 0;
 };

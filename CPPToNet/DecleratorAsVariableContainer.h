@@ -30,7 +30,7 @@ public:
 	virtual void SetPureFunction();
 	virtual void SetReturnType(UsedTypeDescriptor* inSetReturnType);
 	virtual void SetupFunctionPointerReturnTypeDeclerator(FunctionPointerReturnTypeDeclerator* inReturnTypeDeclerator);
-	virtual Hummus::EStatusCode FinalizeFunctionDefinition(const UsedTypeOrExpressionList& inTemplateSpecializationList,bool inIsTemplateInstantiation,bool inIsDefinition); // for function definitions. passing bool to let one know if this is a declaration or definiton
+	virtual Hummus::EStatusCode FinalizeFunctionDefinition(const UsedTypeOrExpressionList& inTemplateSpecializationList,bool inIsDefinition); // for function definitions. passing bool to let one know if this is a declaration or definiton
 	virtual Hummus::EStatusCode FinalizeFunctionTemplateDefinition(const CPPElementList& inTemplateParameters,const UsedTypeOrExpressionList& inTemplateSpecializationList,bool inIsDefinition); // for function template definitions, passing 
 
 	// ICPPFieldDeclerator implementation

@@ -23,6 +23,7 @@ class ICPPDeclarationContainerDriver;
 class ICPPFieldDeclerator;
 class ICPPFunctionDefinitionDeclerator;
 class ICPPElementsContainer;
+class AbstractClassOrStruct;
 
 typedef map<string,string> StringToStringMap;
 typedef list<string> StringList;
@@ -72,7 +73,6 @@ private:
 	Hummus::Long mUnnamedSequance;
 	HeaderUnit* mWorkingUnit;
 	CPPElementList mTemplateParameters;
-	bool mIsTemplateInstantiationStatement;
 	// Stack for template parameters context. used both in parsing the template parameters, to provide context
 	// for template parameters reuse, and in parsing the statement dependent on the template defintion
 	CPPElementListList mTemplateParametersStack;
@@ -120,10 +120,10 @@ private:
 
 	EStatusCodeAndBool ParseFunctionPointerOrFunction(ICPPDeclarationContainerDriver* inContainer,const DeclaratorModifierList& inReturnTypeModifiersList);
 	EStatusCodeAndBool ParseFieldOrFunction(ICPPDeclarationContainerDriver* inContainer,const DeclaratorModifierList& inFieldModifiersList);
-	EStatusCodeAndBool ParseFunctionDefinition(ICPPDeclarationContainerDriver* inContainer,const DeclaratorModifierList& inReturnTypeModifiersList,const UsedTypeOrExpressionList& inTemplateSpecializationList,const string& inFunctionName);
+	EStatusCodeAndBool ParseFunctionDefinition(ICPPDeclarationContainerDriver* inContainer,const DeclaratorModifierList& inReturnTypeModifiersList,const UsedTypeOrExpressionList& inTemplateAssignmentList,const string& inFunctionName);
 	EStatusCodeAndBool ParseFieldDefinition(ICPPFieldDeclerator* inFieldDeclerator);
 
-	Hummus::EStatusCode FinalizeFunction(ICPPFunctionDefinitionDeclerator* inFunctionDecleratorDriver,const UsedTypeOrExpressionList& inTemplateSpecializationList,bool inIsDefinition);
+	Hummus::EStatusCode FinalizeFunction(ICPPFunctionDefinitionDeclerator* inFunctionDecleratorDriver,const UsedTypeOrExpressionList& inTemplateAssignmentList,bool inIsDefinition);
 
 	Hummus::EStatusCode SkipInitializer();
 	Hummus::EStatusCode SkipBlock();
@@ -136,8 +136,9 @@ private:
 
 	EStatusCode ParseTemplateParameters(CPPElementList& inParametersStorage);
 	void Destroy(CPPElementList& inList);
-	EStatusCode ParseTemplateSpecializationParameters(UsedTypeOrExpressionList& inParametersStorage);
+	EStatusCode ParseTemplateAssignmentParameters(UsedTypeOrExpressionList& inParametersStorage);
 	void Destroy(UsedTypeOrExpressionList& inList);
+	CPPElement* FromTemplateToTemplateInstance(AbstractClassOrStruct* inTemplate);
 
 	// a probe to current location, checking if this is a used type declaration
 	bool IsNowInUsedTypeDeclaration();
@@ -147,6 +148,8 @@ private:
 	void PutBackToken(string inToken);
 
 	void TurnOnTokenRevert();
+	void CancelTokenRevert();
 	void FinalizeTokenRevert();
 	void RevertTokens();
+
 };

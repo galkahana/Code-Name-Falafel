@@ -102,6 +102,11 @@ CPPFunction::~CPPFunction(void)
 	CPPElementList::iterator itTemplateParameters = mTemplateParameters.begin();
 	for(; itTemplateParameters != mTemplateParameters.end(); ++itTemplateParameters)
 		delete *itTemplateParameters;
+
+
+	UsedTypeOrExpressionList::iterator itSpecialization = mTemplateSpecializationParameters.begin();
+	for(; itSpecialization != mTemplateSpecializationParameters.end(); ++itSpecialization)
+		delete *itSpecialization;
 }
 
 UsedTypeDescriptor* CPPFunction::GetReturnType()

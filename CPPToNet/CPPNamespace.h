@@ -44,7 +44,6 @@ protected:
 											bool inHasElipsis,		
 											bool inIsPure,
 											const UsedTypeOrExpressionList& inTemplateSpecializationList,
-											bool inIsTemplateInstantiation,
 											bool inIsDefinition,
 											CPPFunction* inFunction);
 	virtual CPPFunction* AppendFunctionTemplate(const string& inFunctionName,
@@ -54,19 +53,9 @@ protected:
 											const TypedParameterList& inParametersList,
 											bool inHasElipsis,		
 											bool inIsPure,
-											bool inIsDefinition,
 											const CPPElementList& inTemplateParameters,
-											CPPFunction* inFunctionTemplate);
-	virtual CPPFunction* AppendFunctionTemplateSpecialization(
-											const string& inFunctionName,
-											bool inIsVirtual,
-											bool inIsStatic,											
-											UsedTypeDescriptor* inReturnTypeDescriptor,
-											const TypedParameterList& inParametersList,
-											bool inHasElipsis,		
-											bool inIsPure,
-											bool inIsDefinition,
 											const UsedTypeOrExpressionList& inTemplateParametersSpecialization,
+											bool inIsDefinition,
 											CPPFunction* inFunctionTemplate);
 private:
 

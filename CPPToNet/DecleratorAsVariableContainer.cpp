@@ -120,12 +120,21 @@ void DecleratorAsVariableContainer::SetupFunctionPointerReturnTypeDeclerator(
 }
 
 
-EStatusCode DecleratorAsVariableContainer::FinalizeFunctionDefinition(const UsedTypeOrExpressionList& inTemplateSpecializationList,bool inIsTemplateInstantiation,bool inIsDefinition)
+EStatusCode DecleratorAsVariableContainer::FinalizeFunctionDefinition(const UsedTypeOrExpressionList& inTemplateSpecializationList,
+																	bool inIsDefinition)
 {
 	if(!mReturnType) // return type may have been set, in the case of function pointer return type
 		mReturnType = new UsedTypeDescriptor(mType,mIsAuto,mIsRegister,mIsExtern,mIsConst,mIsVolatile,false);
 
-	CPPFunction* aFunction = mStorage->CreateFunction(mFunctionName,mIsVirtual,mIsStatic,mReturnType,mDeclaredParameters,mHasElipsis,mIsPure,inTemplateSpecializationList,inIsTemplateInstantiation,inIsDefinition);
+	CPPFunction* aFunction = mStorage->CreateFunction(mFunctionName,
+														mIsVirtual,
+														mIsStatic,
+														mReturnType,
+														mDeclaredParameters,
+														mHasElipsis,
+														mIsPure,
+														inTemplateSpecializationList,
+														inIsDefinition);
 	
 	if(aFunction)
 		return eSuccess;
@@ -155,7 +164,16 @@ EStatusCode DecleratorAsVariableContainer::FinalizeFunctionTemplateDefinition(co
 	if(!mReturnType) // return type may have been set, in the case of function pointer return type
 		mReturnType = new UsedTypeDescriptor(mType,mIsAuto,mIsRegister,mIsExtern,mIsConst,mIsVolatile,false);
 
-	CPPFunction* aFunction = mStorage->CreateFunctionTemplate(mFunctionName,mIsVirtual,mIsStatic,mReturnType,mDeclaredParameters,mHasElipsis,mIsPure,inIsDefinition,inTemplateParameters,inTemplateSpecializationList);
+	CPPFunction* aFunction = mStorage->CreateFunctionTemplate(mFunctionName,
+															 mIsVirtual,
+															 mIsStatic,
+															 mReturnType,
+															 mDeclaredParameters,
+															 mHasElipsis,
+															 mIsPure,
+															 inTemplateParameters,
+															 inTemplateSpecializationList,
+															 inIsDefinition);
 	
 	if(aFunction)
 		return eSuccess;

@@ -34,6 +34,13 @@ typedef map<string,CPPFunctionList> StringToCPPFunctionListMap;
 typedef list<CPPElement*> CPPElementList;
 typedef map<string,CPPElementList> StringToCPPElementListMap;
 
+typedef list<CPPClass*> CPPClassList;
+typedef map<string,CPPClassList> StringToCPPClassListMap;
+
+typedef list<CPPStruct*> CPPStructList;
+typedef map<string,CPPStructList> StringToCPPStructListMap;
+
+
 class AbstractCPPContainer : public ICPPDefinitionsContainerElement
 {
 public:
@@ -57,8 +64,7 @@ public:
 										const TypedParameterList& inParametersList,
 										bool inHasElipsis,		
 										bool inIsPure,
-										const UsedTypeOrExpressionList& inTemplateSpecializationList,
-										bool inIsTemplateInstantiation,
+										const UsedTypeOrExpressionList& inTemplateAssigmentList,
 										bool inIsDefinition);
 	virtual CPPFunction* CreateFunctionTemplate(const string& inFunctionName,
 										bool inIsVirtual,
@@ -67,14 +73,22 @@ public:
 										const TypedParameterList& inParametersList,
 										bool inHasElipsis,
 										bool inIsPure,
-										bool inIsDefinition,
 										const CPPElementList& inTemplateParameters,
-										const UsedTypeOrExpressionList& inTemplateParametersSpecialization);
+										const UsedTypeOrExpressionList& inTemplateParametersSpecialization,
+										bool inIsDefinition);
 	virtual CPPClass* CreateClass(const string& inClassName,
+								  bool inIsDefinition);
+	virtual CPPClass* CreateClassTemplate(
+								  const string& inClassName,
+								  const CPPElementList& inTemplateParameters,
+								  const UsedTypeOrExpressionList& inTemplateParametersSpecialization,
 								  bool inIsDefinition);
 	virtual CPPStruct* CreateStruct(const string& inStructName,
 								  bool inIsDefinition);
-
+	virtual CPPStruct* CreateStructTemplate(const string& inStructName,
+								  const CPPElementList& inTemplateParameters,
+								  const UsedTypeOrExpressionList& inTemplateParametersSpecialization,
+								  bool inIsDefinition);
 
 protected:
 
@@ -101,8 +115,7 @@ protected:
 											const TypedParameterList& inParametersList,
 											bool inHasElipsis,		
 											bool inIsPure,
-											const UsedTypeOrExpressionList& inTemplateSpecializationList,
-											bool inIsTemplateInstantiation,
+											const UsedTypeOrExpressionList& inTemplateAssignmentList,
 											bool inIsDefinition,
 											CPPFunction* inFunction);
 	virtual CPPFunction* AppendFunctionTemplate(const string& inFunctionName,
@@ -112,24 +125,25 @@ protected:
 											const TypedParameterList& inParametersList,
 											bool inHasElipsis,		
 											bool inIsPure,
-											bool inIsDefinition,
 											const CPPElementList& inTemplateParameters,
-											CPPFunction* inFunctionTemplate);
-	virtual CPPFunction* AppendFunctionTemplateSpecialization(
-											const string& inFunctionName,
-											bool inIsVirtual,
-											bool inIsStatic,											
-											UsedTypeDescriptor* inReturnTypeDescriptor,
-											const TypedParameterList& inParametersList,
-											bool inHasElipsis,		
-											bool inIsPure,
-											bool inIsDefinition,
 											const UsedTypeOrExpressionList& inTemplateParametersSpecialization,
+											bool inIsDefinition,
 											CPPFunction* inFunctionTemplate);
 	virtual CPPClass* AppendClass(const string& inClassName,
+								  bool inIsDefinition,
+							      CPPClass* inClass);
+	virtual CPPClass* AppendClassTemplate(
+									const string& inClassName,
+									const CPPElementList& inTemplateParameters,
+									const UsedTypeOrExpressionList& inTemplateAssigmentList,
 									bool inIsDefinition,
 									CPPClass* inClass);
 	virtual CPPStruct* AppendStruct(const string& inStructName,
+									bool inIsDefinition,
+									CPPStruct* inStruct);
+	virtual CPPStruct* AppendStructTemplate(const string& inStructName,
+									const CPPElementList& inTemplateParameters,
+									const UsedTypeOrExpressionList& inTemplateAssigmentList,
 									bool inIsDefinition,
 									CPPStruct* inStruct);
 
@@ -156,11 +170,27 @@ private:
 	// function templates
 	StringToCPPFunctionListMap mFunctionTemplates;
 
+	// function template instances
+	StringToCPPFunctionListMap mFunctionTemplateInstances;
+
 	// classes
 	StringToCPPClassMap mClasses;
 
+	// class templates
+	StringToCPPClassMap mClassTemplates;
+
+	// class specializations
+	StringToCPPClassListMap mClassTemplateSpecializations;
+
 	// structs
 	StringToCPPStructMap mStructs;
+
+	// struct templates
+	StringToCPPStructMap mStructTemplates;
+
+	// structs specializations
+	StringToCPPStructListMap mStructTemplateSpecializations;
+
 
 	bool HasNonTypesWithName(const string& inName);
 	

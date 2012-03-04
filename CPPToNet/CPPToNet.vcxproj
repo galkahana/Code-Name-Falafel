@@ -143,7 +143,9 @@
     <ClInclude Include="AbstractClassOrStruct.h" />
     <ClInclude Include="AbstractCPPContainer.h" />
     <ClInclude Include="CPPClass.h" />
+    <ClInclude Include="CPPClassTemplateInstance.h" />
     <ClInclude Include="CPPStruct.h" />
+    <ClInclude Include="CPPStructTemplateInstance.h" />
     <ClInclude Include="CPPTemplateTemplateParameter.h" />
     <ClInclude Include="CPPTemplateTypename.h" />
     <ClInclude Include="CPPTemplateValue.h" />
@@ -246,7 +248,9 @@
     <ClCompile Include="AbstractClassOrStruct.cpp" />
     <ClCompile Include="AbstractCPPContainer.cpp" />
     <ClCompile Include="CPPClass.cpp" />
+    <ClCompile Include="CPPClassTemplateInstance.cpp" />
     <ClCompile Include="CPPStruct.cpp" />
+    <ClCompile Include="CPPStructTemplateInstance.cpp" />
     <ClCompile Include="CPPTemplateTemplateParameter.cpp" />
     <ClCompile Include="CPPTemplateTypename.cpp" />
     <ClCompile Include="CPPTemplateValue.cpp" />

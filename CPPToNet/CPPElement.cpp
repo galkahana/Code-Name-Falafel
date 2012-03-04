@@ -10,6 +10,8 @@ string CPPElement::TypeLabels[eCPPElementTotalCount] =
 		"eCPPElementStruct",
 		"eCPPElemeentTemplateTypename",
 		"eCPPElemeentTemplateTemplateParameter",
+		"eCPPElementClassTemplateInstance",
+		"eCPPElementStructTemplateInstance",
 		"eCPPTypenames",
 		"eCPPElementNamespace",
 		"eCPPElementEnumeratorValue",

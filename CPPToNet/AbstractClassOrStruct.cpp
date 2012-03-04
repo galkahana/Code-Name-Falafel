@@ -10,11 +10,19 @@
 
 using namespace Hummus;
 
-AbstractClassOrStruct::AbstractClassOrStruct(const string& inName,
+// struct/class initialization
+AbstractClassOrStruct::AbstractClassOrStruct(
+					const string& inName,
 					bool inIsDefinition,
 					CPPElement::ECPPElementType inType,
 					EAbstractClassOrStructAccessLevel inDefaultAccessLevel
 					):CPPElement(inName,inType)
+{
+	SetCommonItems(inIsDefinition,inDefaultAccessLevel);
+	mIsTemplate = false;
+}
+
+void  AbstractClassOrStruct::SetCommonItems(bool inIsDefinition,EAbstractClassOrStructAccessLevel inDefaultAccessLevel)
 {
 	mIsDefinition = inIsDefinition;
 	switch(inDefaultAccessLevel)
@@ -31,9 +39,44 @@ AbstractClassOrStruct::AbstractClassOrStruct(const string& inName,
 	}
 }
 
+// template struct/class initialization
+AbstractClassOrStruct::AbstractClassOrStruct(
+						const string& inName,
+						bool inIsDefinition,
+						CPPElement::ECPPElementType inType,
+						EAbstractClassOrStructAccessLevel inDefaultAccessLevel,
+						const CPPElementList& inTemplateParameters):CPPElement(inName,inType)
+{
+	SetCommonItems(inIsDefinition,inDefaultAccessLevel);
+	mIsTemplate = true;
+	mTemplateParameters = inTemplateParameters;
+}
+
+// template struct/class specialization (either partial or full)
+AbstractClassOrStruct::AbstractClassOrStruct(
+						const string& inName,
+						bool inIsDefinition,
+						CPPElement::ECPPElementType inType,
+						EAbstractClassOrStructAccessLevel inDefaultAccessLevel,
+						const CPPElementList& inTemplateParameters,
+						const UsedTypeOrExpressionList& inTemplateParametersAssignments):CPPElement(inName,inType)
+{
+	SetCommonItems(inIsDefinition,inDefaultAccessLevel);
+	mIsTemplate = true;
+	mTemplateParameters = inTemplateParameters;
+	mTemplateParametersAssignments = inTemplateParametersAssignments;
+}
 
 AbstractClassOrStruct::~AbstractClassOrStruct(void)
 {
+	CPPElementList::iterator itTemplateParameters = mTemplateParameters.begin();
+	for(; itTemplateParameters != mTemplateParameters.end(); ++itTemplateParameters)
+		delete *itTemplateParameters;
+
+
+	UsedTypeOrExpressionList::iterator itAssignments = mTemplateParametersAssignments.begin();
+	for(; itAssignments != mTemplateParametersAssignments.end(); ++itAssignments)
+		delete *itAssignments;
 }
 
 bool AbstractClassOrStruct::IsDefinition()
@@ -61,11 +104,11 @@ void AbstractClassOrStruct::SetPublicAccessLevel()
 	mAccessDefinition = &mPublicDefinitions;
 }
 
-EStatusCode AbstractClassOrStruct::AddBaseClassOrStruct(AbstractClassOrStruct* inBaseClass,EAbstractClassOrStructAccessLevel inAccessLevel)
+EStatusCode AbstractClassOrStruct::AddBase(CPPElement* inBaseClass,EAbstractClassOrStructAccessLevel inAccessLevel)
 {
 	if(mBaseClasses.find(inBaseClass) == mBaseClasses.end())
 	{
-		mBaseClasses.insert(AbstractClassOrStructToEAbstractClassOrStructAccessLevelMap::value_type(inBaseClass,inAccessLevel));
+		mBaseClasses.insert(CPPElementToEAbstractClassOrStructAccessLevelMap::value_type(inBaseClass,inAccessLevel));
 		return eSuccess;
 	}
 	else
@@ -123,7 +166,6 @@ CPPFunction* AbstractClassOrStruct::AppendFunction(const string& inFunctionName,
 										bool inHasElipsis,		
 										bool inIsPure,
 										const UsedTypeOrExpressionList& inTemplateSpecializationList,
-										bool inIsTemplateInstantiation,
 										bool inIsDefinition,
 										CPPFunction* inFunction)
 {
@@ -133,8 +175,17 @@ CPPFunction* AbstractClassOrStruct::AppendFunction(const string& inFunctionName,
 		return NULL;
 	}
 
-	CPPFunction* appendResult = AbstractCPPContainer::AppendFunction(inFunctionName,inIsVirtual,inIsStatic,inReturnTypeDescriptor,inParametersList,
-																	inHasElipsis,inIsPure,inTemplateSpecializationList,inIsTemplateInstantiation,inIsDefinition,inFunction);
+	CPPFunction* appendResult = AbstractCPPContainer::AppendFunction(
+																	inFunctionName,
+																	inIsVirtual,
+																	inIsStatic,
+																	inReturnTypeDescriptor,
+																	inParametersList,
+																	inHasElipsis,
+																	inIsPure,
+																	inTemplateSpecializationList,
+																	inIsDefinition,
+																	inFunction);
 	if(appendResult)
 		mAccessDefinition->insert(appendResult);
 
@@ -148,8 +199,9 @@ CPPFunction* AbstractClassOrStruct::AppendFunctionTemplate(const string& inFunct
 										const TypedParameterList& inParametersList,
 										bool inHasElipsis,		
 										bool inIsPure,
-										bool inIsDefinition,
 										const CPPElementList& inTemplateParameters,
+										const UsedTypeOrExpressionList& inTemplateSpecializationList,
+										bool inIsDefinition,
 										CPPFunction* inFunctionTemplate)
 {
 	if(inIsPure && !inIsVirtual)
@@ -158,34 +210,17 @@ CPPFunction* AbstractClassOrStruct::AppendFunctionTemplate(const string& inFunct
 		return NULL;
 	}
 
-	CPPFunction* appendResult = AbstractCPPContainer::AppendFunctionTemplate(inFunctionName,inIsVirtual,inIsStatic,inReturnTypeDescriptor,inParametersList,
-																	inHasElipsis,inIsPure,inIsDefinition,inTemplateParameters,inFunctionTemplate);
-	if(appendResult)
-		mAccessDefinition->insert(appendResult);
-
-	return appendResult;
-}
-
-CPPFunction* AbstractClassOrStruct::AppendFunctionTemplateSpecialization(
-										const string& inFunctionName,
-										bool inIsVirtual,
-										bool inIsStatic,											
-										UsedTypeDescriptor* inReturnTypeDescriptor,
-										const TypedParameterList& inParametersList,
-										bool inHasElipsis,		
-										bool inIsPure,
-										bool inIsDefinition,
-										const UsedTypeOrExpressionList& inTemplateParametersSpecialization,
-										CPPFunction* inFunctionTemplate)
-{
-	if(inIsPure && !inIsVirtual)
-	{
-		TRACE_LOG1("AbstractClassOrStruct::AppendFunctionTemplateSpecialization, syntax error, pure function defined which is not virtual, for function template %s",inFunctionName.c_str());
-		return NULL;
-	}
-
-	CPPFunction* appendResult = AbstractCPPContainer::AppendFunctionTemplateSpecialization(inFunctionName,inIsVirtual,inIsStatic,inReturnTypeDescriptor,inParametersList,
-																						inHasElipsis,inIsPure,inIsDefinition,inTemplateParametersSpecialization,inFunctionTemplate);
+	CPPFunction* appendResult = AbstractCPPContainer::AppendFunctionTemplate(inFunctionName,
+																			 inIsVirtual,
+																			 inIsStatic,
+																			 inReturnTypeDescriptor,
+																			 inParametersList,
+																			 inHasElipsis,
+																			 inIsPure,
+																			 inTemplateParameters,
+																			 inTemplateSpecializationList,
+																			 inIsDefinition,
+																			 inFunctionTemplate);
 	if(appendResult)
 		mAccessDefinition->insert(appendResult);
 
@@ -203,14 +238,88 @@ CPPClass* AbstractClassOrStruct::AppendClass(const string& inClassName,
 	return appendResult;
 }
 
+CPPClass* AbstractClassOrStruct::AppendClassTemplate(
+									const string& inClassName,
+									const CPPElementList& inTemplateParameters,
+									const UsedTypeOrExpressionList& inTemplateAssigmentList,
+									bool inIsDefinition,
+									CPPClass* inClass)
+{
+	CPPClass* appendResult = AbstractCPPContainer::AppendClassTemplate(inClassName,inTemplateParameters,inTemplateAssigmentList,inIsDefinition,inClass);
+	if(appendResult)
+		mAccessDefinition->insert(appendResult);
+
+	return appendResult;
+}
 
 CPPStruct* AbstractClassOrStruct::AppendStruct(const string& inStructName,
-								bool inIsDefinition,
-								CPPStruct* inStruct)
+									bool inIsDefinition,
+									CPPStruct* inStruct)
 {
 	CPPStruct* appendResult = AbstractCPPContainer::AppendStruct(inStructName,inIsDefinition,inStruct);
 	if(appendResult)
 		mAccessDefinition->insert(appendResult);
 
 	return appendResult;
+}
+
+CPPStruct* AbstractClassOrStruct::AppendStructTemplate(
+									const string& inStructName,
+									const CPPElementList& inTemplateParameters,
+									const UsedTypeOrExpressionList& inTemplateAssigmentList,
+									bool inIsDefinition,
+									CPPStruct* inStruct)
+{
+	CPPStruct* appendResult = AbstractCPPContainer::AppendStructTemplate(inStructName,inTemplateParameters,inTemplateAssigmentList,inIsDefinition,inStruct);
+	if(appendResult)
+		mAccessDefinition->insert(appendResult);
+
+	return appendResult;
+}
+
+bool AbstractClassOrStruct::IsTemplate()
+{
+	return mIsTemplate;
+}
+
+bool AbstractClassOrStruct::IsTemplateSpecializaton()
+{
+	return mIsTemplate && mTemplateParametersAssignments.size() > 0;
+}
+
+Hummus::SingleValueContainerIterator<CPPElementList> AbstractClassOrStruct::GetTemplateParametersIterator()
+{
+	return Hummus::SingleValueContainerIterator<CPPElementList>(mTemplateParameters);
+}
+
+CPPElementList& AbstractClassOrStruct::GetTemplateParameters()
+{
+	return mTemplateParameters;
+}
+
+Hummus::SingleValueContainerIterator<UsedTypeOrExpressionList> AbstractClassOrStruct::GetTemplateParameterAssignmentsIterator()
+{
+	return Hummus::SingleValueContainerIterator<UsedTypeOrExpressionList>(mTemplateParametersAssignments);
+}
+
+UsedTypeOrExpressionList& AbstractClassOrStruct::GetTemplateParameterAssignments()
+{
+	return mTemplateParametersAssignments;
+}
+
+CPPElementList AbstractClassOrStruct::FindElements(const string& inElementName)
+{
+	if(mIsTemplate)
+	{
+		CPPElementList result = AbstractCPPContainer::FindElements(inElementName);
+
+		CPPElementList::iterator it = mTemplateParameters.begin();
+		for(; it != mTemplateParameters.end(); ++it)
+			if((*it)->Name == inElementName)
+				result.push_back(*it);
+		return result;
+	}
+	else 	
+		return AbstractCPPContainer::FindElements(inElementName);
+
 }
