@@ -1,6 +1,7 @@
 #pragma once
 #include "CPPElement.h"
 #include "ICPPElementsContainer.h"
+#include "ITemplateWithDefault.h"
 #include <string>
 #include <map>
 
@@ -13,7 +14,7 @@ using namespace std;
 
 typedef map<string,CPPTemplateTypename*> StringToCPPTemplateTypenameMap;
 
-class CPPTemplateTypename : public CPPElement, public ICPPElementsContainer
+class CPPTemplateTypename : public CPPElement, public ICPPElementsContainer, public ITemplateWithDefault
 {
 public:
 	CPPTemplateTypename(const string& inTypename,unsigned long inParameterIndex);
@@ -22,13 +23,16 @@ public:
 	// ICPPElementsContainer implementation
 	virtual CPPElementList FindElements(const string& inElementName);
 
-	void SetDefaultTypename(TypedParameter* inDefaultType);
+	// ITemplateWithDefault implementation
+	virtual void SetDefaultTypename(TypedParameter* inDefaultType);
+
 	UsedTypeDescriptor* GetDefault();
 
 	unsigned long GetParameterIndex();
 
 	// checks for equivalency. which is the position in the parent parameters list. and that's all.
 	bool IsEqual(CPPTemplateTypename* inOther);
+	bool IsLess(CPPTemplateTypename* inOther);
 private:
 
 	TypedParameter* mDefaultType;

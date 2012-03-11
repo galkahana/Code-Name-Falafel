@@ -144,6 +144,7 @@
     <ClInclude Include="AbstractCPPContainer.h" />
     <ClInclude Include="CPPClass.h" />
     <ClInclude Include="CPPClassTemplateInstance.h" />
+    <ClInclude Include="CPPElementListAndUsedTypeOrExpressionList.h" />
     <ClInclude Include="CPPStruct.h" />
     <ClInclude Include="CPPStructTemplateInstance.h" />
     <ClInclude Include="CPPTemplateTemplateParameter.h" />
@@ -155,6 +156,7 @@
     <ClInclude Include="EStatusCode.h" />
     <ClInclude Include="FunctionPointerReturnTypeDeclerator.h" />
     <ClInclude Include="ICPPElementsContainer.h" />
+    <ClInclude Include="ITemplateWithDefault.h" />
     <ClInclude Include="SafeBufferMacrosDefs.h" />
     <ClInclude Include="UnicodeString.h" />
     <ClInclude Include="Log.h" />

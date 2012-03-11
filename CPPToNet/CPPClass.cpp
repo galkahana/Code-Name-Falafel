@@ -32,10 +32,6 @@ CPPClass::~CPPClass()
 		delete itInstances->second;
 }
 
-void CPPClass::AddSpecialization(CPPClass* inSpecialization)
-{
-	mSpecializations.push_back(inSpecialization);
-}
 
 CPPClassTemplateInstanceAndBool CPPClass::QueryInstance(const UsedTypeOrExpressionList& inTemplateParametersAssignments)
 {
@@ -58,4 +54,12 @@ CPPClassTemplateInstanceAndBool CPPClass::QueryInstance(const UsedTypeOrExpressi
 		result.second = false;
 	}
 	return result;
+}
+
+AbstractClassOrStruct* CPPClass::CreateNewSpecialization(	
+														const CPPElementList& inTemplateParameters,
+														const UsedTypeOrExpressionList& inTemplateParameterAssignments,
+														bool inIsDefinition)
+{
+	return new CPPClass(Name,inTemplateParameters,inTemplateParameterAssignments,inIsDefinition);
 }

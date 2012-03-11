@@ -17,6 +17,7 @@ public:
 
 	// checks for equivalency. which is the position in the parent parameters list, and the equality of the pointed type
 	bool IsEqual(CPPTemplateValue* inOther);
+	bool IsLess(CPPTemplateValue* inOther);
 
 private:
 	TypedParameter* mTypeOfValue;

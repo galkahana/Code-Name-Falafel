@@ -751,3 +751,54 @@ CPPPrimitiveValue CPPOperatorExpression::EvaluateShiftOperator(ECPPOperatorType 
 	
 	return GetBinaryOperatorCommand(inOperatorType)->Evaluate(GetTypeClass(inLeftOperand.mType),inLeftOperand,GetTypeClass(inRightOperand.mType)->ToULongLong(inRightOperand));
 }
+
+bool CPPOperatorExpression::IsEqual(CPPExpression* inExpression)
+{
+	if(inExpression->Type != CPPExpression::eCPPExpressionOperator)
+		return false;
+
+	CPPOperatorExpression* otherExpression = (CPPOperatorExpression*)inExpression;
+
+	if(mOperator->Type != otherExpression->mOperator->Type)
+		return false;
+
+	if(mOperands.size() != otherExpression->mOperands.size())
+		return false;
+
+	CPPExpressionList::const_iterator itOperands = mOperands.begin();
+	CPPExpressionList::const_iterator itOperandsOther = otherExpression->mOperands.begin();
+
+	bool isEqual = true;
+	for(;itOperands != mOperands.end() && isEqual; ++itOperands,++itOperandsOther)
+		isEqual = (*itOperands)->IsEqual(*itOperandsOther);
+
+	return isEqual;
+}
+
+bool CPPOperatorExpression::IsLess(CPPExpression* inExpression)
+{
+	if(inExpression->Type != CPPExpression::eCPPExpressionOperator)
+		return inExpression->Type < CPPExpression::eCPPExpressionOperator;
+
+	CPPOperatorExpression* otherExpression = (CPPOperatorExpression*)inExpression;
+
+	if(mOperator->Type != otherExpression->mOperator->Type)
+		return mOperator->Type < otherExpression->mOperator->Type;
+
+	if(mOperands.size() != otherExpression->mOperands.size())
+		return mOperands.size() < otherExpression->mOperands.size();
+
+	CPPExpressionList::const_iterator itOperands = mOperands.begin();
+	CPPExpressionList::const_iterator itOperandsOther = otherExpression->mOperands.begin();
+
+	bool isEqual = true;
+	bool isLess = false;
+	for(;itOperands != mOperands.end() && isEqual; ++itOperands,++itOperandsOther)
+	{
+		isEqual = (*itOperands)->IsEqual(*itOperandsOther);
+		if(!isEqual)
+			isLess = (*itOperands)->IsLess(*itOperandsOther);
+	}
+
+	return isLess;
+}

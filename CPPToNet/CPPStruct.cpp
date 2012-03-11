@@ -30,11 +30,6 @@ CPPStruct::~CPPStruct()
 		delete itInstances->second;
 }
 
-void CPPStruct::AddSpecialization(CPPStruct* inSpecialization)
-{
-	mSpecializations.push_back(inSpecialization);
-}
-
 CPPStructTemplateInstanceAndBool CPPStruct::QueryInstance(const UsedTypeOrExpressionList& inTemplateParametersAssignments)
 {
 	CPPStructTemplateInstanceAndBool result;
@@ -56,4 +51,13 @@ CPPStructTemplateInstanceAndBool CPPStruct::QueryInstance(const UsedTypeOrExpres
 		result.second = false;
 	}
 	return result;
+}
+
+
+AbstractClassOrStruct* CPPStruct::CreateNewSpecialization(	
+														const CPPElementList& inTemplateParameters,
+														const UsedTypeOrExpressionList& inTemplateParameterAssignments,
+														bool inIsDefinition)
+{
+	return new CPPStruct(Name,inTemplateParameters,inTemplateParameterAssignments,inIsDefinition);
 }

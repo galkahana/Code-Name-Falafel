@@ -32,6 +32,8 @@ public:
 	void PushOperand(CPPExpression* inExpression);
 
 	virtual BoolAndCPPPrimitiveValue Evaluate(IExpressionEvaluationContext* inContext);
+	virtual bool IsEqual(CPPExpression* inExpression);
+	virtual bool IsLess(CPPExpression* inExpression);
 
 private:
 	CPPOperator* mOperator;

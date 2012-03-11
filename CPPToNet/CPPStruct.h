@@ -39,7 +39,10 @@ public:
 
 private:
 
-	CPPStructList mSpecializations;
 	UsedTypeOrExpressionListToCPPStructTemplateInstanceMap mInstances;
+
+	virtual AbstractClassOrStruct* CreateNewSpecialization(	const CPPElementList& inTemplateParameters,
+															const UsedTypeOrExpressionList& inTemplateParameterAssignments,
+															bool inIsDefinition);
 };
 

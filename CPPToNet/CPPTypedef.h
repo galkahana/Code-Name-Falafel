@@ -17,6 +17,7 @@ public:
 	~CPPTypedef(void);
 
 	bool IsEqual(CPPTypedef* inOther);
+	bool IsLess(CPPTypedef* inOther);
 
 	UsedTypeDescriptor* GetTypeDescriptor();
 

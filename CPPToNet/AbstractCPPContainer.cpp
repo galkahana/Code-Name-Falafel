@@ -82,14 +82,6 @@ AbstractCPPContainer::~AbstractCPPContainer(void)
 		if(mAliases.find(itClassTemplates->second) == mAliases.end())
 			delete itClassTemplates->second;
 
-	StringToCPPClassListMap::iterator itClassSpecializations = mClassTemplateSpecializations.begin();
-	for(; itClassSpecializations != mClassTemplateSpecializations.end(); ++itClassSpecializations)
-	{
-		CPPClassList::iterator itClassTemplatSpecializations = itClassSpecializations->second.begin();
-		for(; itClassTemplatSpecializations != itClassSpecializations->second.end(); ++itClassTemplatSpecializations)
-			if(mAliases.find(*itClassTemplatSpecializations) == mAliases.end())
-				delete *itClassTemplatSpecializations;
-	}
 
 	StringToCPPStructMap::iterator itStructs = mStructs.begin();
 	for(; itStructs != mStructs.end(); ++itStructs)
@@ -100,15 +92,6 @@ AbstractCPPContainer::~AbstractCPPContainer(void)
 	for(; itStructTemplates!= mStructTemplates.end(); ++itStructTemplates)
 		if(mAliases.find(itStructTemplates->second) == mAliases.end())
 			delete itStructTemplates->second;
-
-	StringToCPPStructListMap::iterator itStructSpecializations = mStructTemplateSpecializations.begin();
-	for(; itStructSpecializations != mStructTemplateSpecializations.end(); ++itStructSpecializations)
-	{
-		CPPStructList::iterator itStructTemplatSpecializations = itStructSpecializations->second.begin();
-		for(; itStructTemplatSpecializations != itStructSpecializations->second.end(); ++itStructTemplatSpecializations)
-			if(mAliases.find(*itStructTemplatSpecializations) == mAliases.end())
-				delete *itStructTemplatSpecializations;
-	}
 
 	// Enumerator values are owned by their respective enumerators - so don't delete the map that contains them here.
 }
@@ -280,7 +263,6 @@ Hummus::EStatusCode AbstractCPPContainer::DefineAlias(const string& inAlias,CPPE
 				CPPClass* createdElement = aliasElement->IsTemplate() ?
 											AppendClassTemplate(inAlias,
 																aliasElement->GetTemplateParameters(),
-																aliasElement->GetTemplateParameterAssignments(),
 																aliasElement->IsDefinition(),
 																aliasElement) :
 					
@@ -302,7 +284,6 @@ Hummus::EStatusCode AbstractCPPContainer::DefineAlias(const string& inAlias,CPPE
 				CPPStruct* createdElement = aliasElement->IsTemplate() ?
 											AppendStructTemplate(inAlias,
 																aliasElement->GetTemplateParameters(),
-																aliasElement->GetTemplateParameterAssignments(),
 																aliasElement->IsDefinition(),
 																aliasElement) :
 					
@@ -1078,18 +1059,16 @@ CPPClass* AbstractCPPContainer::AppendClass(  const string& inClassName,
 CPPClass* AbstractCPPContainer::CreateClassTemplate(
 								const string& inClassName,
 								const CPPElementList& inTemplateParameters,
-								const UsedTypeOrExpressionList& inTemplateParametersSpecialization,
 								bool inIsDefinition)
 {
-	return AppendClassTemplate(inClassName,inTemplateParameters,inTemplateParametersSpecialization,inIsDefinition,NULL);
+	return AppendClassTemplate(inClassName,inTemplateParameters,inIsDefinition,NULL);
 }
 
-CPPClass* AbstractCPPContainer::AppendClassTemplate(  
-	  										    const string& inClassName,
-												const CPPElementList& inTemplateParameters,
-												const UsedTypeOrExpressionList& inTemplateAssigmentList,
-												bool inIsDefinition,
-												CPPClass* inClass)
+CPPClass* AbstractCPPContainer::AppendClassTemplate(
+									const string& inClassName,
+									const CPPElementList& inTemplateParameters,
+									bool inIsDefinition,
+									CPPClass* inClass)
 {
 	CPPElementList existingElements = FindElements(inClassName);
 
@@ -1104,9 +1083,6 @@ CPPClass* AbstractCPPContainer::AppendClassTemplate(
 		{
 			if((*it)->Type == CPPElement::eCPPElementClass && ((CPPClass*)(*it))->IsTemplate())
 			{
-				if(inTemplateAssigmentList.size() > 0)
-					continue; // if the new object is specialization...always allow
-
 				CPPClass* otherClass = (CPPClass*)(*it);
 
 				if(otherClass->IsDefinition() && inIsDefinition)
@@ -1138,18 +1114,7 @@ CPPClass* AbstractCPPContainer::AppendClassTemplate(
 			return hadDefinedClass;
 	}
 
-	if(inTemplateAssigmentList.size() > 0)
-	{
-		// specializations go into their own owner
-		StringToCPPClassListMap::iterator itSpecialization = mClassTemplateSpecializations.find(inClassName);
-		if(itSpecialization == mClassTemplateSpecializations.end())
-			itSpecialization = mClassTemplateSpecializations.insert(StringToCPPClassListMap::value_type(inClassName,CPPClassList())).first;
-		CPPClass* aClass = inClass ? inClass:new CPPClass(inClassName,inTemplateParameters,inIsDefinition);
-		itSpecialization->second.push_back(aClass);
-		return aClass;
-	}
-	else
-		return mClassTemplates.insert(StringToCPPClassMap::value_type(inClassName,inClass ? 
+	return mClassTemplates.insert(StringToCPPClassMap::value_type(inClassName,inClass ? 
 									inClass:new CPPClass(inClassName,inTemplateParameters,inIsDefinition))).first->second;
 
 }
@@ -1215,16 +1180,14 @@ CPPStruct* AbstractCPPContainer::AppendStruct( const string& inStructName,
 CPPStruct* AbstractCPPContainer::CreateStructTemplate(
 								const string& inStructName,
 								const CPPElementList& inTemplateParameters,
-								const UsedTypeOrExpressionList& inTemplateParametersSpecialization,
 								bool inIsDefinition)
 {
-	return AppendStructTemplate(inStructName,inTemplateParameters,inTemplateParametersSpecialization,inIsDefinition,NULL);
+	return AppendStructTemplate(inStructName,inTemplateParameters,inIsDefinition,NULL);
 }
 
 CPPStruct* AbstractCPPContainer::AppendStructTemplate(  
 	  										    const string& inStructName,
 												const CPPElementList& inTemplateParameters,
-												const UsedTypeOrExpressionList& inTemplateAssigmentList,
 												bool inIsDefinition,
 												CPPStruct* inStruct)
 {
@@ -1241,9 +1204,6 @@ CPPStruct* AbstractCPPContainer::AppendStructTemplate(
 		{
 			if((*it)->Type == CPPElement::eCPPElementStruct && ((CPPStruct*)(*it))->IsTemplate())
 			{
-				if(inTemplateAssigmentList.size() > 0)
-					continue; // if the new object is specialization...always allow
-
 				CPPStruct* otherStruct = (CPPStruct*)(*it);
 
 				if(otherStruct->IsDefinition() && inIsDefinition)
@@ -1275,18 +1235,7 @@ CPPStruct* AbstractCPPContainer::AppendStructTemplate(
 			return hadDefinedStruct;
 	}
 
-	if(inTemplateAssigmentList.size() > 0)
-	{
-		// specializations go into their own owner
-		StringToCPPStructListMap::iterator itSpecialization = mStructTemplateSpecializations.find(inStructName);
-		if(itSpecialization == mStructTemplateSpecializations.end())
-			itSpecialization = mStructTemplateSpecializations.insert(StringToCPPStructListMap::value_type(inStructName,CPPStructList())).first;
-		CPPStruct* aStruct = inStruct ? inStruct:new CPPStruct(inStructName,inTemplateParameters,inIsDefinition);
-		itSpecialization->second.push_back(aStruct);
-		return aStruct;
-	}
-	else
-		return mStructTemplates.insert(StringToCPPStructMap::value_type(inStructName,inStruct ? 
-									inStruct:new CPPStruct(inStructName,inTemplateParameters,inIsDefinition))).first->second;
+	return mStructTemplates.insert(StringToCPPStructMap::value_type(inStructName,inStruct ? 
+								inStruct:new CPPStruct(inStructName,inTemplateParameters,inIsDefinition))).first->second;
 
 }

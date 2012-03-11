@@ -18,6 +18,8 @@ public:
 	~CPPExpressionInteger(void);
 
 	virtual BoolAndCPPPrimitiveValue Evaluate(IExpressionEvaluationContext* inContext);
+	virtual bool IsEqual(CPPExpression* inOther);
+	virtual bool IsLess(CPPExpression* inOther);
 
 private:
 

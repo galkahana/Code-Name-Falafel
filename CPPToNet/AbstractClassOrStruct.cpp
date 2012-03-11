@@ -77,6 +77,10 @@ AbstractClassOrStruct::~AbstractClassOrStruct(void)
 	UsedTypeOrExpressionList::iterator itAssignments = mTemplateParametersAssignments.begin();
 	for(; itAssignments != mTemplateParametersAssignments.end(); ++itAssignments)
 		delete *itAssignments;
+
+	CPPElementListAndUsedTypeOrExpressionListToAbstractClassOrStructMap::iterator itSpecializations = mSpecializations.begin();
+	for(; itSpecializations != mSpecializations.end(); ++itSpecializations)
+		delete itSpecializations->second;
 }
 
 bool AbstractClassOrStruct::IsDefinition()
@@ -241,11 +245,10 @@ CPPClass* AbstractClassOrStruct::AppendClass(const string& inClassName,
 CPPClass* AbstractClassOrStruct::AppendClassTemplate(
 									const string& inClassName,
 									const CPPElementList& inTemplateParameters,
-									const UsedTypeOrExpressionList& inTemplateAssigmentList,
 									bool inIsDefinition,
 									CPPClass* inClass)
 {
-	CPPClass* appendResult = AbstractCPPContainer::AppendClassTemplate(inClassName,inTemplateParameters,inTemplateAssigmentList,inIsDefinition,inClass);
+	CPPClass* appendResult = AbstractCPPContainer::AppendClassTemplate(inClassName,inTemplateParameters,inIsDefinition,inClass);
 	if(appendResult)
 		mAccessDefinition->insert(appendResult);
 
@@ -266,11 +269,10 @@ CPPStruct* AbstractClassOrStruct::AppendStruct(const string& inStructName,
 CPPStruct* AbstractClassOrStruct::AppendStructTemplate(
 									const string& inStructName,
 									const CPPElementList& inTemplateParameters,
-									const UsedTypeOrExpressionList& inTemplateAssigmentList,
 									bool inIsDefinition,
 									CPPStruct* inStruct)
 {
-	CPPStruct* appendResult = AbstractCPPContainer::AppendStructTemplate(inStructName,inTemplateParameters,inTemplateAssigmentList,inIsDefinition,inStruct);
+	CPPStruct* appendResult = AbstractCPPContainer::AppendStructTemplate(inStructName,inTemplateParameters,inIsDefinition,inStruct);
 	if(appendResult)
 		mAccessDefinition->insert(appendResult);
 
@@ -322,4 +324,47 @@ CPPElementList AbstractClassOrStruct::FindElements(const string& inElementName)
 	else 	
 		return AbstractCPPContainer::FindElements(inElementName);
 
+}
+
+AbstractClassOrStructAndBool AbstractClassOrStruct::AddSpecialization(
+													const CPPElementList& inTemplateParameters,
+													const UsedTypeOrExpressionList& inTemplateParameterAssignments,
+													bool inIsDefinition)
+{
+
+	CPPElementListAndUsedTypeOrExpressionListToAbstractClassOrStructMap::iterator it = mSpecializations.find(CPPElementListAndUsedTypeOrExpressionList(inTemplateParameters,inTemplateParameterAssignments));
+	
+	if(it != mSpecializations.end())
+	{
+		// specialization already exist. allow declarations, or definitions, if one does not exist yet
+
+		if(it->second->IsDefinition() && inIsDefinition)
+		{
+			TRACE_LOG("AbstractClassOrStruct::AddSpecialization, error, specialization multiply defined");
+			return AbstractClassOrStructAndBool((AbstractClassOrStruct*)NULL,false);
+		}
+
+		if(inIsDefinition)
+			it->second->SetIsDefinition();
+
+		return AbstractClassOrStructAndBool(it->second,false);
+	}
+	else
+	{
+		AbstractClassOrStruct* newSpecialization = CreateNewSpecialization(inTemplateParameters,inTemplateParameterAssignments,inIsDefinition);
+		mSpecializations.insert(CPPElementListAndUsedTypeOrExpressionListToAbstractClassOrStructMap::value_type(
+									CPPElementListAndUsedTypeOrExpressionList(inTemplateParameters,inTemplateParameterAssignments),
+									newSpecialization));
+		return AbstractClassOrStructAndBool(it->second,true);
+	}
+
+}
+
+AbstractClassOrStruct* AbstractClassOrStruct::GetSpecialization(
+						const CPPElementList& inTemplateParameters,
+						const UsedTypeOrExpressionList& inTemplateParameterAssignments)
+{
+	CPPElementListAndUsedTypeOrExpressionListToAbstractClassOrStructMap::iterator it = mSpecializations.find(CPPElementListAndUsedTypeOrExpressionList(inTemplateParameters,inTemplateParameterAssignments));
+	
+	return (it != mSpecializations.end()) ? it->second : NULL;
 }

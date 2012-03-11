@@ -42,7 +42,6 @@ public:
 	virtual CPPClass* CreateClassTemplate(
 								const string& inClassName,
 								const CPPElementList& inTemplateParameters,
-								const UsedTypeOrExpressionList& inTemplateParametersSpecialization,
 								bool inIsDefinition) = 0;
 
 
@@ -53,6 +52,5 @@ public:
 	// struct template
 	virtual CPPStruct* CreateStructTemplate(const string& inStructName,
 								  const CPPElementList& inTemplateParameters,
-								  const UsedTypeOrExpressionList& inTemplateParametersSpecialization,
 								  bool inIsDefinition) = 0;
 };											

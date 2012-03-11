@@ -95,6 +95,8 @@ bool FieldTypeDescriptor::IsEqual(FieldTypeDescriptor* inOtherDescriptor)
 	bool isEqual = true;
 	for(; itThis != mModifiers.end() && isEqual; ++itThis,++itOther)
 		isEqual = itThis->IsEqual(*itOther);
+	if(!isEqual)
+		return false;
 
 	if(mSubscriptCount != inOtherDescriptor->mSubscriptCount)
 		return false;
@@ -125,7 +127,81 @@ bool FieldTypeDescriptor::IsEqual(FieldTypeDescriptor* inOtherDescriptor)
 			isEqual = (mType == inOtherDescriptor->mType);
 
 	}
+	return isEqual;
 }
+
+bool FieldTypeDescriptor::IsLess(FieldTypeDescriptor* inOtherDescriptor)
+{
+	if(IsAuto != inOtherDescriptor->IsAuto)
+		return !IsAuto;
+
+	if(IsRegister != inOtherDescriptor->IsRegister)
+		return !IsRegister;
+
+	if(IsExtern != inOtherDescriptor->IsExtern)
+		return !IsExtern;
+
+	if(IsConst != inOtherDescriptor->IsConst)
+		return !IsConst;
+
+	if(IsVolatile != inOtherDescriptor->IsVolatile)
+		return !IsVolatile;
+
+	if(IsStatic != inOtherDescriptor->IsStatic)
+		return !IsStatic;
+
+	if(mModifiers.size() != inOtherDescriptor->mModifiers.size())
+		return mModifiers.size() < inOtherDescriptor->mModifiers.size();
+
+	DeclaratorModifierList::iterator itThis = mModifiers.begin();
+	DeclaratorModifierList::iterator itOther = inOtherDescriptor->mModifiers.begin();
+
+	bool isEqual = true;
+	bool isLess = false;
+	for(; itThis != mModifiers.end() && isEqual; ++itThis,++itOther)
+	{
+		isEqual = itThis->IsEqual(*itOther);
+		if(!isEqual)
+			isLess = itThis->IsLess(*itOther);
+	}
+	if(!isEqual)
+		return isLess;
+
+	if(mSubscriptCount != inOtherDescriptor->mSubscriptCount)
+		return mSubscriptCount < inOtherDescriptor->mSubscriptCount;
+
+	// k. now let's compare the type. to save me some work, i'll make sure to do equality only for what is actually types
+	// at this point we have : 	eCPPElementPrimitive, eCPPElementEnumerator, eCPPElementUnion, eCPPElementTypedef
+	// that can serve as types
+	if(mType->Type != inOtherDescriptor->mType->Type)
+		return mType->Type < inOtherDescriptor->mType->Type;
+
+	// typedefs should be internally compared, being only aliases. anything else, should just have identity comparison
+	// templates have their own equivalence rules
+	switch(mType->Type)
+	{
+		case CPPElement::eCPPElementTypedef:
+			if(!((CPPTypedef*)mType)->IsEqual((CPPTypedef*)inOtherDescriptor->mType))
+				isLess = ((CPPTypedef*)mType)->IsLess((CPPTypedef*)inOtherDescriptor->mType);
+			break;
+		case CPPElement::eCPPElemeentTemplateTemplateParameter:
+			if(!((CPPTemplateTemplateParameter*)mType)->IsEqual((CPPTemplateTemplateParameter*)inOtherDescriptor->mType))
+				isLess = ((CPPTemplateTemplateParameter*)mType)->IsLess((CPPTemplateTemplateParameter*)inOtherDescriptor->mType);
+			break;
+		case CPPElement::eCPPElemeentTemplateTypename:
+			if(!((CPPTemplateTypename*)mType)->IsEqual((CPPTemplateTypename*)inOtherDescriptor->mType))
+				isLess = ((CPPTemplateTypename*)mType)->IsLess((CPPTemplateTypename*)inOtherDescriptor->mType);
+			break;
+		case CPPElement::eCPPElementTemplateValue:
+			if(!((CPPTemplateValue*)mType)->IsEqual((CPPTemplateValue*)inOtherDescriptor->mType))
+				isLess = ((CPPTemplateTypename*)mType)->IsLess((CPPTemplateTypename*)inOtherDescriptor->mType);
+			break;
+		default:
+			isLess = (mType < inOtherDescriptor->mType);
+	}
+	return isLess;
+}
+
 
 FieldTypeDescriptor* FieldTypeDescriptor::Clone()
 {
@@ -223,6 +299,39 @@ bool FunctionPointerTypeDescriptor::IsEqual(FunctionPointerTypeDescriptor* inOth
 	return mHasElipsis == inOther->HasElipsis();
 }
 
+bool FunctionPointerTypeDescriptor::IsLess(FunctionPointerTypeDescriptor* inOther)
+{
+	if(mPointerType != inOther->GetPointerType())
+		return mPointerType < inOther->GetPointerType();
+
+	if(!mReturnType->IsEqual(inOther->GetReturnType()))
+		return mReturnType->IsLess(inOther->GetReturnType());
+
+	if(mDeclaredParameters.size() != inOther->mDeclaredParameters.size())
+		return mDeclaredParameters.size() < inOther->mDeclaredParameters.size();
+
+	TypedParameterList::iterator itThis,itOther;
+	itThis = mDeclaredParameters.begin();
+	itOther = inOther->mDeclaredParameters.begin();
+	bool isEqual = true;
+	bool isLess = false;
+
+	// with parameters comparison, only compare the parameter types, because the names
+	// don't matter
+	for(; itThis != mDeclaredParameters.end() && isEqual; ++itThis,++itOther)
+	{
+		isEqual = (*itThis)->Type->IsEqual((*itOther)->Type);
+		if(!isEqual)
+			isLess = (*itThis)->Type->IsLess((*itOther)->Type);
+	}
+
+	if(!isEqual)
+		return isLess;
+
+	return (mHasElipsis  == inOther->HasElipsis()) ? false : !mHasElipsis;
+}
+
+
 FunctionPointerTypeDescriptor* FunctionPointerTypeDescriptor::Clone()
 {
 	// declared parameters and return type should be cloned
@@ -295,6 +404,18 @@ bool UsedTypeDescriptor::IsEqual(UsedTypeDescriptor* inOtherUsedType)
 	else
 		return mFunctionPointerDescriptor->IsEqual(inOtherUsedType->GetFunctionPointerDescriptor());
 }
+
+bool UsedTypeDescriptor::IsLess(UsedTypeDescriptor* inOtherUsedType)
+{
+	if(mUsedType != inOtherUsedType->GetUsedType())
+		return mUsedType < inOtherUsedType->GetUsedType();
+
+	if(eUsedTypeField == mUsedType)
+		return mFieldDescriptor->IsLess(inOtherUsedType->GetFieldDescriptor());
+	else
+		return mFunctionPointerDescriptor->IsLess(inOtherUsedType->GetFunctionPointerDescriptor());
+}
+
 
 UsedTypeDescriptor* UsedTypeDescriptor::Clone()
 {

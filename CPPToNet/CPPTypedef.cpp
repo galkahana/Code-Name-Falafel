@@ -21,3 +21,8 @@ bool CPPTypedef::IsEqual(CPPTypedef* inOther)
 {
 	return mTypeDescriptor->IsEqual(inOther->mTypeDescriptor);
 }
+
+bool CPPTypedef::IsLess(CPPTypedef* inOther)
+{
+	return mTypeDescriptor->IsLess(inOther->mTypeDescriptor);
+}

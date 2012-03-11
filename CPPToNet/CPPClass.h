@@ -34,13 +34,15 @@ public:
 	virtual ~CPPClass(void);
 
 	// for tamplate classes
-	void AddSpecialization(CPPClass* inSpecialization);
 	// if creates a new instance, will take ownership of the parametsrs. return value is the instance, and whether created a new one
 	CPPClassTemplateInstanceAndBool QueryInstance(const UsedTypeOrExpressionList& inTemplateParametersAssignments);
 
 private:
 
-	CPPClassList mSpecializations;
 	UsedTypeOrExpressionListToCPPClassTemplateInstanceMap mInstances;
+
+	virtual AbstractClassOrStruct* CreateNewSpecialization(	const CPPElementList& inTemplateParameters,
+															const UsedTypeOrExpressionList& inTemplateParameterAssignments,
+															bool inIsDefinition);
 };
 

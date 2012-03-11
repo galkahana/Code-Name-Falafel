@@ -24,6 +24,20 @@ struct DeclaratorModifier
 		return IsVolatile == inOther.IsVolatile;
 	}
 
+	bool IsLess(const DeclaratorModifier& inOther)
+	{
+		if(Modifier != inOther.Modifier)
+			return Modifier < inOther.Modifier;
+
+		if(IsConst != inOther.IsConst)
+			return !IsConst;
+
+		if(IsVolatile == inOther.IsVolatile)
+			return false;
+		else
+			return !IsVolatile;
+	}
+
 	EDeclaratorModifier Modifier;
 	bool IsConst;
 	bool IsVolatile;

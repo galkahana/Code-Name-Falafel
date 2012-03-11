@@ -32,3 +32,11 @@ bool CPPTemplateValue::IsEqual(CPPTemplateValue* inOther)
 
 	return mTypeOfValue->Type->IsEqual(inOther->GetTypeOfValue());
 }
+
+bool CPPTemplateValue::IsLess(CPPTemplateValue* inOther)
+{
+	if(mParameterIndex != inOther->GetParameterIndex())
+		return mParameterIndex < inOther->GetParameterIndex();
+
+	return mTypeOfValue->Type->IsLess(inOther->GetTypeOfValue());
+}

@@ -2,9 +2,11 @@
 
 #include "CPPElement.h"
 #include "AbstractCPPContainer.h"
+#include "CPPElementListAndUsedTypeOrExpressionList.h"
 
 #include <set>
 #include <utility>
+#include <map>
 
 using namespace std;
 
@@ -19,6 +21,8 @@ class AbstractClassOrStruct;
 
 typedef set<CPPElement*> CPPElementSet;
 typedef map<CPPElement*,EAbstractClassOrStructAccessLevel> CPPElementToEAbstractClassOrStructAccessLevelMap;
+typedef map<CPPElementListAndUsedTypeOrExpressionList,AbstractClassOrStruct*,CPPElementListAndUsedTypeOrExpressionListLess> CPPElementListAndUsedTypeOrExpressionListToAbstractClassOrStructMap;
+typedef pair<AbstractClassOrStruct*,bool> AbstractClassOrStructAndBool;
 
 class AbstractClassOrStruct : public CPPElement, public AbstractCPPContainer
 {
@@ -52,6 +56,14 @@ public:
 	CPPElementList& GetTemplateParameters();
 	Hummus::SingleValueContainerIterator<UsedTypeOrExpressionList> GetTemplateParameterAssignmentsIterator();
 	UsedTypeOrExpressionList& GetTemplateParameterAssignments();
+	// for templates, add specialization for this template
+	AbstractClassOrStructAndBool AddSpecialization(
+							const CPPElementList& inTemplateParameters,
+							const UsedTypeOrExpressionList& inTemplateParameterAssignments,
+							bool inIsDefinition);
+	AbstractClassOrStruct* GetSpecialization(
+							const CPPElementList& inTemplateParameters,
+							const UsedTypeOrExpressionList& inTemplateParameterAssignments);
 
 protected:
 
@@ -110,7 +122,6 @@ protected:
 	virtual CPPClass* AppendClassTemplate(
 									const string& inClassName,
 									const CPPElementList& inTemplateParameters,
-									const UsedTypeOrExpressionList& inTemplateAssigmentList,
 									bool inIsDefinition,
 									CPPClass* inClass);
 	virtual CPPStruct* AppendStruct(const string& inStructName,
@@ -118,11 +129,16 @@ protected:
 									CPPStruct* inStruct);
 	virtual CPPStruct* AppendStructTemplate(const string& inStructName,
 									const CPPElementList& inTemplateParameters,
-									const UsedTypeOrExpressionList& inTemplateAssigmentList,
 									bool inIsDefinition,
 									CPPStruct* inStruct);
 
 private:
+	// implemented by subclass, to create a new templates class/struct type, with specialization
+	virtual AbstractClassOrStruct* CreateNewSpecialization(	const CPPElementList& inTemplateParameters,
+															const UsedTypeOrExpressionList& inTemplateParameterAssignments,
+															bool inIsDefinition) = 0;
+
+
 	bool mIsDefinition;
 
 	CPPElementSet* mAccessDefinition;
@@ -133,9 +149,12 @@ private:
 	bool mIsTemplate;
 	CPPElementList mTemplateParameters;
 	UsedTypeOrExpressionList mTemplateParametersAssignments;
+	CPPElementListAndUsedTypeOrExpressionListToAbstractClassOrStructMap mSpecializations;
 
 
 	void  SetCommonItems(bool inIsDefinition,EAbstractClassOrStructAccessLevel inDefaultAccessLevel);
+
+
 
 };
 

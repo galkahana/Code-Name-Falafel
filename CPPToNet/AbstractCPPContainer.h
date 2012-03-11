@@ -81,13 +81,11 @@ public:
 	virtual CPPClass* CreateClassTemplate(
 								  const string& inClassName,
 								  const CPPElementList& inTemplateParameters,
-								  const UsedTypeOrExpressionList& inTemplateParametersSpecialization,
 								  bool inIsDefinition);
 	virtual CPPStruct* CreateStruct(const string& inStructName,
 								  bool inIsDefinition);
 	virtual CPPStruct* CreateStructTemplate(const string& inStructName,
 								  const CPPElementList& inTemplateParameters,
-								  const UsedTypeOrExpressionList& inTemplateParametersSpecialization,
 								  bool inIsDefinition);
 
 protected:
@@ -135,7 +133,6 @@ protected:
 	virtual CPPClass* AppendClassTemplate(
 									const string& inClassName,
 									const CPPElementList& inTemplateParameters,
-									const UsedTypeOrExpressionList& inTemplateAssigmentList,
 									bool inIsDefinition,
 									CPPClass* inClass);
 	virtual CPPStruct* AppendStruct(const string& inStructName,
@@ -143,7 +140,6 @@ protected:
 									CPPStruct* inStruct);
 	virtual CPPStruct* AppendStructTemplate(const string& inStructName,
 									const CPPElementList& inTemplateParameters,
-									const UsedTypeOrExpressionList& inTemplateAssigmentList,
 									bool inIsDefinition,
 									CPPStruct* inStruct);
 
@@ -179,18 +175,11 @@ private:
 	// class templates
 	StringToCPPClassMap mClassTemplates;
 
-	// class specializations
-	StringToCPPClassListMap mClassTemplateSpecializations;
-
 	// structs
 	StringToCPPStructMap mStructs;
 
 	// struct templates
 	StringToCPPStructMap mStructTemplates;
-
-	// structs specializations
-	StringToCPPStructListMap mStructTemplateSpecializations;
-
 
 	bool HasNonTypesWithName(const string& inName);
 	

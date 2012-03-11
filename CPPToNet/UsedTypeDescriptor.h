@@ -46,6 +46,7 @@ public:
 	CPPElement* GetType();
 
 	bool IsEqual(FieldTypeDescriptor* inOtherDescriptor);
+	bool IsLess(FieldTypeDescriptor* inOtherDescriptor);
 	FieldTypeDescriptor* Clone();
 
 private:
@@ -72,6 +73,7 @@ public:
 	bool HasElipsis();
 	
 	bool IsEqual(FunctionPointerTypeDescriptor* inOther);
+	bool IsLess(FunctionPointerTypeDescriptor* inOtherDescriptor);
 	FunctionPointerTypeDescriptor* Clone();
 
 private:
@@ -112,6 +114,7 @@ public:
 	FunctionPointerTypeDescriptor* GetFunctionPointerDescriptor();
 
 	bool IsEqual(UsedTypeDescriptor* inOtherUsedType);
+	bool IsLess(UsedTypeDescriptor* inOtherUsedType);
 
 	UsedTypeDescriptor* Clone();
 

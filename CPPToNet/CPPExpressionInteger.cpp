@@ -105,3 +105,96 @@ BoolAndCPPPrimitiveValue CPPExpressionInteger::Evaluate(IExpressionEvaluationCon
 
 	return result;
 }
+
+
+bool CPPExpressionInteger::IsEqual(CPPExpression* inOther)
+{
+	if(inOther->Type != CPPExpression::eCPPExpressionInteger)
+		return false;
+
+	CPPExpressionInteger* otherInteger = (CPPExpressionInteger*)inOther;
+
+	if(mType != otherInteger->mType)
+		return false;
+
+	bool result = false;
+
+	switch(mType)
+	{
+		case eCPPBool:
+			result = (mBoolValue == otherInteger->mBoolValue);
+			break;
+		case eCPPChar:
+			result = (mCharValue == otherInteger->mCharValue);
+			break;
+		case eCPPUnsignedChar:
+			result = (mUCharValue == otherInteger->mUCharValue);
+			break;
+		case eCPPInt:
+			result = (mIntValue == otherInteger->mIntValue);
+			break;
+		case eCPPUnsigned:
+			result = (mUIntValue == otherInteger->mUIntValue);
+			break;
+		case eCPPLong:
+			result = (mLongValue == otherInteger->mLongValue);
+			break;
+		case eCPPUnsignedLong:
+			result = (mULongValue == otherInteger->mULongValue);
+			break;
+		case eCPPLongLong:
+			result = (mLongLongValue == otherInteger->mLongLongValue);
+			break;
+		case eCPPUnsignedLongLong:
+			result = (mULongLongValue == otherInteger->mULongLongValue);
+			break;
+	}	
+
+	return result;
+}
+
+bool CPPExpressionInteger::IsLess(CPPExpression* inOther)
+{
+	if(inOther->Type != CPPExpression::eCPPExpressionInteger)
+		return inOther->Type < CPPExpression::eCPPExpressionInteger;
+
+	CPPExpressionInteger* otherInteger = (CPPExpressionInteger*)inOther;
+
+	if(mType != otherInteger->mType)
+		return mType < otherInteger->mType;
+
+	bool result = false;
+
+	switch(mType)
+	{
+		case eCPPBool:
+			result = (mBoolValue < otherInteger->mBoolValue);
+			break;
+		case eCPPChar:
+			result = (mCharValue < otherInteger->mCharValue);
+			break;
+		case eCPPUnsignedChar:
+			result = (mUCharValue < otherInteger->mUCharValue);
+			break;
+		case eCPPInt:
+			result = (mIntValue < otherInteger->mIntValue);
+			break;
+		case eCPPUnsigned:
+			result = (mUIntValue < otherInteger->mUIntValue);
+			break;
+		case eCPPLong:
+			result = (mLongValue < otherInteger->mLongValue);
+			break;
+		case eCPPUnsignedLong:
+			result = (mULongValue < otherInteger->mULongValue);
+			break;
+		case eCPPLongLong:
+			result = (mLongLongValue < otherInteger->mLongLongValue);
+			break;
+		case eCPPUnsignedLongLong:
+			result = (mULongLongValue < otherInteger->mULongLongValue);
+			break;
+	}	
+
+	return result;
+}

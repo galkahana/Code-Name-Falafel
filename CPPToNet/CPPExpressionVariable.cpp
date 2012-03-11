@@ -15,3 +15,52 @@ BoolAndCPPPrimitiveValue CPPExpressionVariable::Evaluate(IExpressionEvaluationCo
 	// TODO. need to be determined by environment
 	return BoolAndCPPPrimitiveValue(false,CPPPrimitiveValue());
 }
+
+bool CPPExpressionVariable::IsEqual(CPPExpression* inOther)
+{
+	if(inOther->Type != CPPExpression::eCPPExpressionVariable)
+		return false;
+
+	CPPExpressionVariable* otherVariable = (CPPExpressionVariable*)inOther;
+
+	if(VariableName != otherVariable->VariableName)
+		return false;
+
+	if(Scopes.size() != otherVariable->Scopes.size())
+		return false;
+
+	bool isEqual = true;
+	StringList::const_iterator itScopes = Scopes.begin();
+	StringList::const_iterator itScopesOther = otherVariable->Scopes.begin();
+	for(; itScopes != Scopes.end() && isEqual; ++itScopes, ++itScopesOther)
+		isEqual = (*itScopes == *itScopesOther);
+
+	return isEqual;
+}
+
+bool CPPExpressionVariable::IsLess(CPPExpression* inOther)
+{
+	if(inOther->Type != CPPExpression::eCPPExpressionVariable)
+		return inOther->Type < CPPExpression::eCPPExpressionVariable;
+
+	CPPExpressionVariable* otherVariable = (CPPExpressionVariable*)inOther;
+
+	if(VariableName != otherVariable->VariableName)
+		return VariableName.compare(otherVariable->VariableName) < 0;
+
+	if(Scopes.size() != otherVariable->Scopes.size())
+		return Scopes.size() < otherVariable->Scopes.size();
+
+	bool isEqual = true;
+	bool isLess = false;
+	StringList::const_iterator itScopes = Scopes.begin();
+	StringList::const_iterator itScopesOther = otherVariable->Scopes.begin();
+	for(; itScopes != Scopes.end() && isEqual; ++itScopes, ++itScopesOther)
+	{
+		isEqual = (*itScopes == *itScopesOther);
+		if(!isEqual)
+			isLess = (itScopes->compare(*itScopesOther) < 0);
+	}
+
+	return isLess;
+}

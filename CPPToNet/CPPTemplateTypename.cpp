@@ -37,6 +37,12 @@ bool CPPTemplateTypename::IsEqual(CPPTemplateTypename* inOther)
 	return mParameterIndex == inOther->GetParameterIndex();
 }
 
+bool CPPTemplateTypename::IsLess(CPPTemplateTypename* inOther)
+{
+	return mParameterIndex < inOther->GetParameterIndex();
+}
+
+
 CPPElementList CPPTemplateTypename::FindElements(const string& inElementName)
 {
 	// if not found...just add a new one :)

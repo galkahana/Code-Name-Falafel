@@ -27,4 +27,8 @@ public:
 	ECPPExpressionType Type;
 
 	virtual BoolAndCPPPrimitiveValue Evaluate(IExpressionEvaluationContext* inContext) = 0;
+	// equality checks that the expression looks the same. note that evaluation is the proper way of figuring out
+	// if it evaluates to the same result
+	virtual bool IsEqual(CPPExpression* inOther) = 0;
+	virtual bool IsLess(CPPExpression* inOther) = 0;
 };

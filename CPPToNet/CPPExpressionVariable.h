@@ -16,6 +16,8 @@ public:
 	~CPPExpressionVariable(void);
 
 	virtual BoolAndCPPPrimitiveValue Evaluate(IExpressionEvaluationContext* inContext);
+	virtual bool IsEqual(CPPExpression* inOther);
+	virtual bool IsLess(CPPExpression* inOther);
 
 	string VariableName;
 	StringList Scopes;

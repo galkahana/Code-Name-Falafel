@@ -50,14 +50,18 @@ public:
 			{
 				if(!(*itLeft)->Descriptor->IsEqual((*itRight)->Descriptor))
 				{
-					isLess = (*itLeft)->Descriptor < (*itRight)->Descriptor;
+					isLess = (*itLeft)->Descriptor->IsLess((*itRight)->Descriptor);
 					break;
 				}
 			}
 			else
 			{
 				// for expressions no compare. so just compare pointers
-				isLess = (*itLeft)->Expression < (*itRight)->Expression;
+				if(!(*itLeft)->Expression->IsEqual((*itRight)->Expression))
+				{
+					isLess = (*itLeft)->Expression->IsLess((*itRight)->Expression);
+					break;
+				}
 				break;
 			}
 		}

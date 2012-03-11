@@ -54,6 +54,13 @@ struct TokenState
 
 typedef list<TokenState> TokenStateList;
 
+struct TokenProviderState
+{
+	TokenStateList State;
+};
+
+typedef list<TokenProviderState> TokenProviderStateList;
+
 class CPPStatementsParser
 {
 public:
@@ -76,8 +83,7 @@ private:
 	// Stack for template parameters context. used both in parsing the template parameters, to provide context
 	// for template parameters reuse, and in parsing the statement dependent on the template defintion
 	CPPElementListList mTemplateParametersStack;
-	bool mCollectingTokenState;
-	TokenStateList mTokenStateSaver;
+	TokenProviderStateList mTokenStateRecovery;
 
 	EStatusCodeAndHeaderUnit ParseUnit();
 	void SetupPrimitiveTypes();
@@ -120,16 +126,26 @@ private:
 
 	EStatusCodeAndBool ParseFunctionPointerOrFunction(ICPPDeclarationContainerDriver* inContainer,const DeclaratorModifierList& inReturnTypeModifiersList);
 	EStatusCodeAndBool ParseFieldOrFunction(ICPPDeclarationContainerDriver* inContainer,const DeclaratorModifierList& inFieldModifiersList);
-	EStatusCodeAndBool ParseFunctionDefinition(ICPPDeclarationContainerDriver* inContainer,const DeclaratorModifierList& inReturnTypeModifiersList,const UsedTypeOrExpressionList& inTemplateAssignmentList,const string& inFunctionName);
-	EStatusCodeAndBool ParseFieldDefinition(ICPPFieldDeclerator* inFieldDeclerator);
+	EStatusCodeAndBool ParseFunctionDefinition(ICPPDeclarationContainerDriver* inContainer,
+												const DeclaratorModifierList& inReturnTypeModifiersList,
+												const UsedTypeOrExpressionList& inTemplateAssignmentList,
+												const string& inFunctionName,
+												bool inIsOutOfLineDefinition);
+	EStatusCodeAndBool ParseFieldDefinition(ICPPFieldDeclerator* inFieldDeclerator,bool inIsOutOfLineDefinition);
 
-	Hummus::EStatusCode FinalizeFunction(ICPPFunctionDefinitionDeclerator* inFunctionDecleratorDriver,const UsedTypeOrExpressionList& inTemplateAssignmentList,bool inIsDefinition);
+	Hummus::EStatusCode FinalizeFunction(ICPPFunctionDefinitionDeclerator* inFunctionDecleratorDriver,
+										 const UsedTypeOrExpressionList& inTemplateAssignmentList,
+										 bool inIsDefinition,
+										 bool inIsOutOfLineDefinition);
+	void CleanupTemplateParametersForOutOfLineDefinition();
 
 	Hummus::EStatusCode SkipInitializer();
 	Hummus::EStatusCode SkipBlock();
 
 	string ComputeUnqualifiedNameFromCurrentLocation(string inTypeName,const BoolAndString& inNextToken);
-	CPPElement* GetScopingElementFromCurrentLocation();
+	// The passed parameter "inInDefinitionContext" differs cases of looking for scoping element to scope an out-of-class definition or
+	// just specification of a used type. the cases determine how template usages are intepreted - instances or specialization/main template
+	CPPElement* GetScopingElementFromCurrentLocation(bool inInDefinitionContext);
 
 	void StartLocalContext();
 	void EndLocalContext();
@@ -139,6 +155,7 @@ private:
 	EStatusCode ParseTemplateAssignmentParameters(UsedTypeOrExpressionList& inParametersStorage);
 	void Destroy(UsedTypeOrExpressionList& inList);
 	CPPElement* FromTemplateToTemplateInstance(AbstractClassOrStruct* inTemplate);
+	CPPElement* FromTemplateToTemplateSpecialization(AbstractClassOrStruct* inTemplate);
 
 	// a probe to current location, checking if this is a used type declaration
 	bool IsNowInUsedTypeDeclaration();
@@ -147,9 +164,8 @@ private:
 	BoolAndString GetNextToken();
 	void PutBackToken(string inToken);
 
-	void TurnOnTokenRevert();
-	void CancelTokenRevert();
-	void FinalizeTokenRevert();
-	void RevertTokens();
+	void TakeTokenSnapshot();
+	void CancelSnapshot();
+	void RevertToTopSnapshot();
 
 };
