@@ -6,6 +6,9 @@
 #include "CPPElement.h"
 #include "TypedParameter.h"
 #include "UsedTypeOrExpression.h"
+#include "ITokenProvider.h"
+#include "TokenProviderStateRecovery.h"
+#include "ITypeParserHelper.h"
 
 #include <string>
 #include <map>
@@ -44,24 +47,7 @@ struct LocalContext
 
 typedef list<LocalContext> LocalContextList;
 
-struct TokenState
-{
-	TokenState(string inToken,bool inIsPut){Token = inToken;IsPut = inIsPut;}
-
-	string Token;
-	bool IsPut;
-};
-
-typedef list<TokenState> TokenStateList;
-
-struct TokenProviderState
-{
-	TokenStateList State;
-};
-
-typedef list<TokenProviderState> TokenProviderStateList;
-
-class CPPStatementsParser
+class CPPStatementsParser : public ITypeParserHelper
 {
 public:
 	CPPStatementsParser(void);
@@ -72,6 +58,12 @@ public:
 						 const string& inSourceFileName,
 						 const StringToStringMap& inPreprocessorDefinitions,
 						 const StringList& inIncludeFolders);
+
+
+	//ITypeParserHelper implementation [also internal usage...]
+	virtual bool IsAboutToParseType(ITokenProvider* inTokenProvider);
+	virtual TypedParameter* ParseType(ITokenProvider* inTokenProvider,const string& inTypeDelimeter);
+
 private:
 
 	PreProcessor mTokensSource;
@@ -83,7 +75,6 @@ private:
 	// Stack for template parameters context. used both in parsing the template parameters, to provide context
 	// for template parameters reuse, and in parsing the statement dependent on the template defintion
 	CPPElementListList mTemplateParametersStack;
-	TokenProviderStateList mTokenStateRecovery;
 
 	EStatusCodeAndHeaderUnit ParseUnit();
 	void SetupPrimitiveTypes();
@@ -103,9 +94,9 @@ private:
 	CPPElement* FindUnqualifiedElement(const string& inElementName,ECPPElementTypeSet inOfTypes);
 	void AddNamespaceToUnqualifiedSearch(CPPNamespace* inNamespace);
 	Hummus::EStatusCode SkipSemiColon();
-	CPPElement* GetElementFromCurrentLocation(bool inRequireType);
-	CPPElement* GetElementFromCurrentLocation(CPPElement::ECPPElementType inOfType);
-	CPPElement* GetElementFromCurrentLocation(const ECPPElementTypeSet& inTypeSet);
+	CPPElement* GetElementFromCurrentLocation(ITokenProvider* inTokenProvider, bool inRequireType);
+	CPPElement* GetElementFromCurrentLocation(ITokenProvider* inTokenProvider,CPPElement::ECPPElementType inOfType);
+	CPPElement* GetElementFromCurrentLocation(ITokenProvider* inTokenProvider,const ECPPElementTypeSet& inTypeSet);
 
 	// will return either NULL or an element, if and only if there's just ONE element of this name
 	CPPElement* FindQualifiedElement(ICPPElementsContainer* inContainer,const string& inElementName);
@@ -116,22 +107,26 @@ private:
 	// will return either NULL or an element, if and only if there's just ONE element of this name and of these types
 	CPPElement* FindQualifiedElement(ICPPElementsContainer* inContainer,const string& inElementName,ECPPElementTypeSet inOfTypes);
 
-	Hummus::EStatusCode SkipConstantExpression();
+	Hummus::EStatusCode SkipConstantExpression(ITokenProvider* inTokenProvider);
 
 	bool IsTypenamesContainer(CPPElement* inElement);
 	string GetNewUnnamedName();
 
-	Hummus::EStatusCode ParseGenericDeclerationStatement(ICPPDeclarationContainerDriver* inContainer);
-	Hummus::EStatusCode ParseDeclarators(ICPPDeclarationContainerDriver* inContainer);
+	Hummus::EStatusCode ParseGenericDeclerationStatement(ITokenProvider* inTokenProvider,ICPPDeclarationContainerDriver* inContainer);
+	Hummus::EStatusCode ParseDeclarators(ITokenProvider* inTokenProvider,ICPPDeclarationContainerDriver* inContainer);
 
-	EStatusCodeAndBool ParseFunctionPointerOrFunction(ICPPDeclarationContainerDriver* inContainer,const DeclaratorModifierList& inReturnTypeModifiersList);
-	EStatusCodeAndBool ParseFieldOrFunction(ICPPDeclarationContainerDriver* inContainer,const DeclaratorModifierList& inFieldModifiersList);
-	EStatusCodeAndBool ParseFunctionDefinition(ICPPDeclarationContainerDriver* inContainer,
+	EStatusCodeAndBool ParseFunctionPointerOrFunction(ITokenProvider* inTokenProvider,ICPPDeclarationContainerDriver* inContainer,const DeclaratorModifierList& inReturnTypeModifiersList);
+	EStatusCodeAndBool ParseFieldOrFunction(ITokenProvider* inTokenProvider , ICPPDeclarationContainerDriver* inContainer,const DeclaratorModifierList& inFieldModifiersList);
+	EStatusCodeAndBool ParseFunctionDefinition(
+												ITokenProvider* inTokenProvider,
+												ICPPDeclarationContainerDriver* inContainer,
 												const DeclaratorModifierList& inReturnTypeModifiersList,
 												const UsedTypeOrExpressionList& inTemplateAssignmentList,
 												const string& inFunctionName,
 												bool inIsOutOfLineDefinition);
-	EStatusCodeAndBool ParseFieldDefinition(ICPPFieldDeclerator* inFieldDeclerator,bool inIsOutOfLineDefinition);
+	EStatusCodeAndBool ParseFieldDefinition(ITokenProvider* inTokenProvider,
+											ICPPFieldDeclerator* inFieldDeclerator,
+											bool inIsOutOfLineDefinition);
 
 	Hummus::EStatusCode FinalizeFunction(ICPPFunctionDefinitionDeclerator* inFunctionDecleratorDriver,
 										 const UsedTypeOrExpressionList& inTemplateAssignmentList,
@@ -139,33 +134,22 @@ private:
 										 bool inIsOutOfLineDefinition);
 	void CleanupTemplateParametersForOutOfLineDefinition();
 
-	Hummus::EStatusCode SkipInitializer();
-	Hummus::EStatusCode SkipBlock();
+	Hummus::EStatusCode SkipInitializer(ITokenProvider* inTokenProvider);
+	Hummus::EStatusCode SkipBlock(ITokenProvider* inTokenProvider);
 
 	string ComputeUnqualifiedNameFromCurrentLocation(string inTypeName,const BoolAndString& inNextToken);
 	// The passed parameter "inInDefinitionContext" differs cases of looking for scoping element to scope an out-of-class definition or
 	// just specification of a used type. the cases determine how template usages are intepreted - instances or specialization/main template
-	CPPElement* GetScopingElementFromCurrentLocation(bool inInDefinitionContext);
+	CPPElement* GetScopingElementFromCurrentLocation(ITokenProvider* inTokenProvider,bool inInDefinitionContext);
 
 	void StartLocalContext();
 	void EndLocalContext();
 
 	EStatusCode ParseTemplateParameters(CPPElementList& inParametersStorage);
 	void Destroy(CPPElementList& inList);
-	EStatusCode ParseTemplateAssignmentParameters(UsedTypeOrExpressionList& inParametersStorage);
+	EStatusCode ParseTemplateAssignmentParameters(ITokenProvider* inTokenProvider,UsedTypeOrExpressionList& inParametersStorage);
 	void Destroy(UsedTypeOrExpressionList& inList);
-	CPPElement* FromTemplateToTemplateInstance(AbstractClassOrStruct* inTemplate);
-	CPPElement* FromTemplateToTemplateSpecialization(AbstractClassOrStruct* inTemplate);
-
-	// a probe to current location, checking if this is a used type declaration
-	bool IsNowInUsedTypeDeclaration();
-
-	// controlled methods
-	BoolAndString GetNextToken();
-	void PutBackToken(string inToken);
-
-	void TakeTokenSnapshot();
-	void CancelSnapshot();
-	void RevertToTopSnapshot();
+	CPPElement* FromTemplateToTemplateInstance(ITokenProvider* inTokenProvider,AbstractClassOrStruct* inTemplate);
+	CPPElement* FromTemplateToTemplateSpecialization(ITokenProvider* inTokenProvider,AbstractClassOrStruct* inTemplate);
 
 };

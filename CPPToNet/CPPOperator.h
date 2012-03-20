@@ -15,6 +15,7 @@ enum ECPPOperatorType
 	eCPPOperatorUnaryPlus,
 	eCPPOperatorAddressOf,
 	eCPPOperatorIndirection,
+	eCPPOperatorCasting,
 	eCPPOperatorMultiplication,
 	eCPPOperatorDivision,
 	eCPPOperatorModulus,
@@ -38,14 +39,18 @@ enum ECPPOperatorType
 	eCPPOperatorUndefined
 };
 
+class CPPExpression;
+
 class CPPOperator
 {
 public:
 	CPPOperator();
 	CPPOperator(ECPPOperatorType inType);
+	CPPOperator(ECPPOperatorType inType,CPPExpression* inParameter);
 	~CPPOperator(void);
 
 	ECPPOperatorType Type;
+	CPPExpression* Parameter;
 
 	bool Precedes(const CPPOperator& inOther) const;
 	bool Precedes(CPPOperator* inOther) const;

@@ -17,7 +17,8 @@ public:
 		eCPPExpressionOperator,
 		eCPPExpressionInteger,
 		eCPPExpressionFunctionCall,
-		eCPPExpressionVariable
+		eCPPExpressionVariable,
+		eCPPExpressionTypename
 	};
 
 	CPPExpression(ECPPExpressionType inType){Type = inType;}

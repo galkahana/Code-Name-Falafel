@@ -111,7 +111,7 @@ void CPPStatementsParser::SetupPrimitiveTypes()
 EStatusCodeAndBool CPPStatementsParser::ParseStatement(HeaderUnit* inUnitModel)
 {
 	EStatusCode status = eSuccess;
-	BoolAndString tokenizerResult = GetNextToken();
+	BoolAndString tokenizerResult = mTokensSource.GetNextToken();
 
 	// currently no treatment of errors in the tokenizer....need to add that....
 	if(!tokenizerResult.first)
@@ -129,7 +129,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseStatement(HeaderUnit* inUnitModel)
 		}
 		else if(tokenizerResult.second == "using")
 		{
-			tokenizerResult = GetNextToken();
+			tokenizerResult = mTokensSource.GetNextToken();
 			if(!tokenizerResult.first)
 			{
 				status = eFailure;
@@ -141,7 +141,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseStatement(HeaderUnit* inUnitModel)
 				status = ParseUsingDirective();
 			else
 			{
-				PutBackToken(tokenizerResult.second);
+				mTokensSource.PutBackToken(tokenizerResult.second);
 				status = ParseUsingDeclaration();
 			}
 		}
@@ -178,7 +178,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseStatement(HeaderUnit* inUnitModel)
 					((CPPElement*)mDefinitionContextStack.back())->Type == CPPElement::eCPPElementStruct)
 				{
 					// in case of a class or struct, consume also the following ';'
-					tokenizerResult = GetNextToken();
+					tokenizerResult = mTokensSource.GetNextToken();
 					if(!tokenizerResult.first)
 					{
 						status = eFailure;
@@ -217,7 +217,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseStatement(HeaderUnit* inUnitModel)
 					((CPPClass*)mDefinitionContextStack.back())->SetPublicAccessLevel();
 
 				// verify that next token is ":"
-				tokenizerResult = GetNextToken();
+				tokenizerResult = mTokensSource.GetNextToken();
 				if(!tokenizerResult.first)
 				{
 					status = eFailure;
@@ -257,9 +257,9 @@ EStatusCodeAndBool CPPStatementsParser::ParseStatement(HeaderUnit* inUnitModel)
 
 			DecleratorAsVariableContainer definitionContainerDriver(mDefinitionContextStack.back());
 
-			PutBackToken(tokenizerResult.second);
+			mTokensSource.PutBackToken(tokenizerResult.second);
 
-			status =  ParseGenericDeclerationStatement(&definitionContainerDriver);
+			status =  ParseGenericDeclerationStatement(&mTokensSource,&definitionContainerDriver);
 			if(status != eSuccess)
 				TRACE_LOG("CPPStatementsParser::ParseStatement, failed in parsing variable or function definition");
 		}
@@ -271,7 +271,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseStatement(HeaderUnit* inUnitModel)
 
 EStatusCode CPPStatementsParser::ParseNamespaceDeclaration()
 {
-	BoolAndString tokenizerResult = GetNextToken();
+	BoolAndString tokenizerResult = mTokensSource.GetNextToken();
 
 	if(!tokenizerResult.first)
 	{
@@ -303,7 +303,7 @@ EStatusCode CPPStatementsParser::ParseNamespaceDeclaration()
 		string namespaceName = tokenizerResult.second;
 
 		// next char can be either a block opener (regular case) or equality (alias)
-		tokenizerResult = GetNextToken(); 
+		tokenizerResult = mTokensSource.GetNextToken(); 
 		if(!tokenizerResult.first)
 		{
 			TRACE_LOG("CPPStatementsParser::ParseNamespaceDeclaration, syntax error, no block opener after namespace declaration");
@@ -314,7 +314,7 @@ EStatusCode CPPStatementsParser::ParseNamespaceDeclaration()
 		{
 			// namespace XXXA = XXX;
 
-			tokenizerResult = GetNextToken(); 
+			tokenizerResult = mTokensSource.GetNextToken(); 
 			if(!tokenizerResult.first)
 			{
 				TRACE_LOG("CPPStatementsParser::ParseNamespaceDeclaration, syntax error, no namespace name for alias namespace definition");
@@ -375,7 +375,7 @@ string CPPStatementsParser::GetNewUnnamedName()
 EStatusCode CPPStatementsParser::ParseUsingDirective()
 {
 	// next token should be the namespace to be used
-	BoolAndString tokenizerResult = GetNextToken(); 
+	BoolAndString tokenizerResult = mTokensSource.GetNextToken(); 
 	if(!tokenizerResult.first || tokenizerResult.second == ";")
 	{
 		TRACE_LOG("CPPStatementsParser::ParseUsingDirective, syntax error, using directive does not provide a namespace name");
@@ -398,7 +398,7 @@ EStatusCode CPPStatementsParser::ParseUsingDirective()
 
 Hummus::EStatusCode CPPStatementsParser::SkipSemiColon()
 {
-	BoolAndString tokenizerResult = GetNextToken(); 
+	BoolAndString tokenizerResult = mTokensSource.GetNextToken(); 
 	if(!tokenizerResult.first)
 	{
 		TRACE_LOG("CPPStatementsParser::SkipSemiColon, syntax error, expected Semi Colon and couldn't read further");
@@ -440,7 +440,7 @@ EStatusCode CPPStatementsParser::ParseUsingDeclaration()
 	// it's of the form - using [<namespace name>]::<typename>, and it adds to either a current defined namespace or the global namespace, the type as a synonym
 
 	// get qualifiied object
-	CPPElement* anElement = GetElementFromCurrentLocation(false);
+	CPPElement* anElement = GetElementFromCurrentLocation(&mTokensSource,false);
 	if(!anElement)
 	{
 		TRACE_LOG("CPPStatementsParser::ParseUsingDeclaration, error in using declaration, could not find designated type");
@@ -526,34 +526,29 @@ CPPElement* CPPStatementsParser::FindQualifiedElement(ICPPElementsContainer* inC
 	return foundElement;
 }
 
-CPPElement* CPPStatementsParser::GetElementFromCurrentLocation(bool inRequireType)
+CPPElement* CPPStatementsParser::GetElementFromCurrentLocation(ITokenProvider* inTokenProvider,bool inRequireType)
 {
 	ECPPElementTypeSet typeset;
 	
 	if(inRequireType)
 	{
-		typeset.insert(CPPElement::eCPPElementPrimitive);
-		typeset.insert(CPPElement::eCPPElementEnumerator);
-		typeset.insert(CPPElement::eCPPElementUnion);
-		typeset.insert(CPPElement::eCPPElementTypedef);
-		typeset.insert(CPPElement::eCPPElementClass);
-		typeset.insert(CPPElement::eCPPElementStruct);
-		typeset.insert(CPPElement::eCPPElemeentTemplateTypename);
-		typeset.insert(CPPElement::eCPPElemeentTemplateTemplateParameter);
+		int it = CPPElement::eCPPElementPrimitive;
+		for(; it < CPPElement::eCPPTypenames;++it)
+			typeset.insert((CPPElement::ECPPElementType)(it));
 	}
-	return GetElementFromCurrentLocation(typeset);
+	return GetElementFromCurrentLocation(inTokenProvider,typeset);
 }
 
-CPPElement* CPPStatementsParser::GetElementFromCurrentLocation(CPPElement::ECPPElementType inOfType)
+CPPElement* CPPStatementsParser::GetElementFromCurrentLocation(ITokenProvider* inTokenProvider,CPPElement::ECPPElementType inOfType)
 {
 	ECPPElementTypeSet typeset;
 
 	typeset.insert(inOfType);
-	return GetElementFromCurrentLocation(typeset);
+	return GetElementFromCurrentLocation(inTokenProvider,typeset);
 }
 
 
-CPPElement* CPPStatementsParser::GetElementFromCurrentLocation(const ECPPElementTypeSet& inTypeSet)
+CPPElement* CPPStatementsParser::GetElementFromCurrentLocation(ITokenProvider* inTokenProvider,const ECPPElementTypeSet& inTypeSet)
 {
 	// a name can be either:
 	// XXX
@@ -561,9 +556,9 @@ CPPElement* CPPStatementsParser::GetElementFromCurrentLocation(const ECPPElement
 	CPPElement* anElement = NULL;
 	do
 	{
-		ICPPElementsContainer* scopingElement = (ICPPElementsContainer*)GetScopingElementFromCurrentLocation(false);
+		ICPPElementsContainer* scopingElement = (ICPPElementsContainer*)GetScopingElementFromCurrentLocation(inTokenProvider,false);
 
-		BoolAndString token = GetNextToken();
+		BoolAndString token = inTokenProvider->GetNextToken();
 		if(!token.first)
 		{
 			TRACE_LOG("CPPStatementsParser::GetElementFromCurrentLocation, no symbol for grabbing new element");
@@ -574,7 +569,7 @@ CPPElement* CPPStatementsParser::GetElementFromCurrentLocation(const ECPPElement
 		if(scopingElement)
 			elementName = token.second;
 		else
-			elementName = ComputeUnqualifiedNameFromCurrentLocation(token.second,GetNextToken());
+			elementName = ComputeUnqualifiedNameFromCurrentLocation(token.second,inTokenProvider->GetNextToken());
 
 		if(inTypeSet.size() > 0)
 			anElement = scopingElement ? FindQualifiedElement(scopingElement,elementName,inTypeSet) : FindUnqualifiedElement(elementName,inTypeSet);
@@ -729,7 +724,7 @@ EStatusCode CPPStatementsParser::ParseEnumeratorDeclaration()
 		enum tag declarator;
 	*/
 
-	BoolAndString token = GetNextToken();
+	BoolAndString token = mTokensSource.GetNextToken();
 	EStatusCode status = eFailure;
 	CPPEnumerator* anEnumerator = NULL;
 
@@ -745,7 +740,7 @@ EStatusCode CPPStatementsParser::ParseEnumeratorDeclaration()
 
 		if(token.second != ":" && token.second != "{")
 		{
-			token = GetNextToken();
+			token = mTokensSource.GetNextToken();
 			if(!token.first)
 			{
 				TRACE_LOG("CPPStatementsParser::ParseEnumeratorDeclaration, synatx error, not found keys list for enumartor");
@@ -765,13 +760,13 @@ EStatusCode CPPStatementsParser::ParseEnumeratorDeclaration()
 			if(token.second == ":")
 			{
 				// case of tag integer type...boring. skip
-				token = GetNextToken();
+				token = mTokensSource.GetNextToken();
 				if(!token.first)
 				{
 					TRACE_LOG("CPPStatementsParser::ParseEnumeratorDeclaration, synatx error, enumerator underflying type not defined");
 					break;
 				}
-				token = GetNextToken();
+				token = mTokensSource.GetNextToken();
 				if(!token.first)
 				{
 					TRACE_LOG("CPPStatementsParser::ParseEnumeratorDeclaration, synatx error, not found keys list for enumartor");
@@ -783,7 +778,7 @@ EStatusCode CPPStatementsParser::ParseEnumeratorDeclaration()
 			
 			do
 			{
-				token = GetNextToken();
+				token = mTokensSource.GetNextToken();
 				if(!token.first)
 				{
 					TRACE_LOG("CPPStatementsParser::ParseEnumeratorDeclaration, synatx error, unexpected end in enumrator values list");
@@ -796,7 +791,7 @@ EStatusCode CPPStatementsParser::ParseEnumeratorDeclaration()
 				if(!mDefinitionContextStack.back()->CreateEnumeratorValue(anEnumerator,token.second))
 					break;
 				
-				token = GetNextToken();
+				token = mTokensSource.GetNextToken();
 				if(!token.first)
 				{
 					TRACE_LOG("CPPStatementsParser::ParseEnumeratorDeclaration, synatx error, unexpected end in enumrator values list");
@@ -805,13 +800,13 @@ EStatusCode CPPStatementsParser::ParseEnumeratorDeclaration()
 
 				if(token.second == "=") // got an assignment here. skip it
 				{
-					if(SkipConstantExpression() != eSuccess)
+					if(SkipConstantExpression(&mTokensSource) != eSuccess)
 					{
 						TRACE_LOG("CPPStatementsParser::ParseEnumeratorDeclaration, synatx error, problem in value expression definition for enumerator");
 						break;
 					}
 
-					token = GetNextToken(); // get next token which should now be either } or ,
+					token = mTokensSource.GetNextToken(); // get next token which should now be either } or ,
 					if(!token.first)
 					{
 						TRACE_LOG("CPPStatementsParser::ParseEnumeratorDeclaration, synatx error, unexpected end in enumrator values list");
@@ -825,7 +820,7 @@ EStatusCode CPPStatementsParser::ParseEnumeratorDeclaration()
 				break;
 
 			// get next token to be in either semicolon or declarators
-			token = GetNextToken();
+			token = mTokensSource.GetNextToken();
 			if(!token.first)
 			{
 				TRACE_LOG("CPPStatementsParser::ParseEnumeratorDeclaration, synatx error,unexpected end of expression. should be either semicolor or declarators");
@@ -836,12 +831,12 @@ EStatusCode CPPStatementsParser::ParseEnumeratorDeclaration()
 			if(token.second != ";")
 			{
 				// variables definition. put back token and parse declarators normally
-				PutBackToken(token.second);
+				mTokensSource.PutBackToken(token.second);
 
 				DecleratorAsVariableContainer variablesDefinitionDriver(mDefinitionContextStack.back());
 				variablesDefinitionDriver.SetFlags(anEnumerator,false,false,false,false,false,false,false);
 
-				if(ParseDeclarators(&variablesDefinitionDriver) != eSuccess) // will consume the semicolon as well
+				if(ParseDeclarators(&mTokensSource,&variablesDefinitionDriver) != eSuccess) // will consume the semicolon as well
 				{
 					TRACE_LOG1("CPPStatementsParser::ParseEnumeratorDeclaration, failed to parse declarators for enumerator %s",enumeratorName.c_str());
 					break;
@@ -871,12 +866,12 @@ EStatusCode CPPStatementsParser::ParseEnumeratorDeclaration()
 				}
 
 				// variables definition. put back token and parse declarators normally
-				PutBackToken(token.second);
+				mTokensSource.PutBackToken(token.second);
 
 				DecleratorAsVariableContainer variablesDefinitionDriver(mDefinitionContextStack.back());
 				variablesDefinitionDriver.SetFlags(anEnumerator,false,false,false,false,false,false,false);
 
-				if(ParseDeclarators(&variablesDefinitionDriver) != eSuccess) // will consume the semicolon as well
+				if(ParseDeclarators(&mTokensSource,&variablesDefinitionDriver) != eSuccess) // will consume the semicolon as well
 				{
 					TRACE_LOG1("CPPStatementsParser::ParseEnumeratorDeclaration, failed to parse declarators for enumerator %s",enumeratorName.c_str());
 					break;
@@ -891,12 +886,12 @@ EStatusCode CPPStatementsParser::ParseEnumeratorDeclaration()
 	return status;
 }
 
-EStatusCode CPPStatementsParser::SkipConstantExpression()
+EStatusCode CPPStatementsParser::SkipConstantExpression(ITokenProvider* inTokenProvider)
 {
 	CPPExpressionParser expressionParser;
 
 	// parse, but just for the sake of skipping
-	BoolAndCPPExpression result = expressionParser.ParseExpression(&mTokensSource);
+	BoolAndCPPExpression result = expressionParser.ParseExpression(inTokenProvider,this);
 
 	if(result.first)
 	{
@@ -907,12 +902,12 @@ EStatusCode CPPStatementsParser::SkipConstantExpression()
 		return eFailure;
 }
 
-EStatusCodeAndBool CPPStatementsParser::ParseFieldOrFunction(ICPPDeclarationContainerDriver* inContainer,const DeclaratorModifierList& inFieldModifiersList)
+EStatusCodeAndBool CPPStatementsParser::ParseFieldOrFunction(ITokenProvider* inTokenProvider,ICPPDeclarationContainerDriver* inContainer,const DeclaratorModifierList& inFieldModifiersList)
 {
 	ICPPFieldDeclerator* aDeclarator;
 	EStatusCodeAndBool result(eSuccess,false);
 
-	BoolAndString token = GetNextToken();	
+	BoolAndString token = inTokenProvider->GetNextToken();	
 	if(!token.first)
 	{
 		TRACE_LOG("CPPStatementsParser::ParseAndDefineField, tokens not found when trying to parse for fields");
@@ -938,8 +933,8 @@ EStatusCodeAndBool CPPStatementsParser::ParseFieldOrFunction(ICPPDeclarationCont
 			
 			if(token.second == "[")
 			{
-				PutBackToken(token.second);
-				result = ParseFieldDefinition(aDeclarator,false);
+				inTokenProvider->PutBackToken(token.second);
+				result = ParseFieldDefinition(inTokenProvider,aDeclarator,false);
 			}
 			else
 				result.first = aDeclarator->FinalizeFieldDefinition();
@@ -947,12 +942,12 @@ EStatusCodeAndBool CPPStatementsParser::ParseFieldOrFunction(ICPPDeclarationCont
 		}
 		else
 		{
-				PutBackToken(token.second);
+				inTokenProvider->PutBackToken(token.second);
 		}
 
 		// if non unnamed - then is named, continue with figuring out an optional scoping factor, and the declarator name
 		// check for scoping element. if so, it means that this is an out-of-line definition, and that the contianer object should be replaced with the scoping object
-		CPPElement* aScopingElement = GetScopingElementFromCurrentLocation(true);
+		CPPElement* aScopingElement = GetScopingElementFromCurrentLocation(inTokenProvider,true);
 		if(aScopingElement)
 		{
 			if((aScopingElement->Type != CPPElement::eCPPElementStruct &&
@@ -975,7 +970,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFieldOrFunction(ICPPDeclarationCont
 		}
 
 		// get next token for the name
-		token = GetNextToken();	
+		token = inTokenProvider->GetNextToken();	
 		if(!token.first)
 		{
 			TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, no token when trying to parse for function pointer name");
@@ -986,7 +981,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFieldOrFunction(ICPPDeclarationCont
 		string decleratorName = token.second;
 		
 
-		token = GetNextToken();
+		token = inTokenProvider->GetNextToken();
 		if(!token.first)
 		{
 			TRACE_LOG("CPPStatementsParser::ParseAndDefineField, unexpected end, should have semicolon, initializor, comma or subscript marks");
@@ -1017,7 +1012,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFieldOrFunction(ICPPDeclarationCont
 		UsedTypeOrExpressionList templateAssignmentList;
 		if(token.second == "<")
 		{
-			if(ParseTemplateAssignmentParameters(templateAssignmentList) != eSuccess)
+			if(ParseTemplateAssignmentParameters(inTokenProvider,templateAssignmentList) != eSuccess)
 			{
 				TRACE_LOG("CPPStatementsParser::ParseAndDefineField, failed to parse template parameters assignment");
 				result.first = eFailure;
@@ -1032,7 +1027,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFieldOrFunction(ICPPDeclarationCont
 		if(token.second == "(")
 		{
 			// oh well. this is a function definition. go parse it someplace else
-			result = ParseFunctionDefinition(inContainer,inFieldModifiersList,templateAssignmentList,decleratorName,aScopingElement != NULL);
+			result = ParseFunctionDefinition(inTokenProvider,inContainer,inFieldModifiersList,templateAssignmentList,decleratorName,aScopingElement != NULL);
 			if(result.first != eSuccess)
 			{
 				TRACE_LOG("CPPStatementsParser::ParseAndDefineField, failed to parse a function. fail");
@@ -1050,8 +1045,8 @@ EStatusCodeAndBool CPPStatementsParser::ParseFieldOrFunction(ICPPDeclarationCont
 				break;
 			}
 			aDeclarator->AppendModifiers(inFieldModifiersList);
-			PutBackToken(token.second);
-			result = ParseFieldDefinition(aDeclarator,aScopingElement != NULL);
+			mTokensSource.PutBackToken(token.second);
+			result = ParseFieldDefinition(inTokenProvider,aDeclarator,aScopingElement != NULL);
 		}
 	}while(false);
 
@@ -1095,7 +1090,7 @@ private:
 	UsedTypeOrExpressionList& mParametersStorage;
 };
 
-EStatusCode CPPStatementsParser::ParseTemplateAssignmentParameters(UsedTypeOrExpressionList& inParametersStorage)
+EStatusCode CPPStatementsParser::ParseTemplateAssignmentParameters(ITokenProvider* inTokenProvider,UsedTypeOrExpressionList& inParametersStorage)
 {
 	/*
 		template assignment (specialization/instantiation), like usage, is a bit tricky becuase each parameter may be either an expression or a specification
@@ -1104,19 +1099,19 @@ EStatusCode CPPStatementsParser::ParseTemplateAssignmentParameters(UsedTypeOrExp
 		can never be the beginning of an expression. this way we can make one from another.
 	*/
 	EStatusCode status = eSuccess;
-	BoolAndString token = GetNextToken(); 
+	BoolAndString token = inTokenProvider->GetNextToken(); 
 	DecleratorAsParametersContainer parametersContainer;
 
 	// loop template parameters
 	while(token.first && eSuccess == status)
 	{
-		PutBackToken(token.second);
-		if(IsNowInUsedTypeDeclaration())
+		inTokenProvider->PutBackToken(token.second);
+		if(IsAboutToParseType(inTokenProvider))
 		{
 			AssignmentParameterCreator parametersCreator(inParametersStorage);
 			parametersContainer.SetCreator(&parametersCreator,">");
 
-			status = ParseGenericDeclerationStatement(&parametersContainer);
+			status = ParseGenericDeclerationStatement(inTokenProvider,&parametersContainer);
 			if(status != eSuccess)
 			{
 				TRACE_LOG("CPPStatementsParser::ParseTemplateAssignmentParameters, failed to parse template assignment type parameter");
@@ -1126,7 +1121,7 @@ EStatusCode CPPStatementsParser::ParseTemplateAssignmentParameters(UsedTypeOrExp
 			if(parametersContainer.FoundStop())	// declarations find their own ending 
 			{
 				if(parametersContainer.GetStopperCarry().size() > 0)
-					PutBackToken(parametersContainer.GetStopperCarry());
+					inTokenProvider->PutBackToken(parametersContainer.GetStopperCarry());
 				break;
 			}
 
@@ -1137,7 +1132,7 @@ EStatusCode CPPStatementsParser::ParseTemplateAssignmentParameters(UsedTypeOrExp
 		{
 			CPPExpressionParser expressionParser;
 
-			BoolAndCPPExpression result = expressionParser.ParseExpression(&mTokensSource);
+			BoolAndCPPExpression result = expressionParser.ParseExpression(inTokenProvider,this);
 			if(!result.first)
 			{
 				status = eFailure;
@@ -1147,7 +1142,7 @@ EStatusCode CPPStatementsParser::ParseTemplateAssignmentParameters(UsedTypeOrExp
 
 			inParametersStorage.push_back(new UsedTypeOrExpression(result.second));
 
-			token = GetNextToken(); // get next token which should now be either > or ,
+			token = inTokenProvider->GetNextToken(); // get next token which should now be either > or ,
 			if(!token.first)
 			{
 				TRACE_LOG("CPPStatementsParser::ParseTemplateAssignmentParameters, synatx error, unexpected end in template assignment parameters list");
@@ -1156,7 +1151,7 @@ EStatusCode CPPStatementsParser::ParseTemplateAssignmentParameters(UsedTypeOrExp
 
 			if(token.second == ",")
 			{
-				token = GetNextToken(); // get next token which should be the next parameter
+				token = inTokenProvider->GetNextToken(); // get next token which should be the next parameter
 				if(!token.first)
 				{
 					TRACE_LOG("CPPStatementsParser::ParseTemplateAssignmentParameters, synatx error, unexpected end in template assignment parameters list after comma");
@@ -1167,11 +1162,11 @@ EStatusCode CPPStatementsParser::ParseTemplateAssignmentParameters(UsedTypeOrExp
 			{
 				// finish. note that the token may be > or >= or >>. so i'm taking care of this
 				if(token.second.size() > 1)
-					PutBackToken(token.second.substr(1));
+					inTokenProvider->PutBackToken(token.second.substr(1));
 				break;
 			}
 		}
-		token = GetNextToken();
+		token = inTokenProvider->GetNextToken();
 	}
 	
 	if(status != eSuccess)
@@ -1188,7 +1183,9 @@ void CPPStatementsParser::Destroy(UsedTypeOrExpressionList& inList)
 	inList.clear();
 }
 
-EStatusCodeAndBool CPPStatementsParser::ParseFieldDefinition(ICPPFieldDeclerator* inFieldDeclerator,bool inIsOutOfLineDefinition)
+EStatusCodeAndBool CPPStatementsParser::ParseFieldDefinition(ITokenProvider* inTokenProvider,
+															 ICPPFieldDeclerator* inFieldDeclerator,
+															 bool inIsOutOfLineDefinition)
 {
 	EStatusCodeAndBool result(eSuccess,false);
 	BoolAndString token;
@@ -1196,14 +1193,14 @@ EStatusCodeAndBool CPPStatementsParser::ParseFieldDefinition(ICPPFieldDeclerator
 	do
 	{
 		// Continuing parsing of a field, by checking out for subscripts and initializers
-		token = GetNextToken();
+		token = inTokenProvider->GetNextToken();
 
 		// subscripts
 		while(token.first && token.second == "[")
 		{
 			inFieldDeclerator->AddSubscript();
 
-			token = GetNextToken();
+			token = inTokenProvider->GetNextToken();
 			if(!token.first)
 			{
 				TRACE_LOG("CPPStatementsParser::ParseAndDefineField, unexpected end, expected an expression or closing bracket ']'");
@@ -1213,12 +1210,12 @@ EStatusCodeAndBool CPPStatementsParser::ParseFieldDefinition(ICPPFieldDeclerator
 
 			if(token.second != "]")
 			{
-				PutBackToken(token.second);
-				result.first = SkipConstantExpression();
+				inTokenProvider->PutBackToken(token.second);
+				result.first = SkipConstantExpression(inTokenProvider);
 				if(result.first != eSuccess)
 					break;
 
-				token = GetNextToken();
+				token = inTokenProvider->GetNextToken();
 				if(!token.first || token.second != "]")
 				{
 					TRACE_LOG("CPPStatementsParser::ParseAndDefineField, unexpected end or wrong token, expected closing bracket ']'");
@@ -1226,7 +1223,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFieldDefinition(ICPPFieldDeclerator
 					break;
 				}
 			}
-			token = GetNextToken();
+			token = inTokenProvider->GetNextToken();
 		}
 		if(result.first != eSuccess)
 			break;
@@ -1234,12 +1231,12 @@ EStatusCodeAndBool CPPStatementsParser::ParseFieldDefinition(ICPPFieldDeclerator
 		// k. done with subscripts, now initializers skipping
 		if(token.second == "=")
 		{
-			result.first = SkipInitializer();
+			result.first = SkipInitializer(inTokenProvider);
 			if(result.first != eSuccess)
 				break;
 		}
 		else
-			PutBackToken(token.second);
+			inTokenProvider->PutBackToken(token.second);
 		result.first = inFieldDeclerator->FinalizeFieldDefinition();
 		if(result.first == eSuccess)
 			CleanupTemplateParametersForOutOfLineDefinition();
@@ -1248,14 +1245,14 @@ EStatusCodeAndBool CPPStatementsParser::ParseFieldDefinition(ICPPFieldDeclerator
 	return result;
 }
 
-EStatusCode CPPStatementsParser::SkipInitializer()
+EStatusCode CPPStatementsParser::SkipInitializer(ITokenProvider* inTokenProvider)
 {
 	EStatusCode status = eSuccess;
 
 	do
 	{
 
-		BoolAndString token = GetNextToken();
+		BoolAndString token = inTokenProvider->GetNextToken();
 		
 		if(!token.first)
 		{
@@ -1265,15 +1262,15 @@ EStatusCode CPPStatementsParser::SkipInitializer()
 		}
 
 		if(token.second == "{")
-			status = SkipBlock();
+			status = SkipBlock(inTokenProvider);
 		else
-			status = SkipConstantExpression();
+			status = SkipConstantExpression(inTokenProvider);
 	}while(false);
 
 	return status;
 }
 
-EStatusCode CPPStatementsParser::SkipBlock()
+EStatusCode CPPStatementsParser::SkipBlock(ITokenProvider* inTokenProvider)
 {
 	// assuming block already started
 	EStatusCode status = eSuccess;
@@ -1282,7 +1279,7 @@ EStatusCode CPPStatementsParser::SkipBlock()
 
 	while(eSuccess == status && blockLevel > 0)
 	{
-		token = GetNextToken();
+		token = inTokenProvider->GetNextToken();
 
 		if(!token.first)
 		{
@@ -1300,7 +1297,8 @@ EStatusCode CPPStatementsParser::SkipBlock()
 	return status;
 }
 
-EStatusCodeAndBool CPPStatementsParser::ParseFunctionDefinition(ICPPDeclarationContainerDriver* inContainer,
+EStatusCodeAndBool CPPStatementsParser::ParseFunctionDefinition(ITokenProvider* inTokenProvider,
+																ICPPDeclarationContainerDriver* inContainer,
 																const DeclaratorModifierList& inReturnTypeModifiersList,
 																const UsedTypeOrExpressionList& inTemplateAssignmentList,
 																const string& inFunctionName,
@@ -1322,7 +1320,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionDefinition(ICPPDeclarationC
 		}
 		functionDeclerator->AppendModifiersForFunctionDefinitionReturnType(inReturnTypeModifiersList);
 
-		token = GetNextToken();	
+		token = mTokensSource.GetNextToken();	
 		
 		DecleratorAsParametersContainer parametersContainer(functionDeclerator->GetParametersContainerForFunctionDefinition(),")");
 
@@ -1332,7 +1330,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionDefinition(ICPPDeclarationC
 			if(token.second == "...")
 			{
 				functionDeclerator->SetFunctionDefinitionHasElipsis();
-				token = GetNextToken();
+				token = inTokenProvider->GetNextToken();
 				if(!token.first)
 				{
 					TRACE_LOG("CPPStatementsParser::ParseFunctionDefinition, unexpected no tokens after elipsis. expected )");
@@ -1347,7 +1345,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionDefinition(ICPPDeclarationC
 			}
 			else
 			{
-				result.first = ParseGenericDeclerationStatement(&parametersContainer);
+				result.first = ParseGenericDeclerationStatement(inTokenProvider,&parametersContainer);
 				if(result.first != eSuccess)
 				{
 					TRACE_LOG("CPPStatementsParser::ParseFunctionDefinition, failed to parse function pointer paremeter");
@@ -1358,7 +1356,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionDefinition(ICPPDeclarationC
 					break;
 
 				parametersContainer.Reset();
-				token = GetNextToken();
+				token = mTokensSource.GetNextToken();
 			}
 		}
 
@@ -1376,7 +1374,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionDefinition(ICPPDeclarationC
 		// if continued, then it must be a block start, for an actual function definition or a pure function declaration. skip definition, and note in the function definition object or not purity
 		if(token.second == "{")
 		{
-			result.first = SkipBlock();
+			result.first = SkipBlock(inTokenProvider);
 			if(result.first != eSuccess)
 			{
 				TRACE_LOG("CPPStatementsParser::ParseFunctionDefinition, failed to skip function definition");
@@ -1392,7 +1390,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionDefinition(ICPPDeclarationC
 		else if(token.second == "=")
 		{
 			// maybe pure. make sure
-			token = GetNextToken();
+			token = inTokenProvider->GetNextToken();
 			if(!token.first || token.second != "0")
 			{
 				TRACE_LOG("CPPStatementsParser::ParseFunctionDefinition, syntax error in parsing pure function, saw '=', but no later '0' ");
@@ -1400,7 +1398,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionDefinition(ICPPDeclarationC
 			}
 
 			// make sure function ends properly
-			token = GetNextToken();
+			token = inTokenProvider->GetNextToken();
 			if(!token.first)
 			{
 				TRACE_LOG("CPPStatementsParser::ParseFunctionDefinition, syntax error. ended too soon after pure function declaration, no ending character");
@@ -1461,7 +1459,7 @@ EStatusCode CPPStatementsParser::FinalizeFunction(ICPPFunctionDefinitionDeclerat
 }
 
 
-EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointerOrFunction(ICPPDeclarationContainerDriver* inContainer,const DeclaratorModifierList& inReturnTypeModifiersList)
+EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointerOrFunction(ITokenProvider* inTokenProvider,ICPPDeclarationContainerDriver* inContainer,const DeclaratorModifierList& inReturnTypeModifiersList)
 {
 	// function pointers look like this:
 	// T (name)(params)
@@ -1484,7 +1482,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointerOrFunction(ICPPDecla
 	FunctionPointerReturnTypeDeclerator returnTypeDeclerator;
 	UsedTypeOrExpressionList templateAssignmentList;
 
-	BoolAndString token = GetNextToken();	
+	BoolAndString token = inTokenProvider->GetNextToken();	
 	if(!token.first)
 	{
 		TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, tokens not found when trying to parse for function pointers");
@@ -1502,11 +1500,11 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointerOrFunction(ICPPDecla
 		else
 		{
 			pointerType = ICPPFunctionPointerDeclerator::eFunctionPointerTypeNone;
-			PutBackToken(token.second);
+			inTokenProvider->PutBackToken(token.second);
 		}
 
 		// check for scoping element. if so, it means that this is a definition, and that the contianer object should be replaced with the scoping object
-		CPPElement* aScopingElement = GetScopingElementFromCurrentLocation(true);
+		CPPElement* aScopingElement = GetScopingElementFromCurrentLocation(inTokenProvider,true);
 		if(aScopingElement)
 		{
 			if((aScopingElement->Type != CPPElement::eCPPElementStruct &&
@@ -1529,7 +1527,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointerOrFunction(ICPPDecla
 		}
 
 		// get next token for the name
-		token = GetNextToken();	
+		token = inTokenProvider->GetNextToken();	
 		if(!token.first)
 		{
 			TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, no token when trying to parse for function pointer name");
@@ -1539,7 +1537,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointerOrFunction(ICPPDecla
 
 		decleratorName = token.second;
 
-		token = GetNextToken();	
+		token = inTokenProvider->GetNextToken();	
 		if(!token.first)
 		{
 			TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, expected ) or ( in parsing function pointer declaration, and not found");
@@ -1557,7 +1555,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointerOrFunction(ICPPDecla
 			// first check for template assignment
 			if(token.second == "<")
 			{
-				if(ParseTemplateAssignmentParameters(templateAssignmentList) != eSuccess)
+				if(ParseTemplateAssignmentParameters(inTokenProvider,templateAssignmentList) != eSuccess)
 				{
 					TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, failed to parse template assignment parameters");
 					result.first = eFailure;
@@ -1577,7 +1575,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointerOrFunction(ICPPDecla
 			aFPDeclarator = &returnTypeDeclerator;
 
 			// now parse the parameters of this function. seriously.
-			token = GetNextToken();	
+			token = inTokenProvider->GetNextToken();	
 		
 			DecleratorAsParametersContainer parametersContainer(functionDeclerator->GetParametersContainerForFunctionDefinition(),")");
 
@@ -1586,7 +1584,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointerOrFunction(ICPPDecla
 				if(token.second == "...")
 				{
 					functionDeclerator->SetFunctionDefinitionHasElipsis();
-					token = GetNextToken();
+					token = inTokenProvider->GetNextToken();
 					if(!token.first)
 					{
 						TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, unexpected no tokens after elipsis. expected )");
@@ -1601,7 +1599,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointerOrFunction(ICPPDecla
 				}
 				else
 				{
-					result.first = ParseGenericDeclerationStatement(&parametersContainer);
+					result.first = ParseGenericDeclerationStatement(inTokenProvider,&parametersContainer);
 					if(result.first != eSuccess)
 					{
 						TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, failed to parase function pointer paremeter");
@@ -1612,7 +1610,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointerOrFunction(ICPPDecla
 						break;
 
 					parametersContainer.Reset();
-					token = GetNextToken();
+					token = inTokenProvider->GetNextToken();
 				}
 			}
 
@@ -1620,7 +1618,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointerOrFunction(ICPPDecla
 				break;
 
 			// done with parameters for this function! consume closing parenthesis of function pointer
-			token = GetNextToken();	
+			token = inTokenProvider->GetNextToken();	
 			if(!token.first || token.second != ")")
 			{
 				TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, expected ) in parsing function pointer declaration, and not found");
@@ -1648,7 +1646,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointerOrFunction(ICPPDecla
 			break;
 		}
 
-		token = GetNextToken();	
+		token = inTokenProvider->GetNextToken();	
 		if(!token.first || token.second != "(")
 		{
 			TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, expected ( in parsing function pointer declaration, and not found");
@@ -1659,7 +1657,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointerOrFunction(ICPPDecla
 		aFPDeclarator->SetFunctionPointerType(pointerType);
 		aFPDeclarator->AppendModifiersForFunctionPointerReturnType(inReturnTypeModifiersList);
 
-		token = GetNextToken();	
+		token = inTokenProvider->GetNextToken();	
 		
 		DecleratorAsParametersContainer parametersContainer(aFPDeclarator->GetParametersContainerForFunctionPointer(),")");
 
@@ -1669,7 +1667,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointerOrFunction(ICPPDecla
 			if(token.second == "...")
 			{
 				aFPDeclarator->SetFunctionPointerHasElipsis();
-				token = GetNextToken();
+				token = inTokenProvider->GetNextToken();
 				if(!token.first)
 				{
 					TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, unexpected no tokens after elipsis. expected )");
@@ -1684,7 +1682,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointerOrFunction(ICPPDecla
 			}
 			else
 			{
-				result.first = ParseGenericDeclerationStatement(&parametersContainer);
+				result.first = ParseGenericDeclerationStatement(inTokenProvider,&parametersContainer);
 				if(result.first != eSuccess)
 				{
 					TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, failed to parase function pointer paremeter");
@@ -1695,7 +1693,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointerOrFunction(ICPPDecla
 					break;
 
 				parametersContainer.Reset();
-				token = GetNextToken();
+				token = inTokenProvider->GetNextToken();
 			}
 		}
 		if(result.first != eSuccess)
@@ -1727,7 +1725,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointerOrFunction(ICPPDecla
 		// if continued, then it must be a block start, for an actual function definition. skip, and note in the function definition object
 		if(token.second == "{")
 		{
-			result.first = SkipBlock();
+			result.first = SkipBlock(inTokenProvider);
 			if(result.first != eSuccess)
 			{
 				TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, failed to skip function definition");
@@ -1760,7 +1758,7 @@ EStatusCode CPPStatementsParser::ParseUnionDeclaration()
 		[union] tag declarators;
 	*/
 
-	BoolAndString token = GetNextToken();
+	BoolAndString token = mTokensSource.GetNextToken();
 	EStatusCode status = eSuccess;
 	CPPUnion* aUnion = NULL;
 
@@ -1777,7 +1775,7 @@ EStatusCode CPPStatementsParser::ParseUnionDeclaration()
 
 		if(token.second != "{")
 		{
-			token = GetNextToken();
+			token = mTokensSource.GetNextToken();
 			if(!token.first)
 			{
 				TRACE_LOG("CPPStatementsParser::ParseUnionDeclaration, synatx error, not found keys list for enumartor");
@@ -1801,7 +1799,7 @@ EStatusCode CPPStatementsParser::ParseUnionDeclaration()
 			// now cotinue with definining the members
 			do
 			{
-				token = GetNextToken();
+				token = mTokensSource.GetNextToken();
 				if(!token.first)
 				{
 					TRACE_LOG("CPPStatementsParser::ParseUnionDeclaration, synatx error, unexpected end in union variables list");
@@ -1813,11 +1811,11 @@ EStatusCode CPPStatementsParser::ParseUnionDeclaration()
 					break;
 
 				// not done, put back, and define variable
-				PutBackToken(token.second);
+				mTokensSource.PutBackToken(token.second);
 				
 				DecleratorAsVariableContainer variablesDefinitionDriver(aUnion);
 
-				if(ParseGenericDeclerationStatement(&variablesDefinitionDriver) != eSuccess)
+				if(ParseGenericDeclerationStatement(&mTokensSource,&variablesDefinitionDriver) != eSuccess)
 				{
 					TRACE_LOG("CPPStatementsParser::ParseUnionDeclaration, synatx error, unable to parse union");
 					status = eFailure;
@@ -1837,7 +1835,7 @@ EStatusCode CPPStatementsParser::ParseUnionDeclaration()
 			}
 
 			// get next token to be in either semicolon or declarators
-			token = GetNextToken();
+			token = mTokensSource.GetNextToken();
 			if(!token.first)
 			{
 				TRACE_LOG("CPPStatementsParser::ParseUnionDeclaration, synatx error,unexpected end of expression. should be either semicolor or declarators");
@@ -1848,12 +1846,12 @@ EStatusCode CPPStatementsParser::ParseUnionDeclaration()
 			if(token.second != ";")
 			{
 				// variables definition. put back token and parse declarators normally
-				PutBackToken(token.second);
+				mTokensSource.PutBackToken(token.second);
 
 				DecleratorAsVariableContainer variablesDefinitionDriver(mDefinitionContextStack.back());
 				variablesDefinitionDriver.SetFlags(aUnion,false,false,false,false,false,false,false);
 
-				if(ParseDeclarators(&variablesDefinitionDriver) != eSuccess) // will consume the semicolon as well
+				if(ParseDeclarators(&mTokensSource,&variablesDefinitionDriver) != eSuccess) // will consume the semicolon as well
 				{
 					TRACE_LOG1("CPPStatementsParser::ParseUnionDeclaration, failed to parse declarators for union %s",unionName.c_str());
 					break;
@@ -1886,12 +1884,12 @@ EStatusCode CPPStatementsParser::ParseUnionDeclaration()
 				}
 
 				// variables definition. put back token and parse declarators normally
-				PutBackToken(token.second);
+				mTokensSource.PutBackToken(token.second);
 
 				DecleratorAsVariableContainer variablesDefinitionDriver(mDefinitionContextStack.back());
 				variablesDefinitionDriver.SetFlags(aUnion,false,false,false,false,false,false,false);
 
-				if(ParseDeclarators(&variablesDefinitionDriver) != eSuccess) // will consume the semicolon as well
+				if(ParseDeclarators(&mTokensSource,&variablesDefinitionDriver) != eSuccess) // will consume the semicolon as well
 				{
 					TRACE_LOG1("CPPStatementsParser::ParseUnionDeclaration, failed to parse declarators for union %s",unionName.c_str());
 					break;
@@ -1903,7 +1901,7 @@ EStatusCode CPPStatementsParser::ParseUnionDeclaration()
 	return status;
 }
 
-Hummus::EStatusCode CPPStatementsParser::ParseDeclarators(ICPPDeclarationContainerDriver* inContainer)
+Hummus::EStatusCode CPPStatementsParser::ParseDeclarators(ITokenProvider* inTokenProvider,ICPPDeclarationContainerDriver* inContainer)
 {
 	// Having arrived here, we already know a type - either the return type of a function or a function pointer declaration, or the type of one or more field definitions.
 	// The next phase, therefore, is to run, sometimes with a loop, and add to the container declerator(s).
@@ -1917,7 +1915,7 @@ Hummus::EStatusCode CPPStatementsParser::ParseDeclarators(ICPPDeclarationContain
 
 	do
 	{
-		token = GetNextToken();
+		token = inTokenProvider->GetNextToken();
 		if(!token.first)
 		{
 			TRACE_LOG("CPPStatementsParser::ParseDeclarators, unexpected end of statement while parsing for a variable definition");
@@ -1938,7 +1936,7 @@ Hummus::EStatusCode CPPStatementsParser::ParseDeclarators(ICPPDeclarationContain
 				modifier.Modifier = (token.second == "&" ?  DeclaratorModifier::eDeclaratorModifierReference : DeclaratorModifier::eDeclaratorModifierPointer);
 
 				// look for volatile/const
-				token = GetNextToken();
+				token = inTokenProvider->GetNextToken();
 				if(token.first && (token.second == "volatile" || token.second == "const"))
 				{
 					if(token.second == "volatile")
@@ -1946,14 +1944,14 @@ Hummus::EStatusCode CPPStatementsParser::ParseDeclarators(ICPPDeclarationContain
 					else
 						modifier.IsConst = true;
 					// since there might be a second modifier, continue
-					token = GetNextToken();
+					token = inTokenProvider->GetNextToken();
 					if(token.first && (token.second == "volatile" || token.second == "const"))
 					{
 						if(token.second == "volatile")
 							modifier.IsVolatile = true;
 						else
 							modifier.IsConst = true;
-						token = GetNextToken();
+						token = inTokenProvider->GetNextToken();
 					}
 				}
 				modifiers.push_back(modifier);
@@ -1974,22 +1972,22 @@ Hummus::EStatusCode CPPStatementsParser::ParseDeclarators(ICPPDeclarationContain
 			if(token.second == "(")
 			{
 				// Function Pointer, or a function that returns a function pointer. (will always be a single declaration)
-				continuedParsingResult = ParseFunctionPointerOrFunction(inContainer,modifiers);
+				continuedParsingResult = ParseFunctionPointerOrFunction(inTokenProvider,inContainer,modifiers);
 			}
 			else
 			{
 				// Field or Function case. (need to parse the name to know)
 
-				PutBackToken(token.second);
+				mTokensSource.PutBackToken(token.second);
 
-				continuedParsingResult = ParseFieldOrFunction(inContainer,modifiers);
+				continuedParsingResult = ParseFieldOrFunction(inTokenProvider,inContainer,modifiers);
 			}
 			status = continuedParsingResult.first;
 			if(status != eSuccess || continuedParsingResult.second) 
 				break;
 
 			// if underlying methods did not consume the declerator stopper, continue
-			token = GetNextToken();
+			token = inTokenProvider->GetNextToken();
 			if(!token.first)
 			{
 				TRACE_LOG("CPPStatementsParser::ParseDeclarators, unexpected end, expecting either comma or semicolon");
@@ -2009,7 +2007,7 @@ Hummus::EStatusCode CPPStatementsParser::ParseDeclarators(ICPPDeclarationContain
 				break;
 			}
 			
-			token = GetNextToken();
+			token = inTokenProvider->GetNextToken();
 		}while(eSuccess == status && token.first);
 
 	}while(false);
@@ -2017,7 +2015,7 @@ Hummus::EStatusCode CPPStatementsParser::ParseDeclarators(ICPPDeclarationContain
 	return status;	
 }
 
-EStatusCode CPPStatementsParser::ParseGenericDeclerationStatement(ICPPDeclarationContainerDriver* inContainer)
+EStatusCode CPPStatementsParser::ParseGenericDeclerationStatement(ITokenProvider* inTokenProvider,ICPPDeclarationContainerDriver* inContainer)
 {
 	/* This generic parser method can parse either one of:
 	   - variable declaration/definiton statements, be it of a regular type or a function pointer
@@ -2044,7 +2042,7 @@ EStatusCode CPPStatementsParser::ParseGenericDeclerationStatement(ICPPDeclaratio
 	// start by parsing storage specificers for the initial defined type (be it return type for function pointer, or a regualr field type)
 	do
 	{
-		token = GetNextToken();
+		token = inTokenProvider->GetNextToken();
 		if(!token.first)
 		{
 			TRACE_LOG("CPPStatementsParser::ParseGenericDeclerationStatement, unexpected end of statement while parsing for a variable definition");
@@ -2082,7 +2080,7 @@ EStatusCode CPPStatementsParser::ParseGenericDeclerationStatement(ICPPDeclaratio
 		}
 		else
 		{
-			PutBackToken(token.second);
+			inTokenProvider->PutBackToken(token.second);
 			typenameFound = true;
 		}
 	}while(eSuccess == status && !typenameFound);
@@ -2109,13 +2107,14 @@ EStatusCode CPPStatementsParser::ParseGenericDeclerationStatement(ICPPDeclaratio
 		*/
 
 		bool isConstructorOrDesctructor = true;
-		TakeTokenSnapshot();
+		TokenProviderStateRecovery recoverableTokenProvider(inTokenProvider);
+		recoverableTokenProvider.TakeTokenSnapshot();
 		do
 		{
 			// Assume that constructor/destructor definition
-			CPPElement* aScopingElement = GetScopingElementFromCurrentLocation(true);
+			CPPElement* aScopingElement = GetScopingElementFromCurrentLocation(&recoverableTokenProvider,true);
 			
-			token = GetNextToken();
+			token = recoverableTokenProvider.GetNextToken();
 			if(!token.first)
 			{
 				TRACE_LOG("CPPStatementsParser::ParseGenericDeclerationStatement, unexpected end of statement, when expecting type name");
@@ -2127,7 +2126,7 @@ EStatusCode CPPStatementsParser::ParseGenericDeclerationStatement(ICPPDeclaratio
 			if(token.second == "~")
 			{
 				isDestructor = true;
-				token = GetNextToken();
+				token = recoverableTokenProvider.GetNextToken();
 				if(!token.first)
 				{
 					TRACE_LOG("CPPStatementsParser::ParseGenericDeclerationStatement, unexpected end of statement, when expecting type name after ~");
@@ -2141,7 +2140,7 @@ EStatusCode CPPStatementsParser::ParseGenericDeclerationStatement(ICPPDeclaratio
 
 			string className = token.second;
 
-			token = GetNextToken();
+			token = recoverableTokenProvider.GetNextToken();
 			if(!token.first)
 			{
 				TRACE_LOG("CPPStatementsParser::ParseGenericDeclerationStatement, unexpected end of statement, when expecting type name after typename");
@@ -2184,7 +2183,7 @@ EStatusCode CPPStatementsParser::ParseGenericDeclerationStatement(ICPPDeclaratio
 					break;
 				}
 
-				EStatusCodeAndBool functionParseResult = ParseFunctionDefinition(inContainer,DeclaratorModifierList(),UsedTypeOrExpressionList(),className,aScopingElement != NULL);
+				EStatusCodeAndBool functionParseResult = ParseFunctionDefinition(&recoverableTokenProvider,inContainer,DeclaratorModifierList(),UsedTypeOrExpressionList(),className,aScopingElement != NULL);
 				if(functionParseResult.first != eSuccess)
 				{
 					TRACE_LOG("CPPStatementsParser::ParseGenericDeclarationStatement, failed to parse a function. fail");
@@ -2196,7 +2195,7 @@ EStatusCode CPPStatementsParser::ParseGenericDeclerationStatement(ICPPDeclaratio
 				if(functionParseResult.second)
 					break;
 
-				token = GetNextToken();
+				token = recoverableTokenProvider.GetNextToken();
 				if(!token.first)
 				{
 					TRACE_LOG("CPPStatementsParser::ParseGenericDeclarationStatement, unexpected end, expecting a semicolon");
@@ -2219,16 +2218,17 @@ EStatusCode CPPStatementsParser::ParseGenericDeclerationStatement(ICPPDeclaratio
 
 		if(status == eFailure || isConstructorOrDesctructor)
 		{
-			CancelSnapshot();
+			recoverableTokenProvider.CancelSnapshot();
 			break;
 		}
 
 		// if continuing than now we are sure that we are NOT in cosntructor/desctroctor but rather a regular definition
-		RevertToTopSnapshot();
-		CPPElement* aScopingElement = GetScopingElementFromCurrentLocation(false);
+		recoverableTokenProvider.RevertToTopSnapshot();
+		// we no longer need the recoverable token provider, so back to original token provider
+		CPPElement* aScopingElement = GetScopingElementFromCurrentLocation(inTokenProvider,false);
 
 		// get the next token (this should be the type name)
-		token = GetNextToken();
+		token = inTokenProvider->GetNextToken();
 		if(!token.first)
 		{
 			TRACE_LOG("CPPStatementsParser::ParseGenericDeclerationStatement, unexpected end of statement, when expecting type name");
@@ -2239,7 +2239,7 @@ EStatusCode CPPStatementsParser::ParseGenericDeclerationStatement(ICPPDeclaratio
 		string aTypeName = token.second;
 
 		// now get the next token and determine the role of the previous token accordingly
-		token = GetNextToken();
+		token = inTokenProvider->GetNextToken();
 		if(!token.first)
 		{
 			TRACE_LOG("CPPStatementsParser::ParseGenericDeclerationStatement, unexpected end of statement, when expecting type name after typename");
@@ -2263,7 +2263,7 @@ EStatusCode CPPStatementsParser::ParseGenericDeclerationStatement(ICPPDeclaratio
 
 		if((anElement->Type == CPPElement::eCPPElementClass || anElement->Type == CPPElement::eCPPElementStruct) && ((AbstractClassOrStruct*)anElement)->IsTemplate())
 		{
-			anElement = FromTemplateToTemplateInstance((AbstractClassOrStruct*)anElement);
+			anElement = FromTemplateToTemplateInstance(inTokenProvider,(AbstractClassOrStruct*)anElement);
 			if(!anElement)
 			{
 				TRACE_LOG("CPPStatementsParser::ParseGenericDeclerationStatement, could not parse template instance");
@@ -2282,13 +2282,13 @@ EStatusCode CPPStatementsParser::ParseGenericDeclerationStatement(ICPPDeclaratio
 
 		// Now continue with parsing declerators - one of more, in the case of fields, or one in the case of function pointer declaration or function definition/declaration
 		// - will consume also statement ending
-		status = ParseDeclarators(inContainer);
+		status = ParseDeclarators(inTokenProvider,inContainer);
 	}while(false);
 
 	return status;
 }
 
-CPPElement* CPPStatementsParser::GetScopingElementFromCurrentLocation(bool inInDefinitionContext)
+CPPElement* CPPStatementsParser::GetScopingElementFromCurrentLocation(ITokenProvider* inTokenProvider,bool inInDefinitionContext)
 {
 	// a name can be either:
 	// XXX
@@ -2298,6 +2298,7 @@ CPPElement* CPPStatementsParser::GetScopingElementFromCurrentLocation(bool inInD
 	CPPElement* anElement = NULL;
 	CPPElement* aScopingElement = NULL;
 	ECPPElementTypeSet typesetWithContainers;
+	TokenProviderStateRecovery recoverableTokenProvider(inTokenProvider);
 
 	typesetWithContainers.insert(CPPElement::eCPPElementNamespace);
 	typesetWithContainers.insert(CPPElement::eCPPElementClass);
@@ -2305,8 +2306,8 @@ CPPElement* CPPStatementsParser::GetScopingElementFromCurrentLocation(bool inInD
 	typesetWithContainers.insert(CPPElement::eCPPElemeentTemplateTypename);
 	typesetWithContainers.insert(CPPElement::eCPPElemeentTemplateTemplateParameter);
 
-	TakeTokenSnapshot();
-	BoolAndString token = GetNextToken();
+	recoverableTokenProvider.TakeTokenSnapshot();
+	BoolAndString token = recoverableTokenProvider.GetNextToken();
 	string aTypeName;
 	do
 	{
@@ -2319,7 +2320,7 @@ CPPElement* CPPStatementsParser::GetScopingElementFromCurrentLocation(bool inInD
 
 		if(token.second == "typename") // typename keyword usage. marks that the next is a template typename...well...we know it already
 		{
-			token = GetNextToken();
+			token = recoverableTokenProvider.GetNextToken();
 			if(!token.first)
 			{
 				TRACE_LOG("CPPStatementsParser::GetScopingElementFromCurrentLocation, no symbol in current location after typename");
@@ -2329,10 +2330,10 @@ CPPElement* CPPStatementsParser::GetScopingElementFromCurrentLocation(bool inInD
 
 		if(token.second == "::")
 		{
-			CancelSnapshot();
+			recoverableTokenProvider.CancelSnapshot();
 			aScopingElement = mWorkingUnit->GetGlobalNamespace();
-			TakeTokenSnapshot();
-			token = GetNextToken();
+			recoverableTokenProvider.TakeTokenSnapshot();
+			token = recoverableTokenProvider.GetNextToken();
 		}
 
 		while(token.first)
@@ -2342,26 +2343,26 @@ CPPElement* CPPStatementsParser::GetScopingElementFromCurrentLocation(bool inInD
 			
 			if(!anElement)
 			{
-				RevertToTopSnapshot();
+				recoverableTokenProvider.RevertToTopSnapshot();
 				break;
 			}
 
 			if((anElement->Type == CPPElement::eCPPElementClass || anElement->Type == CPPElement::eCPPElementStruct) && ((AbstractClassOrStruct*)anElement)->IsTemplate())
 			{
 				if(inInDefinitionContext)
-					anElement = FromTemplateToTemplateSpecialization((AbstractClassOrStruct*)anElement);
+					anElement = FromTemplateToTemplateSpecialization(&recoverableTokenProvider,(AbstractClassOrStruct*)anElement);
 				else
-					anElement = FromTemplateToTemplateInstance((AbstractClassOrStruct*)anElement);
+					anElement = FromTemplateToTemplateInstance(&recoverableTokenProvider,(AbstractClassOrStruct*)anElement);
 				// if this is a template go on with parsing template parameters and fetch a template instance
 				// at this point there MUST be template parameters
 				if(!anElement)
 				{
-					RevertToTopSnapshot();
+					recoverableTokenProvider.RevertToTopSnapshot();
 					break;
 				}
 			}
 			
-			token = GetNextToken();
+			token = recoverableTokenProvider.GetNextToken();
 			if(!token.first)
 			{
 				// done
@@ -2371,29 +2372,29 @@ CPPElement* CPPStatementsParser::GetScopingElementFromCurrentLocation(bool inInD
 			if(token.second != "::")
 			{
 				// if not qulification stop here, and put back tokens of this element parsing
-				RevertToTopSnapshot();
+				recoverableTokenProvider.RevertToTopSnapshot();
 				break;
 			}
 			
 			// otherwise, we got qualification
-			CancelSnapshot();
+			recoverableTokenProvider.CancelSnapshot();
 			aScopingElement = anElement;
-			TakeTokenSnapshot();
-			token = GetNextToken();
+			recoverableTokenProvider.TakeTokenSnapshot();
+			token = recoverableTokenProvider.GetNextToken();
 		}
 	}while(false);
 
 	return aScopingElement;
 }
 
-CPPElement* CPPStatementsParser::FromTemplateToTemplateInstance(AbstractClassOrStruct* inTemplate)
+CPPElement* CPPStatementsParser::FromTemplateToTemplateInstance(ITokenProvider* inTokenProvider,AbstractClassOrStruct* inTemplate)
 {
 	CPPElement* result = NULL;
 	BoolAndString token;
 
 	do
 	{
-		token = GetNextToken();
+		token = inTokenProvider->GetNextToken();
 		if(!token.first)
 		{
 			TRACE_LOG("CPPStatementsParser::GetScopingElementFromCurrentLocation, no specification for template");
@@ -2402,7 +2403,7 @@ CPPElement* CPPStatementsParser::FromTemplateToTemplateInstance(AbstractClassOrS
 
 		if(token.second != "<")
 		{
-			PutBackToken(token.second);
+			inTokenProvider->PutBackToken(token.second);
 			// no instance specification. so this may be a problem - otherwise this is done
 			// in the context of a definition of either a template or template specialziation with the same name...in which
 			// case the type would be that.
@@ -2422,7 +2423,7 @@ CPPElement* CPPStatementsParser::FromTemplateToTemplateInstance(AbstractClassOrS
 		}
 
 		UsedTypeOrExpressionList templateAssignmentParameters;
-		if(ParseTemplateAssignmentParameters(templateAssignmentParameters) != eSuccess)
+		if(ParseTemplateAssignmentParameters(inTokenProvider,templateAssignmentParameters) != eSuccess)
 		{
 			TRACE_LOG("CPPStatementsParser::GetScopingElementFromCurrentLocation, failed to parse template assignments");
 			break;
@@ -2448,7 +2449,7 @@ CPPElement* CPPStatementsParser::FromTemplateToTemplateInstance(AbstractClassOrS
 	return result;
 }
 
-CPPElement* CPPStatementsParser::FromTemplateToTemplateSpecialization(AbstractClassOrStruct* inTemplate)
+CPPElement* CPPStatementsParser::FromTemplateToTemplateSpecialization(ITokenProvider* inTokenProvider,AbstractClassOrStruct* inTemplate)
 {
 
 
@@ -2457,7 +2458,7 @@ CPPElement* CPPStatementsParser::FromTemplateToTemplateSpecialization(AbstractCl
 
 	do
 	{
-		token = GetNextToken();
+		token = inTokenProvider->GetNextToken();
 		if(!token.first || token.second != "<")
 		{
 			// main template...stop here
@@ -2466,10 +2467,9 @@ CPPElement* CPPStatementsParser::FromTemplateToTemplateSpecialization(AbstractCl
 		}
 
 		UsedTypeOrExpressionList templateAssignmentParameters;
-		if(ParseTemplateAssignmentParameters(templateAssignmentParameters) != eSuccess)
+		if(ParseTemplateAssignmentParameters(inTokenProvider,templateAssignmentParameters) != eSuccess)
 		{
 			TRACE_LOG("CPPStatementsParser::GetScopingElementFromCurrentLocation, failed to parse template assignments");
-			RevertToTopSnapshot();
 			break;
 		}
 
@@ -2495,7 +2495,7 @@ string CPPStatementsParser::ComputeUnqualifiedNameFromCurrentLocation(string inT
 			// unsigned long, unsigned long long
 			if("long" == inNextToken.second)
 			{
-				BoolAndString thirdToken = GetNextToken();
+				BoolAndString thirdToken = mTokensSource.GetNextToken();
 				// unsigned long long
 				if(thirdToken.first && "long" == thirdToken.second)
 				{
@@ -2506,7 +2506,7 @@ string CPPStatementsParser::ComputeUnqualifiedNameFromCurrentLocation(string inT
 					result = "unsigend long";
 					// unsigned long
 					if(thirdToken.first)
-						PutBackToken(thirdToken.second);
+						mTokensSource.PutBackToken(thirdToken.second);
 				}
 			} // unsigned int
 			else if("int" == inNextToken.second)
@@ -2524,7 +2524,7 @@ string CPPStatementsParser::ComputeUnqualifiedNameFromCurrentLocation(string inT
 			else
 			{
 				// unsigned
-				PutBackToken(inNextToken.second);
+				mTokensSource.PutBackToken(inNextToken.second);
 			}
 
 		}
@@ -2546,7 +2546,7 @@ string CPPStatementsParser::ComputeUnqualifiedNameFromCurrentLocation(string inT
 			else
 			{
 				// long
-				PutBackToken(inNextToken.second);
+				mTokensSource.PutBackToken(inNextToken.second);
 			}
 
 		}
@@ -2560,12 +2560,12 @@ string CPPStatementsParser::ComputeUnqualifiedNameFromCurrentLocation(string inT
 			else
 			{
 				// short
-				PutBackToken(inNextToken.second);
+				mTokensSource.PutBackToken(inNextToken.second);
 			}
 		}
 		else
 		{
-			PutBackToken(inNextToken.second);
+			mTokensSource.PutBackToken(inNextToken.second);
 		}
 	}
 	return result;
@@ -2576,7 +2576,7 @@ EStatusCode CPPStatementsParser::ParseTypedefDeclaration()
 	// parsing a typedef follows similar syntax rules to variable definition. so let's reuse the main idea there
 	DecleratorAsTypedefContainer typeedefDefinitionDriver(mDefinitionContextStack.back());
 
-	return ParseGenericDeclerationStatement(&typeedefDefinitionDriver);
+	return ParseGenericDeclerationStatement(&mTokensSource,&typeedefDefinitionDriver);
 }
 
 // now after having played initial games with types give a shot at variables & functions parsing
@@ -2602,7 +2602,7 @@ EStatusCode CPPStatementsParser::ParseClassOrStructDeclaration(bool inIsClass)
 	do
 	{
 		// class name
-		BoolAndString tokenizerResult = GetNextToken(); 
+		BoolAndString tokenizerResult = mTokensSource.GetNextToken(); 
 
 		if(!tokenizerResult.first)
 		{
@@ -2613,7 +2613,7 @@ EStatusCode CPPStatementsParser::ParseClassOrStructDeclaration(bool inIsClass)
 
 		string className = tokenizerResult.second;
 
-		tokenizerResult = GetNextToken(); 
+		tokenizerResult = mTokensSource.GetNextToken(); 
 
 		if(!tokenizerResult.first)
 		{
@@ -2637,7 +2637,7 @@ EStatusCode CPPStatementsParser::ParseClassOrStructDeclaration(bool inIsClass)
 			else
 				parentTemplate = (AbstractClassOrStruct*)anElement;
 
-			if(ParseTemplateAssignmentParameters(templateAssignmentList) != eSuccess)
+			if(ParseTemplateAssignmentParameters(&mTokensSource,templateAssignmentList) != eSuccess)
 			{
 				TRACE_LOG("CPPStatementsParser::ParseClassDeclaration, failed to parse template assignment parameters");
 				status = eFailure;
@@ -2708,7 +2708,7 @@ EStatusCode CPPStatementsParser::ParseClassOrStructDeclaration(bool inIsClass)
 
 			while(eSuccess == status)
 			{
-				tokenizerResult = GetNextToken(); 
+				tokenizerResult = mTokensSource.GetNextToken(); 
 
 				if(!tokenizerResult.first)
 				{
@@ -2732,7 +2732,7 @@ EStatusCode CPPStatementsParser::ParseClassOrStructDeclaration(bool inIsClass)
 				else
 				{
 					accessLevel = eAbstractClassOrStructAccessLevelPrivate;
-					PutBackToken(tokenizerResult.second);
+					mTokensSource.PutBackToken(tokenizerResult.second);
 				}
 
 				ECPPElementTypeSet typeset;
@@ -2740,7 +2740,7 @@ EStatusCode CPPStatementsParser::ParseClassOrStructDeclaration(bool inIsClass)
 				typeset.insert(CPPElement::eCPPElementStruct);
 				typeset.insert(CPPElement::eCPPElementStructTemplateInstance);
 				typeset.insert(CPPElement::eCPPElementClassTemplateInstance);
-				baseClass = GetElementFromCurrentLocation(typeset);
+				baseClass = GetElementFromCurrentLocation(&mTokensSource,typeset);
 
 				if(!baseClass)
 				{
@@ -2753,7 +2753,7 @@ EStatusCode CPPStatementsParser::ParseClassOrStructDeclaration(bool inIsClass)
 				if(status != eSuccess)
 					break;
 
-				tokenizerResult = GetNextToken(); 
+				tokenizerResult = mTokensSource.GetNextToken(); 
 				if(!tokenizerResult.first)
 				{
 					TRACE_LOG("ParseClassDeclaration: syntax error, unexpected end of statement in class definition after finished base class declaration");
@@ -2849,7 +2849,7 @@ EStatusCode CPPStatementsParser::ParseTemplateDeclaration()
 	
 	do
 	{
-		BoolAndString token = GetNextToken(); 
+		BoolAndString token = mTokensSource.GetNextToken(); 
 		if(!token.first)
 		{
 			TRACE_LOG("CPPStatementsParser::ParseTemplateParameters: syntax error, unexpected end of read in a template statement");
@@ -2857,7 +2857,7 @@ EStatusCode CPPStatementsParser::ParseTemplateDeclaration()
 			break;
 		}	
 
-		PutBackToken(token.second);
+		mTokensSource.PutBackToken(token.second);
 		if(token.second == "<")
 		{
 			// template declaration/definition
@@ -2918,7 +2918,7 @@ EStatusCode CPPStatementsParser::ParseTemplateParameters(CPPElementList& inParam
 		DecleratorAsParametersContainer parametersContainer;
 
 		// should be parameters start, now
-		BoolAndString token = GetNextToken(); 
+		BoolAndString token = mTokensSource.GetNextToken(); 
 		if(!token.first || token.second != "<")
 		{
 			TRACE_LOG("CPPStatementsParser::ParseTemplateParameters: syntax error, expecting '<', but didn't get it");
@@ -2926,7 +2926,7 @@ EStatusCode CPPStatementsParser::ParseTemplateParameters(CPPElementList& inParam
 			break;
 		}	
 
-		token = GetNextToken(); 
+		token = mTokensSource.GetNextToken(); 
 
 		// loop template parameters
 		while(token.first && eSuccess == status)
@@ -2947,7 +2947,7 @@ EStatusCode CPPStatementsParser::ParseTemplateParameters(CPPElementList& inParam
 							break;
 
 						// next there should be either "class" or "typename"
-						token = GetNextToken();
+						token = mTokensSource.GetNextToken();
 						if(!token.first || (token.second != "class" && token.second !="typename"))
 						{
 							TRACE_LOG("CPPStatementsParser::ParseTemplateParameters, error in parsing template parameter of type template. following the parameters list there should be class/typename, but found neither");
@@ -2959,7 +2959,7 @@ EStatusCode CPPStatementsParser::ParseTemplateParameters(CPPElementList& inParam
 					}
 				
 					// template, typename and class are virtually the same, a simple named type.
-					token = GetNextToken();
+					token = mTokensSource.GetNextToken();
 					if(!token.first)
 					{
 						TRACE_LOG("CPPStatementsParser::ParseTemplateParameters: syntax error, unexpected end of file while parsing");
@@ -2975,7 +2975,7 @@ EStatusCode CPPStatementsParser::ParseTemplateParameters(CPPElementList& inParam
 						newTypename = new CPPTemplateTypename(token.second,parameterIndex);
 					inParametersStorage.push_back((CPPElement*)newTypename);
 
-					token = GetNextToken();
+					token = mTokensSource.GetNextToken();
 					if(!token.first)
 					{
 						TRACE_LOG("CPPStatementsParser::ParseTemplateParameters, unexpected end to parameter parsing");
@@ -2988,7 +2988,7 @@ EStatusCode CPPStatementsParser::ParseTemplateParameters(CPPElementList& inParam
 						// parse default for class/typename/template. as an excpetions i'll fully parse those and save them. why? just because
 						TypenameDefaultCreator defaultCreator(newTypename);
 						parametersContainer.SetCreator(&defaultCreator,">");
-						status = ParseGenericDeclerationStatement(&parametersContainer);
+						status = ParseGenericDeclerationStatement(&mTokensSource,&parametersContainer);
 						if(status != eSuccess)
 						{
 							TRACE_LOG("CPPStatementsParser::ParseTemplateDeclaration, failed to parse template value parameter");
@@ -2998,11 +2998,11 @@ EStatusCode CPPStatementsParser::ParseTemplateParameters(CPPElementList& inParam
 						if(parametersContainer.FoundStop())	// declarations find their own ending 
 						{
 							if(parametersContainer.GetStopperCarry().size() > 0)
-								PutBackToken(parametersContainer.GetStopperCarry());
+								mTokensSource.PutBackToken(parametersContainer.GetStopperCarry());
 							break;
 						}
 
-						token = GetNextToken();
+						token = mTokensSource.GetNextToken();
 						if(!token.first || token.second != ",")
 						{
 							TRACE_LOG("CPPStatementsParser::ParseTemplateParameters, expecting comma for more template parameters, didn't find one");
@@ -3013,7 +3013,7 @@ EStatusCode CPPStatementsParser::ParseTemplateParameters(CPPElementList& inParam
 					else if(token.second.at(0) == '>')
 					{
 						if(token.second.size() > 1)
-							PutBackToken(token.second.substr(1));
+							mTokensSource.PutBackToken(token.second.substr(1));
 						// done with parameters
 						break;
 					}
@@ -3035,11 +3035,11 @@ EStatusCode CPPStatementsParser::ParseTemplateParameters(CPPElementList& inParam
 			else
 			{
 				// Otherwise this would be a used type decalaration. parse it as you would do to any parameter type
-				PutBackToken(token.second);
+				mTokensSource.PutBackToken(token.second);
 				TemplateParametersParameterCreator parametersCreator(inParametersStorage,parameterIndex);
 				parametersContainer.SetCreator(&parametersCreator,">");
 
-				status = ParseGenericDeclerationStatement(&parametersContainer);
+				status = ParseGenericDeclerationStatement(&mTokensSource,&parametersContainer);
 				if(status != eSuccess)
 				{
 					TRACE_LOG("CPPStatementsParser::ParseTemplateDeclaration, failed to parse template value parameter");
@@ -3049,11 +3049,11 @@ EStatusCode CPPStatementsParser::ParseTemplateParameters(CPPElementList& inParam
 				if(parametersContainer.FoundStop())	// declarations find their own ending 
 				{
 					if(parametersContainer.GetStopperCarry().size() > 0)
-						PutBackToken(parametersContainer.GetStopperCarry());
+						mTokensSource.PutBackToken(parametersContainer.GetStopperCarry());
 					break;
 				}
 			}
-			token = GetNextToken();
+			token = mTokensSource.GetNextToken();
 			++parameterIndex;
 			parametersContainer.Reset();
 		}
@@ -3075,7 +3075,7 @@ void CPPStatementsParser::Destroy(CPPElementList& inList)
 	inList.clear();
 }
 
-bool CPPStatementsParser::IsNowInUsedTypeDeclaration()
+bool CPPStatementsParser::IsAboutToParseType(ITokenProvider* inTokenProvider)
 {
 	/*
 		Look for a pattern of a used type, which is a type (that should be known as such!) and some perliminary optional keywords (const and volatile)
@@ -3085,10 +3085,11 @@ bool CPPStatementsParser::IsNowInUsedTypeDeclaration()
 	bool typenameFound = false;
 	BoolAndString token;
 	bool result = false;
+	TokenProviderStateRecovery stateRecovery(inTokenProvider);
 
 
 	// starting to save state, so can revert later
-	TakeTokenSnapshot();
+	stateRecovery.TakeTokenSnapshot();
 
 	do
 	{
@@ -3096,7 +3097,7 @@ bool CPPStatementsParser::IsNowInUsedTypeDeclaration()
 		// start by parsing storage specificers for the initial defined type (be it return type for function pointer, or a regualr field type)
 		do
 		{
-			token = GetNextToken();
+			token = stateRecovery.GetNextToken();
 			if(!token.first)
 			{
 				TRACE_LOG("CPPStatementsParser::IsNowInUsedTypeDeclaration, unexpected end of statement while parsing for a variable definition");
@@ -3106,7 +3107,7 @@ bool CPPStatementsParser::IsNowInUsedTypeDeclaration()
 
 			if(token.second != "volatile" && token.second != "const")
 			{
-				PutBackToken(token.second);
+				stateRecovery.PutBackToken(token.second);
 				typenameFound = true;
 			}
 		}while(eSuccess == status && !typenameFound);
@@ -3115,74 +3116,53 @@ bool CPPStatementsParser::IsNowInUsedTypeDeclaration()
 			break;
 
 		// now make sure we have a type
-		result = (GetElementFromCurrentLocation(true) != NULL);
+		result = (GetElementFromCurrentLocation(&stateRecovery,true) != NULL);
 	}while(false);
 
 	// revert to token state prior to determining whether this is a used type
-	RevertToTopSnapshot();
+	stateRecovery.RevertToTopSnapshot();
 
 	return result;
 }
 
-
-BoolAndString CPPStatementsParser::GetNextToken()
+class TypedParameterCreator : public ICPPParametersContainer
 {
-	if(mTokenStateRecovery.size() > 0)
+public:
+
+	TypedParameterCreator(){mTypename = NULL;}
+	~TypedParameterCreator(){delete mTypename;}
+
+	virtual EStatusCode CreateParameter(const string& inParameterName,
+										UsedTypeDescriptor* inParameterType)
 	{
-		BoolAndString token = mTokensSource.GetNextToken();
-		if(token.first)
-		{
-			TokenProviderStateList::iterator it = mTokenStateRecovery.begin();
-			for(; it != mTokenStateRecovery.end(); ++it)
-				it->State.push_back(TokenState(token.second,false));
-		}
-		return token;
+		mTypename = new TypedParameter();
+		mTypename->Type = inParameterType;
+		mTypename->Name = inParameterName; 
+
+		return eSuccess;
+	}
+
+	TypedParameter* DetachTypeParameter(){TypedParameter* result = mTypename; mTypename = NULL; return result;}
+
+private:
+	TypedParameter* mTypename;
+};
+
+
+TypedParameter* CPPStatementsParser::ParseType(ITokenProvider* inTokenProvider,const string& inTypeDelimeter)
+{
+	DecleratorAsParametersContainer parametersContainer;
+	TypedParameterCreator typedParameterCreator;
+	parametersContainer.SetCreator(&typedParameterCreator,inTypeDelimeter);
+
+	EStatusCode status = ParseGenericDeclerationStatement(inTokenProvider,&parametersContainer);
+	if(status != eSuccess)
+	{
+		TRACE_LOG("CPPStatementsParser::ParseType, failed to parse type");
+		return NULL;
 	}
 	else
-		return mTokensSource.GetNextToken();
-}
+		return typedParameterCreator.DetachTypeParameter();
 
-void CPPStatementsParser::PutBackToken(string inToken)
-{
-	if(mTokenStateRecovery.size() > 0)
-	{
-		TokenProviderStateList::iterator it = mTokenStateRecovery.begin();
-		for(; it != mTokenStateRecovery.end(); ++it)
-			it->State.push_back(TokenState(inToken,true));
-	}
-	mTokensSource.PutBackToken(inToken);
-}
-
-void CPPStatementsParser::TakeTokenSnapshot()
-{
-	mTokenStateRecovery.push_back(TokenProviderState());
-}
-
-void CPPStatementsParser::CancelSnapshot()
-{
-	mTokenStateRecovery.pop_back();
-}
-
-void CPPStatementsParser::RevertToTopSnapshot()
-{
-	// remove one items from the stack and use it for getting back to the snapshot it represents
-	TokenStateList tokenState = mTokenStateRecovery.back().State;
-	mTokenStateRecovery.pop_back();
-
-	TokenStateList::reverse_iterator it = tokenState.rbegin();
-
-	for(; it != tokenState.rend(); ++it)
-	{
-		if(it->IsPut)
-		{
-			// if was a put action, so reverse it by getting (which should always succeed, so no need to check)
-			GetNextToken();
-		}
-		else
-		{
-			// if it was a get action, put back
-			PutBackToken(it->Token);
-		}
-	}
 
 }

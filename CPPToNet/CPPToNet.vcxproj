@@ -157,7 +157,9 @@
     <ClInclude Include="FunctionPointerReturnTypeDeclerator.h" />
     <ClInclude Include="ICPPElementsContainer.h" />
     <ClInclude Include="ITemplateWithDefault.h" />
+    <ClInclude Include="ITypeParserHelper.h" />
     <ClInclude Include="SafeBufferMacrosDefs.h" />
+    <ClInclude Include="TokenProviderStateRecovery.h" />
     <ClInclude Include="UnicodeString.h" />
     <ClInclude Include="Log.h" />
     <ClInclude Include="Trace.h" />
@@ -260,6 +262,7 @@
     <ClCompile Include="DecleratorAsTypedefContainer.cpp" />
     <ClCompile Include="DecleratorAsVariableContainer.cpp" />
     <ClCompile Include="FunctionPointerReturnTypeDeclerator.cpp" />
+    <ClCompile Include="TokenProviderStateRecovery.cpp" />
     <ClCompile Include="UnicodeString.cpp" />
     <ClCompile Include="Log.cpp" />
     <ClCompile Include="Trace.cpp" />
