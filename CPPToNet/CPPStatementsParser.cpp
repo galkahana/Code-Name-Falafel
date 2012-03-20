@@ -800,7 +800,7 @@ EStatusCode CPPStatementsParser::ParseEnumeratorDeclaration()
 
 				if(token.second == "=") // got an assignment here. skip it
 				{
-					if(SkipConstantExpression(&mTokensSource) != eSuccess)
+					if(SkipExpression(&mTokensSource) != eSuccess)
 					{
 						TRACE_LOG("CPPStatementsParser::ParseEnumeratorDeclaration, synatx error, problem in value expression definition for enumerator");
 						break;
@@ -886,7 +886,7 @@ EStatusCode CPPStatementsParser::ParseEnumeratorDeclaration()
 	return status;
 }
 
-EStatusCode CPPStatementsParser::SkipConstantExpression(ITokenProvider* inTokenProvider)
+EStatusCode CPPStatementsParser::SkipExpression(ITokenProvider* inTokenProvider)
 {
 	CPPExpressionParser expressionParser;
 
@@ -1022,16 +1022,52 @@ EStatusCodeAndBool CPPStatementsParser::ParseFieldOrFunction(ITokenProvider* inT
 
 
 
-		// At this point we it might be that there will be a parenthesis - "(" - in which case this is a function declaration (and could also be a definition)
-		// or a regular field definition, in which case it will be either a subscript or initialization (otherwise the parsing would be done for this variable)
 		if(token.second == "(")
 		{
-			// oh well. this is a function definition. go parse it someplace else
-			result = ParseFunctionDefinition(inTokenProvider,inContainer,inFieldModifiersList,templateAssignmentList,decleratorName,aScopingElement != NULL);
-			if(result.first != eSuccess)
+			// parenthesis might mean either initializer or function definition. it can only be initializer if the params are not empty and not typename...easy
+			token = inTokenProvider->GetNextToken();
+			if(!token.first)
 			{
-				TRACE_LOG("CPPStatementsParser::ParseAndDefineField, failed to parse a function. fail");
+				TRACE_LOG("CPPStatementsParser::ParseAndDefineField, started function but no end - must mean failure");
+				result.first = eFailure;
 				break;
+			}
+			
+			// probing for next token to see if end of parameters list
+			inTokenProvider->PutBackToken(token.second);
+			bool isFunction = false;
+			if(token.second == ")")
+				isFunction = true;
+			else
+				isFunction = IsAboutToParseType(inTokenProvider);
+
+			if(isFunction)
+			{
+				// At this point we it might be that there will be a parenthesis - "(" - in which case this is a function declaration (and could also be a definition)
+				// or a regular field definition, in which case it will be either a subscript or initialization (otherwise the parsing would be done for this variable)
+
+
+				// oh well. this is a function definition. go parse it someplace else
+				result = ParseFunctionDefinition(inTokenProvider,inContainer,inFieldModifiersList,templateAssignmentList,decleratorName,aScopingElement != NULL);
+				if(result.first != eSuccess)
+				{
+					TRACE_LOG("CPPStatementsParser::ParseAndDefineField, failed to parse a function. fail");
+					break;
+				}
+			}
+			else
+			{
+				// ok. must be a variable, with continued parsing required
+				aDeclarator = inContainer->AddFieldDeclerator(decleratorName);
+				if(!aDeclarator)
+				{
+					TRACE_LOG1("CPPStatementsParser::ParseAndDefineField, unable to create a declarator with the name %s.",decleratorName.c_str());
+					result.first = eFailure;
+					break;
+				}
+				aDeclarator->AppendModifiers(inFieldModifiersList);
+				mTokensSource.PutBackToken(token.second);
+				result = ParseFieldDefinition(inTokenProvider,aDeclarator,aScopingElement != NULL);
 			}
 		}
 		else
@@ -1211,7 +1247,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFieldDefinition(ITokenProvider* inT
 			if(token.second != "]")
 			{
 				inTokenProvider->PutBackToken(token.second);
-				result.first = SkipConstantExpression(inTokenProvider);
+				result.first = SkipExpression(inTokenProvider);
 				if(result.first != eSuccess)
 					break;
 
@@ -1232,6 +1268,27 @@ EStatusCodeAndBool CPPStatementsParser::ParseFieldDefinition(ITokenProvider* inT
 		if(token.second == "=")
 		{
 			result.first = SkipInitializer(inTokenProvider);
+			if(result.first != eSuccess)
+				break;
+		}
+		else if(token.second == "(")
+		{
+			// initializer in the form of function call. might be multiparam (has to have at least one!)
+			do
+			{
+				result.first = SkipExpression(inTokenProvider);
+				if(result.first != eSuccess)
+					break;
+
+				token = inTokenProvider->GetNextToken();
+				if(!token.first || (token.second != "," && token.second != ")"))
+				{
+					TRACE_LOG("CPPStatementsParser::ParseAndDefineField, unexpected end or wrong token in initializor parsing");
+					result.first = eFailure;
+					break;
+				}
+			} while(token.second != ")");
+
 			if(result.first != eSuccess)
 				break;
 		}
@@ -1264,7 +1321,7 @@ EStatusCode CPPStatementsParser::SkipInitializer(ITokenProvider* inTokenProvider
 		if(token.second == "{")
 			status = SkipBlock(inTokenProvider);
 		else
-			status = SkipConstantExpression(inTokenProvider);
+			status = SkipExpression(inTokenProvider);
 	}while(false);
 
 	return status;

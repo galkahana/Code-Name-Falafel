@@ -107,7 +107,7 @@ private:
 	// will return either NULL or an element, if and only if there's just ONE element of this name and of these types
 	CPPElement* FindQualifiedElement(ICPPElementsContainer* inContainer,const string& inElementName,ECPPElementTypeSet inOfTypes);
 
-	Hummus::EStatusCode SkipConstantExpression(ITokenProvider* inTokenProvider);
+	Hummus::EStatusCode SkipExpression(ITokenProvider* inTokenProvider);
 
 	bool IsTypenamesContainer(CPPElement* inElement);
 	string GetNewUnnamedName();
