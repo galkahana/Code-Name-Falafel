@@ -41,7 +41,7 @@ bool CPPExpressionVariable::IsEqual(CPPExpression* inOther)
 bool CPPExpressionVariable::IsLess(CPPExpression* inOther)
 {
 	if(inOther->Type != CPPExpression::eCPPExpressionVariable)
-		return inOther->Type < CPPExpression::eCPPExpressionVariable;
+		return CPPExpression::eCPPExpressionVariable < inOther->Type;
 
 	CPPExpressionVariable* otherVariable = (CPPExpressionVariable*)inOther;
 

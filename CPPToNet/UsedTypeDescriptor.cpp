@@ -215,6 +215,7 @@ FunctionPointerTypeDescriptor::FunctionPointerTypeDescriptor(UsedTypeDescriptor*
 {
 	mReturnType = inReturnType;
 	mHasElipsis = false;
+	mSubscriptCount = 0;
 }
 
 FunctionPointerTypeDescriptor::~FunctionPointerTypeDescriptor()
@@ -247,6 +248,12 @@ Hummus::EStatusCode FunctionPointerTypeDescriptor::CreateParameter(const string&
 	return eSuccess;
 }
 
+void FunctionPointerTypeDescriptor::AppendParameter(TypedParameter* inParameter)
+{
+	mDeclaredParameters.push_back(inParameter);
+}
+
+
 ICPPFunctionPointerDeclerator::EFunctionPointerType FunctionPointerTypeDescriptor::GetPointerType()
 {
 	return mPointerType;
@@ -277,6 +284,10 @@ bool FunctionPointerTypeDescriptor::IsEqual(FunctionPointerTypeDescriptor* inOth
 	if(mPointerType != inOther->GetPointerType())
 		return false;
 
+
+	if(mSubscriptCount != inOther->GetSubscriptCount())
+		return false;
+
 	if(!mReturnType->IsEqual(inOther->GetReturnType()))
 		return false;
 
@@ -303,6 +314,9 @@ bool FunctionPointerTypeDescriptor::IsLess(FunctionPointerTypeDescriptor* inOthe
 {
 	if(mPointerType != inOther->GetPointerType())
 		return mPointerType < inOther->GetPointerType();
+
+	if(mSubscriptCount != inOther->GetSubscriptCount())
+		return mSubscriptCount < inOther->GetSubscriptCount();
 
 	if(!mReturnType->IsEqual(inOther->GetReturnType()))
 		return mReturnType->IsLess(inOther->GetReturnType());
@@ -341,8 +355,31 @@ FunctionPointerTypeDescriptor* FunctionPointerTypeDescriptor::Clone()
 	for(; itParameters != mDeclaredParameters.end(); ++itParameters)
 		result->CreateParameter((*itParameters)->Name,(*itParameters)->Type->Clone());
 	result->mHasElipsis = mHasElipsis;
+	result->mSubscriptCount = mSubscriptCount;
 	return result;
 }
+
+void FunctionPointerTypeDescriptor::AddSubscript()
+{
+	++mSubscriptCount;
+}
+
+void FunctionPointerTypeDescriptor::RemoveSubscript()
+{
+	--mSubscriptCount;
+}
+
+unsigned long FunctionPointerTypeDescriptor::GetSubscriptCount()
+{
+	return mSubscriptCount;
+}
+
+
+void FunctionPointerTypeDescriptor::DetachReturnType()
+{
+	mReturnType = false;
+}
+
 
 UsedTypeDescriptor::UsedTypeDescriptor()
 {

@@ -3,9 +3,17 @@
 enum ECPPOperatorType
 {
 	eCPPOperatorDefined,
+	eCPPOperatorMemberSelectionObject,
+	eCPPOperatorMemberSelectionPointer,
 	eCPPOperatorSubscript,
+	eCPPOperatorFunctionCall,
 	eCPPOperatorPostfixIncrement,
 	eCPPOperatorPostfixDecrement,
+	eCPPOperatorTypeID,
+	eCPPOperatorConstCast,
+	eCPPOperatorDynamicCast,
+	eCPPOperatorReinterpretCast,
+	eCPPOperatorStaticCast,
 	eCPPOperatorSizeof,
 	eCPPOperatorPrefixIncrement,
 	eCPPOperatorPrefixDecrement,
@@ -15,6 +23,9 @@ enum ECPPOperatorType
 	eCPPOperatorUnaryPlus,
 	eCPPOperatorAddressOf,
 	eCPPOperatorIndirection,
+	eCPPOperatorNew,
+	eCPPOperatorDelete,
+	eCPPOperatorDeleteArray,
 	eCPPOperatorCasting,
 	eCPPOperatorMultiplication,
 	eCPPOperatorDivision,
@@ -36,8 +47,22 @@ enum ECPPOperatorType
 	eCPPOperatorLogicalOr,
 	eCPPOperatorConditional,
 	eCPPOperatorConditionalSecond,
+	eCPPOperatorAssigment,
+	eCPPOperatorMultiplicationAssigment,
+	eCPPOperatorDivisionAssigment,
+	eCPPOperatorModulusAssigment,
+	eCPPOperatorAdditionAssigment,
+	eCPPOperatorSubstractionAssigment,
+	eCPPOperatorLeftShiftAssigment,
+	eCPPOperatorRightShiftAssigment,
+	eCPPOperatorBitwiseAndAssigment,
+	eCPPOperatorBitwiseOrAssigment,
+	eCPPOperatorBitwiseExclusiveOrAssigment,
+	eCPPOperatorThrow,
 	eCPPOperatorUndefined
 };
+
+// i'm excluding comma (,), pointer to member (.* and ->*) and scope resolution (::). things should be fine
 
 class CPPExpression;
 

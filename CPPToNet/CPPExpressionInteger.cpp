@@ -156,7 +156,7 @@ bool CPPExpressionInteger::IsEqual(CPPExpression* inOther)
 bool CPPExpressionInteger::IsLess(CPPExpression* inOther)
 {
 	if(inOther->Type != CPPExpression::eCPPExpressionInteger)
-		return inOther->Type < CPPExpression::eCPPExpressionInteger;
+		return CPPExpression::eCPPExpressionInteger < inOther->Type;
 
 	CPPExpressionInteger* otherInteger = (CPPExpressionInteger*)inOther;
 

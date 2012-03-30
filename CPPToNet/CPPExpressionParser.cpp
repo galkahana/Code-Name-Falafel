@@ -11,6 +11,9 @@
 #include "CPPExpressionTypename.h"
 #include "ITypeParserHelper.h"
 #include "TokenProviderStateRecovery.h"
+#include "BracketsConditionalTokenProvider.h"
+#include "CPPExpressionNewOperator.h"
+#include "TypedParameter.h"
 
 using namespace Hummus;
 
@@ -145,6 +148,23 @@ BoolAndCPPExpression CPPExpressionParser::ParseSingleExpression(ITokenProvider* 
 				break;
 			}
 			additionalOperand = operandResult.second;
+		} 
+		
+		if(anOperator->Type == eCPPOperatorSubscript)
+		{
+			// special case for subscript, 2nd operand is a full expression inside the rectangle brackets
+			BracketsConditionalTokenProvider newProvider(mOriginalProvider);
+			operandResult = ParseExpressionInternal(&newProvider);
+			if(!operandResult.first)
+			{
+				TRACE_LOG("CPPExpressionParser::ParseSingleExpression, cannot parse subscript parameter");
+				statusOK = false;
+				break;
+			}
+
+			// subscript parameter always precedes, being inside...so no need to look further
+			firstOperand = MakeExpression(anOperator,firstOperand,operandResult.second,additionalOperand);
+			break;
 		}
 
 		// parse 2nd (or third for conditional) operand
@@ -241,19 +261,42 @@ BoolAndCPPOperator CPPExpressionParser::ParseMultinaryOperator(ITokenProvider* i
 
 BoolAndCPPOperator CPPExpressionParser::MakeOperator(const string& inToken, bool inIsBinary)
 {
+	return MakeOperator(inToken,NULL,inIsBinary);
+}
+
+BoolAndCPPOperator MakeOperator(const string& inToken, CPPExpression* inParameter,bool inIsBinary)
+{
 	// notice that does not contain casting operator. casting is created separately as a special case
 
-	if(inToken == "defined")
+	if(inToken == "defined" && !inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorDefined));
-	else if(inToken == "sizeof")
-		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorSizeof));
-	else if(inToken == "++")
+	else if(inToken == "." && inIsBinary)
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorMemberSelectionObject));
+	else if(inToken == "->" && inIsBinary)
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorMemberSelectionPointer));
+	else if(inToken == "[" && inIsBinary)
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorSubscript));
+	else if(inToken == "++" && !inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorPrefixIncrement));
-	else if(inToken == "--")
+	else if(inToken == "--" && !inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorPrefixDecrement));
-	else if(inToken == "~")
+	else if(inToken == "typeid" && !inIsBinary)
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorTypeID));
+	else if(inToken == "const_cast" && !inIsBinary)
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorConstCast,inParameter));
+	else if(inToken == "static_cast" && !inIsBinary)
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorStaticCast,inParameter));
+	else if(inToken == "dynamic_cast" && !inIsBinary)
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorDynamicCast,inParameter));
+	else if(inToken == "reinterpret_cast" && !inIsBinary)
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorReinterpretCast,inParameter));
+	else if(inToken == "static_cast" && !inIsBinary)
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorStaticCast,inParameter));
+	else if(inToken == "sizeof" && !inIsBinary)
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorSizeof));
+	else if(inToken == "~" && !inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorOnesComplement));
-	else if(inToken == "!")
+	else if(inToken == "!" && !inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorNot));
 	else if(inToken == "-" && !inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorUnaryMinus));
@@ -261,48 +304,74 @@ BoolAndCPPOperator CPPExpressionParser::MakeOperator(const string& inToken, bool
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorUnaryPlus));
 	else if(inToken == "&" && !inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorAddressOf));
-	else if(inToken == "*" && !inIsBinary)
-		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorIndirection));
-	else if(inToken == "*" && inIsBinary)
-		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorMultiplication));
-	else if(inToken == "/")
+	else if(inToken == "*")
+		return BoolAndCPPOperator(true,new CPPOperator( inIsBinary ? eCPPOperatorMultiplication : eCPPOperatorIndirection));
+	else if(inToken == "new" && !inIsBinary)
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorNew));
+	else if(inToken == "delete" && !inIsBinary)
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorDelete));
+	else if(inToken == "/" && inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorDivision));
-	else if(inToken == "%")
+	else if(inToken == "%" && inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorModulus));
 	else if(inToken == "+" && inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorAddition));
 	else if(inToken == "-" && inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorSubtraction));
-	else if(inToken == "<<")
+	else if(inToken == "<<" && inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorLeftByteShift));
-	else if(inToken == ">>")
+	else if(inToken == ">>" && inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorRightByteShift));
-	else if(inToken == "<")
+	else if(inToken == "<" && inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorLessThan));
-	else if(inToken == ">")
+	else if(inToken == ">" && inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorGreaterThan));
-	else if(inToken == "<=")
+	else if(inToken == "<=" && inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorLessThanOrEqual));
-	else if(inToken == ">=")
+	else if(inToken == ">=" && inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorGreaterThanOrEqual));
-	else if(inToken == "==")
+	else if(inToken == "==" && inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorEquality));
-	else if(inToken == "!=")
+	else if(inToken == "!=" && inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorInequality));
 	else if(inToken == "&" && inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorBitwiseAnd));
-	else if(inToken == "^")
+	else if(inToken == "^" && inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorExclusiveOr));
-	else if(inToken == "|")
+	else if(inToken == "|" && inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorBitwiseAnd));
-	else if(inToken == "&&")
+	else if(inToken == "&&" && inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorLogicalAnd));
-	else if(inToken == "||")
+	else if(inToken == "||" && inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorLogicalOr));
-	else if(inToken == "?")
+	else if(inToken == "?" && inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorConditional));
-	else if(inToken == ":")
+	else if(inToken == ":" && inIsBinary)
 		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorConditionalSecond));
+	else if(inToken == "=" && inIsBinary)
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorAssigment));
+	else if(inToken == "*=" && inIsBinary)
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorMultiplicationAssigment));
+	else if(inToken == "/=" && inIsBinary)
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorDivisionAssigment));
+	else if(inToken == "%=" && inIsBinary)
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorModulusAssigment));
+	else if(inToken == "+=" && inIsBinary)
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorAdditionAssigment));
+	else if(inToken == "-=" && inIsBinary)
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorSubstractionAssigment));
+	else if(inToken == "<<=" && inIsBinary)
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorLeftShiftAssigment));
+	else if(inToken == ">>=" && inIsBinary)
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorRightShiftAssigment));
+	else if(inToken == "&=" && inIsBinary)
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorBitwiseAndAssigment));
+	else if(inToken == "|=" && inIsBinary)
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorBitwiseOrAssigment));
+	else if(inToken == "^=" && inIsBinary)
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorBitwiseExclusiveOrAssigment));
+	else if(inToken == "throw" && !inIsBinary)
+		return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorThrow));
 	else
 		return BoolAndCPPOperator(false,(CPPOperator*)NULL);
 }
@@ -322,25 +391,38 @@ BoolAndCPPExpression CPPExpressionParser::ParseOperand(ITokenProvider* inProvide
 			break;
 		}
 		
-		// try to parse and operator, if succesful we are looking at a unary operator
-		BoolAndCPPOperator operatorResult = ParseUnaryOperator(inProvider,tokenizerResult.second);
-		if(operatorResult.first)
+		// try to parse and operator, if succesful we are looking at a unary operator (new is a special case of unary operator)
+		if(tokenizerResult.second == "new")
 		{
-			expressionResult = ParseUnaryOperatorOperand(inProvider,operatorResult.second);
+			expressionResult = ParseNewExpression(inProvider);
 			statusOK = expressionResult.first;
 			result = expressionResult.second;
 			if(!statusOK)
-				TRACE_LOG("CPPExpressionParser::ParseOperand, failed to parse operand for unary operator");
+				TRACE_LOG("CPPExpressionParser::ParseOperand, failed to parse new expression");
 
 			break;
+		}
+		else
+		{
+			BoolAndCPPOperator operatorResult = ParseUnaryOperator(inProvider,tokenizerResult.second);
+			if(operatorResult.first)
+			{
+				expressionResult = ParseUnaryOperatorOperand(inProvider,operatorResult.second);
+				statusOK = expressionResult.first;
+				result = expressionResult.second;
+				if(!statusOK)
+					TRACE_LOG("CPPExpressionParser::ParseOperand, failed to parse operand for unary operator");
+
+				break;
+			}
 		}
 	
 		// if open paranthesis, then operand is a complete expression, that should be read as a complete
 		// unit and returned
 		if(tokenizerResult.second == "(")
 		{
-			ITokenProvider* newProvider = new ParenthesisConditionalTokenProvider(mOriginalProvider);
-			expressionResult = ParseExpressionInternal(newProvider);
+			ParenthesisConditionalTokenProvider newProvider(mOriginalProvider);
+			expressionResult = ParseExpressionInternal(&newProvider);
 			statusOK = expressionResult.first;
 			result = expressionResult.second;
 			if(!statusOK)
@@ -522,6 +604,75 @@ BoolAndCPPOperator CPPExpressionParser::ParseUnaryOperator(ITokenProvider* inPro
 			return MakeOperator(inToken,false); 
 		}
 	}
+	else if(inToken == "static_cast" || inToken == "reinterpret_cast" || inToken == "dynamic_cast" || inToken == "const_cast")
+	{
+		TokenProviderStateRecovery recoverableTokenProvider(inProvider);
+		recoverableTokenProvider.TakeTokenSnapshot();
+		CPPExpression* parameter = NULL;
+
+		bool statusOK = true;
+		// these special operators take as parameter a type usage parameter
+		do
+		{
+			BoolAndString tokenResult = inProvider->GetNextToken();
+			if(!tokenResult.first || tokenResult.second != "<")
+			{
+				TRACE_LOG1("CPPExpressionParser::ParseUnaryOperator, no parameters for %s",inToken.c_str());
+				statusOK = false;
+				break;
+			}
+
+			TokenProviderStateRecovery recoverableTokenProvider(inProvider);
+			recoverableTokenProvider.TakeTokenSnapshot();
+
+			BoolAndCPPExpression result = ParseExpressionType(&recoverableTokenProvider,">");
+			statusOK = result.first;
+			parameter = statusOK ? result.second: NULL;
+		}while(false);
+
+		if(statusOK)
+		{
+			recoverableTokenProvider.CancelSnapshot();
+			return MakeOperator(inToken,parameter,false);
+		}
+		else
+		{
+			recoverableTokenProvider.RevertToTopSnapshot();
+			return MakeOperator(inToken,false); 
+		}
+	}
+	else if(inToken == "delete")
+	{
+		// could be either delete or delete[]
+		TokenProviderStateRecovery recoverableTokenProvider(inProvider);
+		recoverableTokenProvider.TakeTokenSnapshot();
+		bool isArray = false;
+
+		do
+		{
+			BoolAndString tokenResult = inProvider->GetNextToken();
+
+			if(!tokenResult.first || tokenResult.second != "[")
+				break;
+
+			tokenResult = inProvider->GetNextToken();
+			if(!tokenResult.first || tokenResult.second != "]")
+				break;
+
+			isArray = true;
+		}while(false);
+		
+		if(isArray)
+		{
+			recoverableTokenProvider.CancelSnapshot();
+			return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorDeleteArray));
+		}
+		else
+		{
+			recoverableTokenProvider.RevertToTopSnapshot();
+			return BoolAndCPPOperator(true,new CPPOperator(eCPPOperatorDelete));
+		}
+	}
 	else
 		return MakeOperator(inToken,false);
 }
@@ -553,7 +704,7 @@ BoolAndCPPExpression CPPExpressionParser::ParseUnaryOperatorOperand(ITokenProvid
 				result = ParseExpressionType(inProvider,")");
 				if(!result.first)
 				{
-					TRACE_LOG("CPPExpressionParser::ParseUnaryOperatorOperand, problem in parsing operand for unary operator, where the operand is a type usage");
+					TRACE_LOG("CPPExpressionParser::ParseUnaryOperatorOperand, problem in parsing operand for sizeof operator, where the operand is a type usage");
 					statusOK = false;
 					break;
 				}
@@ -564,7 +715,7 @@ BoolAndCPPExpression CPPExpressionParser::ParseUnaryOperatorOperand(ITokenProvid
 				result = ParseExpressionInternal(inProvider);
 				if(!result.first)
 				{
-					TRACE_LOG("CPPExpressionParser::ParseUnaryOperatorOperand, problem in parsing operand for unary operator that is an expression");
+					TRACE_LOG("CPPExpressionParser::ParseUnaryOperatorOperand, problem in parsing operand for sizeof operator that is an expression");
 					statusOK = false;
 					break;
 				}
@@ -574,7 +725,7 @@ BoolAndCPPExpression CPPExpressionParser::ParseUnaryOperatorOperand(ITokenProvid
 				tokenResult = inProvider->GetNextToken();
 				if(!tokenResult.first || tokenResult.second != ")")
 				{
-					TRACE_LOG1("CPPExpressionParser::ParseUnaryOperatorOperand, defined function last token is not left paranthesis - %s",tokenResult.first ? tokenResult.second.c_str():"(empty)");
+					TRACE_LOG1("CPPExpressionParser::ParseUnaryOperatorOperand, sizeof last token is not left paranthesis - %s",tokenResult.first ? tokenResult.second.c_str():"(empty)");
 					statusOK = false;
 				}
 			}
@@ -591,7 +742,71 @@ BoolAndCPPExpression CPPExpressionParser::ParseUnaryOperatorOperand(ITokenProvid
 			return FalseExpression();
 		}
 	}
-	else if(inOperator->Type == eCPPOperatorDefined)
+	else if (inOperator->Type == eCPPOperatorTypeID)
+	{
+		// type id will always have parenthesis, and inside either an expression or a typename
+		bool statusOK = true;
+		CPPExpression* anOperand = NULL;
+
+		do
+		{
+			BoolAndString tokenResult = inProvider->GetNextToken();
+			if(!tokenResult.first || tokenResult.second != "(")
+			{
+				TRACE_LOG("CPPExpressionParser::ParseUnaryOperatorOperand, no operand after typeid");
+				statusOK = false;
+				break;
+			}
+		
+			BoolAndCPPExpression result;
+			if(IsOperandToParseAType(inProvider))
+			{
+				result = ParseExpressionType(inProvider,")");
+				if(!result.first)
+				{
+					TRACE_LOG("CPPExpressionParser::ParseUnaryOperatorOperand, problem in parsing operand for typeid operator, where the operand is a type usage");
+					statusOK = false;
+					break;
+				}
+				anOperand = result.second;
+			}
+			else
+			{
+				result = ParseExpressionInternal(inProvider);
+				if(!result.first)
+				{
+					TRACE_LOG("CPPExpressionParser::ParseUnaryOperatorOperand, problem in parsing operand for typeid operator that is an expression");
+					statusOK = false;
+					break;
+				}
+			
+				anOperand = result.second;
+
+				tokenResult = inProvider->GetNextToken();
+				if(!tokenResult.first || tokenResult.second != ")")
+				{
+					TRACE_LOG1("CPPExpressionParser::ParseUnaryOperatorOperand, typeid last token is not left paranthesis - %s",tokenResult.first ? tokenResult.second.c_str():"(empty)");
+					statusOK = false;
+				}
+			}
+		}while(false);
+
+		if(statusOK)
+		{
+			return BoolAndCPPExpression(true,MakeExpression(inOperator,anOperand,NULL,NULL));
+		}
+		else
+		{
+			delete inOperator;
+			delete anOperand;
+			return FalseExpression();
+		}
+	}
+	else if(inOperator->Type == eCPPOperatorDefined ||
+			inOperator->Type == eCPPOperatorConstCast ||
+			inOperator->Type == eCPPOperatorDynamicCast ||
+			inOperator->Type == eCPPOperatorReinterpretCast ||
+			inOperator->Type == eCPPOperatorStaticCast)
 	{
 		// There's paranthesis, then expression which is the operand and then another parenthesis
 		bool statusOK = true;
@@ -1102,7 +1317,7 @@ BoolAndCPPExpression CPPExpressionParser::ParseFunctionCall(const string& inToke
 		}
 
 		// k. now we got the params, and the current token is the end of the list..which is cool. can continue to create now the expression
-		BoolAndCPPExpression expressionResult = MakeFunctionCall(inToken,inScopes,params);
+		expressionResult = MakeFunctionCall(inToken,inScopes,params);
 		if(!expressionResult.first)
 		{
 			TRACE_LOG("CPPExpressionParser::ParseFunctionCall, failure in creating function call expression");
@@ -1263,4 +1478,117 @@ BoolAndCPPExpression CPPExpressionParser::ParseExpressionType(ITokenProvider* in
 BoolAndCPPExpression CPPExpressionParser::MakeTypename(TypedParameter* inTypename)
 {
 	return BoolAndCPPExpression(true,new CPPExpressionTypename(inTypename));
+}
+
+BoolAndCPPExpression CPPExpressionParser::ParseNewExpression(ITokenProvider* inProvider)
+{
+	// New expression looks like this: new LimitedUsedType(initializer)
+	// we'll use the helper to parse the used type, using a specialized method, and then parse the initalizer like a regular function parameter call
+
+
+	// type parser helper is mandatory this time
+	if(!mTypeParserHelper)
+		return FalseExpression();
+
+	bool status = true;
+	CPPExpression* newOperatorExpression = NULL;
+	CPPExpressionList initializerParams;
+	TypedParameter* parsedParameter = NULL;
+	BoolAndCPPExpression expressionResult;
+
+	do
+	{
+		// check for optional parenthesis
+		BoolAndString token = inProvider->GetNextToken();
+		if(!token.first)
+		{
+			TRACE_LOG("CPPExpressionParser::ParseNewExpression, no token after new. fail");
+			status = false;
+			break;
+		}
+
+		if(token.second == "(")
+		{
+			ParenthesisConditionalTokenProvider tokenProvider(inProvider);
+			parsedParameter = mTypeParserHelper->ParseTypeForNew(&tokenProvider);
+		}
+		else
+		{
+			inProvider->PutBackToken(token.second);
+			parsedParameter = mTypeParserHelper->ParseTypeForNew(inProvider);
+		}
+		if(!parsedParameter)
+		{
+			TRACE_LOG("CPPExpressionParser::ParseNewExpression, error in parsing type for new expression");
+			status = false;
+			break;
+		}
+
+		// check for initializer
+		token = inProvider->GetNextToken();
+		if(!token.first)
+			break;
+
+		if(token.second == "(")
+		{
+			token = inProvider->GetNextToken();
+			if(!token.first)
+			{
+				TRACE_LOG("CPPExpressionParser::ParseNewExpression, syntax error, unable to read past initializer start '('");
+				status = false;
+				break;
+			}
+
+			while(token.second != ")") 
+			{
+			
+				// parse expression
+				expressionResult = ParseExpressionInternal(inProvider); // not limiting here by ,...cause i don't want to start checking, i'll trust the parser and hope for the best
+				if(!expressionResult.first)
+				{
+					TRACE_LOG("CPPExpressionParser::ParseNewExpression, error in parsing function parameter");
+					status = false;
+					break;
+				}
+				initializerParams.push_back(expressionResult.second);
+				token = inProvider->GetNextToken();
+				if(!token.first)
+				{
+					TRACE_LOG("CPPExpressionParser::ParseNewExpression, syntax error, expecting either ',' or ')' to finish/continue function parameters list");
+					status = false;
+					break;
+				}
+				if(token.second != ",")
+					break;
+			}
+			if(!status)
+				break;
+
+			if(token.second != ")")
+			{
+				TRACE_LOG("CPPExpressionParser::ParseNewExpression, syntax error, expecting ')' to finish function parameters list");
+				status = false;
+				break;
+			}
+
+
+		}
+
+		newOperatorExpression = new CPPExpressionNewOperator(parsedParameter,initializerParams);
+	} while(false);
+
+
+	if(status)
+	{
+		return BoolAndCPPExpression(true,newOperatorExpression);
+	}
+	else
+	{
+		CPPExpressionList::iterator it = initializerParams.begin();
+		for(; it != initializerParams.end(); ++it)
+			delete *it;
+		delete parsedParameter;
+
+		return FalseExpression();
+	}
 }

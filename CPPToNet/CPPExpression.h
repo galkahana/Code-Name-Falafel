@@ -15,6 +15,7 @@ public:
 	enum ECPPExpressionType
 	{
 		eCPPExpressionOperator,
+		eCPPExpressionOperatorNew,
 		eCPPExpressionInteger,
 		eCPPExpressionFunctionCall,
 		eCPPExpressionVariable,

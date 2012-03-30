@@ -9,6 +9,10 @@ CPPExpressionFunctionCall::CPPExpressionFunctionCall(const string& inFunctionNam
 
 CPPExpressionFunctionCall::~CPPExpressionFunctionCall(void)
 {
+	CPPExpressionList::iterator it = Parameters.begin();
+	
+	for(; it != Parameters.end(); ++it)
+		delete *it;
 }
 
 BoolAndCPPPrimitiveValue CPPExpressionFunctionCall::Evaluate(IExpressionEvaluationContext* inContext)
@@ -53,7 +57,7 @@ bool CPPExpressionFunctionCall::IsEqual(CPPExpression* inOther)
 bool CPPExpressionFunctionCall::IsLess(CPPExpression* inOther)
 {
 	if(inOther->Type != CPPExpression::eCPPExpressionFunctionCall)
-		return inOther->Type < CPPExpression::eCPPExpressionFunctionCall;
+		return CPPExpression::eCPPExpressionFunctionCall < inOther->Type;
 
 
 	CPPExpressionFunctionCall* otherCall = (CPPExpressionFunctionCall*)inOther;

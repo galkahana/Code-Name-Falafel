@@ -202,7 +202,13 @@ BoolAndString CPPTokenizer::GetNextToken()
 					if('=' == buffer || originalSymbol == buffer)
 						tokenBuffer.Write(&buffer,1);
 					else // else, unrelated
-						SaveTokenBuffer(buffer);
+					{
+						// special case for ->
+						if(originalSymbol == '-' && buffer == '>')
+							tokenBuffer.Write(&buffer,1);
+						else
+							SaveTokenBuffer(buffer);
+					}
 					result.second = tokenBuffer.ToString();
 					mNotEncounteredTokensForLine = false;
 					break;

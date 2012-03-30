@@ -66,21 +66,29 @@ public:
 	void AppendModifiersForFunctionPointerReturnType(const DeclaratorModifierList& inModifiers);
 	void SetFunctionPointerHasElipsis();
 	Hummus::EStatusCode CreateParameter(const string& inParameterName, UsedTypeDescriptor* inParameterType);
+	void AppendParameter(TypedParameter* inParameter);
+	void AddSubscript();
+	void RemoveSubscript();
 
 	ICPPFunctionPointerDeclerator::EFunctionPointerType GetPointerType(); 
 	UsedTypeDescriptor* GetReturnType();
 	Hummus::SingleValueContainerIterator<TypedParameterList> GetParametersListIterator();
 	bool HasElipsis();
+	unsigned long GetSubscriptCount();
+	
 	
 	bool IsEqual(FunctionPointerTypeDescriptor* inOther);
 	bool IsLess(FunctionPointerTypeDescriptor* inOtherDescriptor);
 	FunctionPointerTypeDescriptor* Clone();
+
+	void DetachReturnType();
 
 private:
 	ICPPFunctionPointerDeclerator::EFunctionPointerType mPointerType;
 	UsedTypeDescriptor* mReturnType;
 	TypedParameterList mDeclaredParameters;
 	bool mHasElipsis;
+	unsigned long mSubscriptCount;
 };
 
 class UsedTypeDescriptor

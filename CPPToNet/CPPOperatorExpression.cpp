@@ -778,7 +778,7 @@ bool CPPOperatorExpression::IsEqual(CPPExpression* inExpression)
 bool CPPOperatorExpression::IsLess(CPPExpression* inExpression)
 {
 	if(inExpression->Type != CPPExpression::eCPPExpressionOperator)
-		return inExpression->Type < CPPExpression::eCPPExpressionOperator;
+		return CPPExpression::eCPPExpressionOperator < inExpression->Type;
 
 	CPPOperatorExpression* otherExpression = (CPPOperatorExpression*)inExpression;
 

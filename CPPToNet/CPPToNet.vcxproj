@@ -142,9 +142,11 @@
   <ItemGroup>
     <ClInclude Include="AbstractClassOrStruct.h" />
     <ClInclude Include="AbstractCPPContainer.h" />
+    <ClInclude Include="BracketsConditionalTokenProvider.h" />
     <ClInclude Include="CPPClass.h" />
     <ClInclude Include="CPPClassTemplateInstance.h" />
     <ClInclude Include="CPPElementListAndUsedTypeOrExpressionList.h" />
+    <ClInclude Include="CPPExpressionNewOperator.h" />
     <ClInclude Include="CPPStruct.h" />
     <ClInclude Include="CPPStructTemplateInstance.h" />
     <ClInclude Include="CPPTemplateTemplateParameter.h" />
@@ -251,8 +253,10 @@
   <ItemGroup>
     <ClCompile Include="AbstractClassOrStruct.cpp" />
     <ClCompile Include="AbstractCPPContainer.cpp" />
+    <ClCompile Include="BracketsConditionalTokenProvider.cpp" />
     <ClCompile Include="CPPClass.cpp" />
     <ClCompile Include="CPPClassTemplateInstance.cpp" />
+    <ClCompile Include="CPPExpressionNewOperator.cpp" />
     <ClCompile Include="CPPStruct.cpp" />
     <ClCompile Include="CPPStructTemplateInstance.cpp" />
     <ClCompile Include="CPPTemplateTemplateParameter.cpp" />

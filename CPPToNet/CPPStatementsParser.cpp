@@ -145,6 +145,10 @@ EStatusCodeAndBool CPPStatementsParser::ParseStatement(HeaderUnit* inUnitModel)
 				status = ParseUsingDeclaration();
 			}
 		}
+		else if(tokenizerResult.second == "friend")
+		{
+			status = SkipStatement(); // for friends i'm just skipping. don't care about them really
+		}
 		else if(tokenizerResult.second == "enum")
 		{
 			status = ParseEnumeratorDeclaration();
@@ -2281,42 +2285,16 @@ EStatusCode CPPStatementsParser::ParseGenericDeclerationStatement(ITokenProvider
 
 		// if continuing than now we are sure that we are NOT in cosntructor/desctroctor but rather a regular definition
 		recoverableTokenProvider.RevertToTopSnapshot();
-		// we no longer need the recoverable token provider, so back to original token provider
-		CPPElement* aScopingElement = GetScopingElementFromCurrentLocation(inTokenProvider,false);
+		// we no longer need the recoverable token provider, so back to original token provider. get a type now
 
-		// get the next token (this should be the type name)
-		token = inTokenProvider->GetNextToken();
-		if(!token.first)
-		{
-			TRACE_LOG("CPPStatementsParser::ParseGenericDeclerationStatement, unexpected end of statement, when expecting type name");
-			status = eFailure;
-			break;
-		}
-
-		string aTypeName = token.second;
-
-		// now get the next token and determine the role of the previous token accordingly
-		token = inTokenProvider->GetNextToken();
-		if(!token.first)
-		{
-			TRACE_LOG("CPPStatementsParser::ParseGenericDeclerationStatement, unexpected end of statement, when expecting type name after typename");
-			status = eFailure;
-			break;
-		}
-
-		// regular declaration, complete with getting the type based on the typename
-		CPPElement* anElement;
-		if(aScopingElement)
-			anElement = FindQualifiedElement((ICPPElementsContainer*)aScopingElement,aTypeName);
-		else
-			anElement = FindUnqualifiedElement(ComputeUnqualifiedNameFromCurrentLocation(aTypeName,token));
-
+		CPPElement* anElement = GetElementFromCurrentLocation(inTokenProvider,true);
 		if(!anElement)
 		{
-			TRACE_LOG("CPPStatementsParser::ParseGenericDeclerationStatement, could not find designated type");
+			TRACE_LOG("CPPStatementsParser::ParseGenericDeclerationStatement, could not parse typename for expression");
 			status = eFailure;
 			break;
 		}
+
 
 		if((anElement->Type == CPPElement::eCPPElementClass || anElement->Type == CPPElement::eCPPElementStruct) && ((AbstractClassOrStruct*)anElement)->IsTemplate())
 		{
@@ -3222,4 +3200,287 @@ TypedParameter* CPPStatementsParser::ParseType(ITokenProvider* inTokenProvider,c
 		return typedParameterCreator.DetachTypeParameter();
 
 
+}
+
+EStatusCode CPPStatementsParser::SkipStatement()
+{
+	/*
+		The implementation of skipping is rather trivial (and now i only need it to work for friend classes/functions anyways, and safe for most cases. simply create a new namespace
+		load it on the stack, and read the rest of the statement, then remove and delete.
+	*/
+
+	CPPNamespace* aNamespace = new CPPNamespace(GetNewUnnamedName());
+	mDefinitionContextStack.push_back(aNamespace);	
+
+	EStatusCode status = ParseStatement(mWorkingUnit).first;
+
+	mDefinitionContextStack.pop_back();
+	delete aNamespace;
+
+	return status;
+}
+
+TypedParameter* CPPStatementsParser::ParseTypeForNew(ITokenProvider* inTokenProvider)
+{
+	// Parse type for new. this has to start with a type name, then possibly template instance, and then some qualifiers (pointers 'n such)
+	// oh - and it could be a function pointer too
+
+	UsedTypeDescriptor* result = NULL;
+	UsedTypeDescriptor* functionPointerResult = NULL;
+	EStatusCode status = eSuccess;
+
+	do
+	{
+		// start with getting a type. either return type for function pointer, or the type to allocate for regular typename
+		CPPElement* anElement = GetElementFromCurrentLocation(inTokenProvider,true);
+		if(!anElement)
+		{
+			TRACE_LOG("CPPStatementsParser::ParseTypeForNew, could not parse typename for expression");
+			status = eFailure;
+			break;
+		}		
+
+		if((anElement->Type == CPPElement::eCPPElementClass || anElement->Type == CPPElement::eCPPElementStruct) && ((AbstractClassOrStruct*)anElement)->IsTemplate())
+		{
+			anElement = FromTemplateToTemplateInstance(inTokenProvider,(AbstractClassOrStruct*)anElement);
+			if(!anElement)
+			{
+				TRACE_LOG("CPPStatementsParser::ParseTypeForNew, could not parse template instance");
+				status = eFailure;
+				break;
+			}
+		}
+
+		result = new UsedTypeDescriptor(anElement,false,false,false,false,false,false);
+		BoolAndString token;
+
+		token = inTokenProvider->GetNextToken();
+		if(!token.first) // if no next token, done here, regular typename
+			break;
+
+		// next, could optionally be pointers, so parse them
+		if(token.second == "*")
+		{
+			// pointer(s)
+			while(token.first && token.second == "*")
+			{
+				DeclaratorModifier modifier;
+				modifier.Modifier = DeclaratorModifier::eDeclaratorModifierPointer;
+				result->GetFieldDescriptor()->AppendModifier(modifier);
+				token = inTokenProvider->GetNextToken();
+			}
+
+			if(!token.first)
+				break;
+		}
+
+		// next, could be subscripts
+		if(token.second == "[")
+		{
+			while(token.first && token.second == "[")
+			{
+				result->GetFieldDescriptor()->AddSubscript();
+
+				token = inTokenProvider->GetNextToken();
+				if(!token.first)
+				{
+					TRACE_LOG("CPPStatementsParser::ParseTypeForNew, unexpected end, expected an expression or closing bracket ']'");
+					status = eFailure;
+					break;
+				}
+
+				if(token.second != "]")
+				{
+					inTokenProvider->PutBackToken(token.second);
+					status = SkipExpression(inTokenProvider);
+					if(status != eSuccess)
+						break;
+
+					token = inTokenProvider->GetNextToken();
+					if(!token.first || token.second != "]")
+					{
+						TRACE_LOG("CPPStatementsParser::ParseTypeForNew, unexpected end or wrong token, expected closing bracket ']'");
+						status = eFailure;
+						break;
+					}
+				}
+				token = inTokenProvider->GetNextToken();
+			}
+
+			if(status != eSuccess || !token.first)
+				break;
+		}
+
+		// now could be function pointer "typename" or initializer call. we only care about function pointer, so revert in case you discover it's actually an initializer
+		if(token.second == "(")
+		{
+			/*
+				in order for this to be a function pointer typename new, it must be if the form: return_type (pointer and possible subscripts) (params)
+				we can tell it's not a function pointer, if we see anything else than "*" or "[". if it is just * and []s then it must be function pointer...so it's pretty
+				conclusive.
+			*/
+
+			TokenProviderStateRecovery recoverableProvider(inTokenProvider);
+			bool isFunctionPointer = false;
+			// create temporary function poitner result...in case it is truly a function pointer
+			UsedTypeDescriptor* functionPointerResult = new UsedTypeDescriptor(result);
+
+			do
+			{
+				// first, grab the pointer. methinks there can be just one, if there is non...this is not a function pointer
+				token = recoverableProvider.GetNextToken();
+				if(!token.first)
+				{
+					TRACE_LOG("CPPStatementsParser::ParseTypeForNew, unexpected end, started parenthesis");
+					status = eFailure;
+					break;
+				}
+
+				if(token.second != "*") // if not pointer, can't be function pointer. stop
+					break;
+
+				// now for some subscripts
+				token = recoverableProvider.GetNextToken();
+				if(!token.first)
+				{
+					TRACE_LOG("CPPStatementsParser::ParseTypeForNew, unexpected end, started parenthesis, had pointer...and stopped");
+					status = eFailure;
+					break;
+				}
+
+				if(token.second == "[")
+				{
+					while(token.first && token.second == "[")
+					{
+						functionPointerResult->GetFunctionPointerDescriptor()->AddSubscript();
+
+						token = recoverableProvider.GetNextToken();
+						if(!token.first)
+						{
+							TRACE_LOG("CPPStatementsParser::ParseTypeForNew, unexpected end, expected an expression or closing bracket ']'");
+							status = eFailure;
+							break;
+						}
+
+						if(token.second != "]")
+						{
+							recoverableProvider.PutBackToken(token.second);
+							status = SkipExpression(&recoverableProvider);
+							if(status != eSuccess)
+								break;
+
+							token = recoverableProvider.GetNextToken();
+							if(!token.first || token.second != "]")
+							{
+								TRACE_LOG("CPPStatementsParser::ParseTypeForNew, unexpected end or wrong token, expected closing bracket ']'");
+								status = eFailure;
+								break;
+							}
+						}
+						token = recoverableProvider.GetNextToken();
+					}
+					if(status != eSuccess)
+						break;
+
+					if(!token.first)
+					{
+						TRACE_LOG("CPPStatementsParser::ParseTypeForNew, unexpected end or wrong token, expected closing bracket ']'");
+						status = eFailure;
+						break;
+					}
+				}
+
+				// k. if this is a function pointer then now must be closing parenthesis
+
+				if(token.second != ")")
+					break;
+
+				isFunctionPointer = true;
+
+				// otherwise, continue with parameters parsing
+				token = inTokenProvider->GetNextToken();	
+				if(!token.first || token.second != "(")
+				{
+					TRACE_LOG("CPPStatementsParser::ParseTypeForNew, unexpected end or wrong token, expected function pointer parameters starting with '('");
+					status = eFailure;
+					break;
+				}
+
+				token = inTokenProvider->GetNextToken();	
+				TypedParameterCreator parameterCreator;
+				DecleratorAsParametersContainer parametersContainer(&parameterCreator,")");
+
+				while(token.first && token.second != ")" &&  eSuccess == status)
+				{
+					if(token.second == "...")
+					{
+						functionPointerResult->GetFunctionPointerDescriptor()->SetFunctionPointerHasElipsis();
+						token = inTokenProvider->GetNextToken();
+						if(!token.first)
+						{
+							TRACE_LOG("CPPStatementsParser::ParseTypeForNew, unexpected no tokens after elipsis. expected )");
+							status = eFailure;
+						}
+						else if(token.second != ")")
+						{
+							TRACE_LOG1("CPPStatementsParser::ParseTypeForNew, unexpected token after elipsis. expected ), got %s",token.second.c_str());
+							status = eFailure;
+						}
+						break;
+					}
+					else
+					{
+						status = ParseGenericDeclerationStatement(inTokenProvider,&parametersContainer);
+						if(status != eSuccess)
+						{
+							TRACE_LOG("CPPStatementsParser::ParseTypeForNew, failed to parase function pointer paremeter");
+							break;
+						}
+				
+						functionPointerResult->GetFunctionPointerDescriptor()->AppendParameter(parameterCreator.DetachTypeParameter());
+
+						if(parametersContainer.FoundStop())	
+							break;
+
+						parametersContainer.Reset();
+						token = inTokenProvider->GetNextToken();
+					}
+				}
+
+			}while(false);
+
+			// if failed recover tokens. make sure to also put back the initial "("
+			if(isFunctionPointer)
+			{
+				result = functionPointerResult;
+				recoverableProvider.CancelSnapshot();
+			}
+			else
+			{
+				functionPointerResult->GetFunctionPointerDescriptor()->DetachReturnType();
+				delete functionPointerResult;
+				recoverableProvider.RevertToTopSnapshot();
+				// also put back initial "("
+				inTokenProvider->PutBackToken("(");
+			}
+			functionPointerResult = NULL;
+
+			// finish here
+			break;
+		}
+
+		// else...then token does not belong to new expression. put back the token and finish.
+		inTokenProvider->PutBackToken(token.second);
+	}while(false);
+
+	if(status != eSuccess)
+	{
+		if(functionPointerResult)
+			delete functionPointerResult;
+		else
+			delete result;
+		return NULL;
+	}
+	else
+		return new TypedParameter(result);
 }

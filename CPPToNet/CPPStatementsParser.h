@@ -60,9 +60,11 @@ public:
 						 const StringList& inIncludeFolders);
 
 
-	//ITypeParserHelper implementation [also internal usage...]
+	//ITypeParserHelper implementation [internal usage...]
 	virtual bool IsAboutToParseType(ITokenProvider* inTokenProvider);
 	virtual TypedParameter* ParseType(ITokenProvider* inTokenProvider,const string& inTypeDelimeter);
+	virtual TypedParameter* ParseTypeForNew(ITokenProvider* inTokenProvider);
+
 
 private:
 
@@ -151,5 +153,6 @@ private:
 	void Destroy(UsedTypeOrExpressionList& inList);
 	CPPElement* FromTemplateToTemplateInstance(ITokenProvider* inTokenProvider,AbstractClassOrStruct* inTemplate);
 	CPPElement* FromTemplateToTemplateSpecialization(ITokenProvider* inTokenProvider,AbstractClassOrStruct* inTemplate);
+	EStatusCode SkipStatement();
 
 };

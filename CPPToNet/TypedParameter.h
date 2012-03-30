@@ -10,6 +10,7 @@ class UsedTypeDescriptor;
 struct TypedParameter
 {
 	TypedParameter();
+	TypedParameter(UsedTypeDescriptor* inType);
 	~TypedParameter();
 
 	string Name;
