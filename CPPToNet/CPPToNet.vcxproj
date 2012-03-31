@@ -146,7 +146,10 @@
     <ClInclude Include="CPPClass.h" />
     <ClInclude Include="CPPClassTemplateInstance.h" />
     <ClInclude Include="CPPElementListAndUsedTypeOrExpressionList.h" />
+    <ClInclude Include="CPPExpressionFloatingPoint.h" />
     <ClInclude Include="CPPExpressionNewOperator.h" />
+    <ClInclude Include="CPPExpressionString.h" />
+    <ClInclude Include="CPPExpressionTypename.h" />
     <ClInclude Include="CPPStruct.h" />
     <ClInclude Include="CPPStructTemplateInstance.h" />
     <ClInclude Include="CPPTemplateTemplateParameter.h" />
@@ -256,7 +259,10 @@
     <ClCompile Include="BracketsConditionalTokenProvider.cpp" />
     <ClCompile Include="CPPClass.cpp" />
     <ClCompile Include="CPPClassTemplateInstance.cpp" />
+    <ClCompile Include="CPPExpressionFloatingPoint.cpp" />
     <ClCompile Include="CPPExpressionNewOperator.cpp" />
+    <ClCompile Include="CPPExpressionString.cpp" />
+    <ClCompile Include="CPPExpressionTypename.cpp" />
     <ClCompile Include="CPPStruct.cpp" />
     <ClCompile Include="CPPStructTemplateInstance.cpp" />
     <ClCompile Include="CPPTemplateTemplateParameter.cpp" />

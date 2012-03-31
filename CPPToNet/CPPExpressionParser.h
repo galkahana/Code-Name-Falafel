@@ -45,7 +45,8 @@ private:
 	BoolAndCPPOperator MakeOperator(const string& inToken, CPPExpression* inParameter,bool inIsBinary);
 	BoolAndCPPExpression ParseUnaryOperatorOperand(ITokenProvider* inProvider,CPPOperator* inOperator);
 	BoolAndCPPExpression MakeCharacter(const string& inToken);
-	BoolAndCPPExpression MakeInteger(const string& inToken);
+	BoolAndCPPExpression MakeString(const string& inToken);
+	BoolAndCPPExpression MakeNumber(const string& inToken);
 	BoolAndCPPExpression MakeVariable(const string& inToken,const StringList& inScopes);
 	BoolAndCPPExpression ParseFunctionCall(const string& inToken,const StringList& inScopes,ITokenProvider* inTokenProvider);
 	BoolAndCPPExpression MakeFunctionCall(const string& inToken,const StringList& inScopes,const CPPExpressionList& inParameters);

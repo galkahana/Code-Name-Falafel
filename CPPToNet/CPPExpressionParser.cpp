@@ -6,14 +6,18 @@
 #include "CPPExpression.h"
 #include "CPPOperatorExpression.h"
 #include "CPPExpressionInteger.h"
+#include "CPPExpressionFloatingPoint.h"
 #include "CPPExpressionVariable.h"
 #include "CPPExpressionFunctionCall.h"
 #include "CPPExpressionTypename.h"
+#include "CPPExpressionString.h"
 #include "ITypeParserHelper.h"
 #include "TokenProviderStateRecovery.h"
 #include "BracketsConditionalTokenProvider.h"
 #include "CPPExpressionNewOperator.h"
 #include "TypedParameter.h"
+
+#include <sstream>
 
 using namespace Hummus;
 
@@ -264,7 +268,7 @@ BoolAndCPPOperator CPPExpressionParser::MakeOperator(const string& inToken, bool
 	return MakeOperator(inToken,NULL,inIsBinary);
 }
 
-BoolAndCPPOperator MakeOperator(const string& inToken, CPPExpression* inParameter,bool inIsBinary)
+BoolAndCPPOperator CPPExpressionParser::MakeOperator(const string& inToken, CPPExpression* inParameter,bool inIsBinary)
 {
 	// notice that does not contain casting operator. casting is created separately as a special case
 
@@ -430,7 +434,7 @@ BoolAndCPPExpression CPPExpressionParser::ParseOperand(ITokenProvider* inProvide
 			break;
 		}
 
-		expressionResult = MakeInteger(tokenizerResult.second);
+		expressionResult = MakeNumber(tokenizerResult.second);
 		if(expressionResult.first)
 		{
 			result = expressionResult.second;
@@ -438,6 +442,13 @@ BoolAndCPPExpression CPPExpressionParser::ParseOperand(ITokenProvider* inProvide
 		}
 		
 		expressionResult = MakeCharacter(tokenizerResult.second);
+		if(expressionResult.first)
+		{
+			result = expressionResult.second;
+			break;
+		}
+
+		expressionResult = MakeString(tokenizerResult.second);
 		if(expressionResult.first)
 		{
 			result = expressionResult.second;
@@ -1108,12 +1119,7 @@ BoolAndCPPExpression CPPExpressionParser::MakeCharacter(const string& inToken)
 	{
 		// single byte or multibyte
 		if(inToken.size() < 3 || inToken.at(0) != '\'' || inToken.at(inToken.size() - 1) != '\'')
-		{
-			BoolAndCPPExpression result;
-			result.first = false;
-			result.second = NULL;
-			return result;
-		}
+			return FalseExpression();
 
 		string::size_type currentPosition = 1; // skip first
 
@@ -1136,12 +1142,67 @@ BoolAndCPPExpression CPPExpressionParser::MakeCharacter(const string& inToken)
 	}
 }
 
-
-
-
-BoolAndCPPExpression CPPExpressionParser::MakeInteger(const string& inToken)
+BoolAndCPPExpression CPPExpressionParser::MakeString(const string& inToken)
 {
-	unsigned long long buffer = 0;
+	if(inToken.size() > 3 && inToken.at(0) == 'L' && inToken.at(1) == '\"' && inToken.at(inToken.size() - 1) == '\"')
+	{
+		// wide string
+		wstringstream stream;
+		BoolAndWChar parseResult(true,0);
+		
+		string::size_type currentPosition = 2; // skip first 2 markers
+
+		while(currentPosition < inToken.size() - 1)
+		{
+			parseResult = sParseWChar(inToken,currentPosition);
+			if(!parseResult.first)
+				break;
+
+			stream.put(parseResult.second);
+		}
+
+		if(parseResult.first)
+			return BoolAndCPPExpression(true,new CPPExpressionString(stream.str()));
+		else
+			return FalseExpression();
+	}
+	else
+	{
+		// single byte string 
+
+		if(inToken.size() < 3 || inToken.at(0) != '\"' || inToken.at(inToken.size() - 1) != '\"')
+			return FalseExpression();
+
+		
+		stringstream stream;
+		BoolAndChar parseResult(true,0);
+
+		string::size_type currentPosition = 1; // skip first
+
+		while(currentPosition < inToken.size() - 1)
+		{
+			parseResult = sParseChar(inToken,currentPosition);
+			if(!parseResult.first)
+				break;
+
+			stream.put(parseResult.second);
+		}
+
+		if(parseResult.first)
+			return BoolAndCPPExpression(true,new CPPExpressionString(stream.str()));
+		else
+			return FalseExpression();
+	}
+}
+
+BoolAndCPPExpression CPPExpressionParser::MakeNumber(const string& inToken)
+{
+	unsigned long long integerPart = 0;
+	long double fractionPart = 0;
+	unsigned long long exponent = 0;
+	bool hasFraction = false;
+	bool hasExponent = false;
+	bool isExponentNegative = false;
 	string::size_type i=0;
 	bool isUnsigned = false;
 
@@ -1163,15 +1224,15 @@ BoolAndCPPExpression CPPExpressionParser::MakeInteger(const string& inToken)
 			{
 				if(inToken.at(i) >= '0' && inToken.at(i) <= '9')
 				{
-					buffer = (buffer<<4) + (inToken.at(i) - '0');
+					integerPart = (integerPart<<4) + (inToken.at(i) - '0');
 				}
 				else if(inToken.at(i) >= 'A' && inToken.at(i) <= 'F')
 				{
-					buffer = (buffer<<4) + (inToken.at(i) - 'A');
+					integerPart = (integerPart<<4) + (inToken.at(i) - 'A');
 				}
 				else if(inToken.at(i) >= 'a' && inToken.at(i) <= 'f')
 				{
-					buffer = (buffer<<4) + (inToken.at(i) - 'a');
+					integerPart = (integerPart<<4) + (inToken.at(i) - 'a');
 				}
 				else
 					break;
@@ -1184,7 +1245,7 @@ BoolAndCPPExpression CPPExpressionParser::MakeInteger(const string& inToken)
 			for(;i<inToken.size();++i)
 			{
 				if(inToken.at(i) >= '0' && inToken.at(i) <= '8')
-					buffer = (buffer<<3) + (inToken.at(i) - '0');
+					integerPart = (integerPart<<3) + (inToken.at(i) - '0');
 				else
 					break;
 			}
@@ -1192,70 +1253,144 @@ BoolAndCPPExpression CPPExpressionParser::MakeInteger(const string& inToken)
 	}
 	else
 	{
-		// decimal case
+		// integer part
 		for(; i < inToken.size();++i)
 		{
 			if(inToken.at(i) >= '0' && inToken.at(i) <= '9')
-				buffer = buffer*10 + (inToken.at(i) - '0');
+				integerPart = integerPart*10 + (inToken.at(i) - '0');
 			else
 				break;
 		}
-	}
 
-	if(i < inToken.size() - 1)
-	{
-		// still more to read, parhaps type flags		
-		if(inToken.at(i) == 'u' || inToken.at(i) == 'U')
+		// fraction
+		if((i < inToken.size())  && inToken.at(i) == '.')
 		{
-			isUnsigned = true;
+			hasFraction = true;
 			++i;
+			long double fractionModifier = 0.1;
+
+			for(; i < inToken.size();++i)
+			{
+				if(inToken.at(i) >= '0' && inToken.at(i) <= '9')
+				{
+					fractionPart = fractionPart + (inToken.at(i) - '0') * fractionModifier;
+					fractionModifier *= 0.1;
+				}
+				else
+					break;
+			}
 		}
 
-		if(i < inToken.size() - 1)
+		// exponent
+		if((i < inToken.size())  && (inToken.at(i) == 'E' || inToken.at(i) == 'e'))
 		{
-			if(
-				(i < inToken.size() - 3 && inToken.substr(i,3) == "i64") ||	
-				(i < inToken.size() - 2 && inToken.substr(i,2) == "LL") ||	
-				(i < inToken.size() - 2 && inToken.substr(i,2) == "ll") 	
-			)
+			hasExponent = true;
+			++i;
+
+			if(inToken.at(i) == '-' || inToken.at(i) == '+')
 			{
-				return BoolAndCPPExpression(true,
-											new CPPExpressionInteger( 
-												isUnsigned ? 
-												(unsigned long long)buffer :
-												(long long)buffer));
-			}												 
-			else if(
-				(i < inToken.size() - 1 && inToken.at(i) == 'l') ||	
-				(i < inToken.size() - 1 && inToken.at(i) == 'L')
-			)
+				isExponentNegative = (inToken.at(i) == '-');
+				++i;
+			}
+
+			for(; i < inToken.size();++i)
 			{
+				if(inToken.at(i) >= '0' && inToken.at(i) <= '9')
+					exponent = exponent*10 + (inToken.at(i) - '0');
+				else
+					break;
+			}
+
+		}
+	}
+
+	if(hasExponent || hasFraction)
+	{
+		// floating point case
+		if(i < inToken.size())
+		{
+			if(inToken.at(i) == 'f' || inToken.at(i) == 'F')
 				return BoolAndCPPExpression(true,
-											new CPPExpressionInteger( 
-												isUnsigned ? 
-												(unsigned long)buffer :
-												(long)buffer));
-			}	
+						new CPPExpressionFloatingPoint((float)(
+								(integerPart + fractionPart) * pow((long double)10,
+									isExponentNegative ? (-(long double)exponent) : (long double)exponent))));
+			else if(inToken.at(i) == 'l' || inToken.at(i) == 'L')
+				return BoolAndCPPExpression(true,
+						new CPPExpressionFloatingPoint((long double)(
+								(integerPart + fractionPart) * pow((long double)10,
+									isExponentNegative ? (-(long double)exponent) : (long double)exponent))));
+			else
+				return BoolAndCPPExpression(true,
+						new CPPExpressionFloatingPoint((double)(
+								(integerPart + fractionPart) * pow((long double)10,
+										isExponentNegative ? (-(long double)exponent) : (long double)exponent))));
+
+		}
+		else
+			return BoolAndCPPExpression(true,
+					new CPPExpressionFloatingPoint((double)(
+							(integerPart + fractionPart) * pow((long double)10,
+									isExponentNegative ? (-(long double)exponent) : (long double)exponent))));
+
+	}
+	else
+	{
+		// integer case
+
+		if(i < inToken.size())
+		{
+			// still more to read, parhaps type flags		
+			if(inToken.at(i) == 'u' || inToken.at(i) == 'U')
+			{
+				isUnsigned = true;
+				++i;
+			}
+
+			if(i < inToken.size())
+			{
+				if(
+					(i < inToken.size() - 3 && inToken.substr(i,3) == "i64") ||	
+					(i < inToken.size() - 2 && inToken.substr(i,2) == "LL") ||	
+					(i < inToken.size() - 2 && inToken.substr(i,2) == "ll") 	
+				)
+				{
+					return BoolAndCPPExpression(true,
+												new CPPExpressionInteger( 
+													isUnsigned ? 
+													(unsigned long long)integerPart :
+													(long long)integerPart));
+				}												 
+				else if(
+					(i < inToken.size() - 1 && inToken.at(i) == 'l') ||	
+					(i < inToken.size() - 1 && inToken.at(i) == 'L')
+				)
+				{
+					return BoolAndCPPExpression(true,
+												new CPPExpressionInteger( 
+													isUnsigned ? 
+													(unsigned long)integerPart :
+													(long)integerPart));
+				}	
+				else
+				{
+					return BoolAndCPPExpression(true,new CPPExpressionInteger(
+															isUnsigned ? 
+															(unsigned)integerPart :
+															(int)integerPart));
+				}
+			
+			}
 			else
 			{
 				return BoolAndCPPExpression(true,new CPPExpressionInteger(
 														isUnsigned ? 
-														(unsigned)buffer :
-														(int)buffer));
+														(unsigned)integerPart :
+														(int)integerPart));
 			}
-			
 		}
 		else
-		{
-			return BoolAndCPPExpression(true,new CPPExpressionInteger(
-													isUnsigned ? 
-													(unsigned)buffer :
-													(int)buffer));
-		}
+			return BoolAndCPPExpression(true,new CPPExpressionInteger((int)integerPart));
 	}
-	else
-		return BoolAndCPPExpression(true,new CPPExpressionInteger((int)buffer));
-
 }
 
 BoolAndCPPExpression CPPExpressionParser::MakeVariable(const string& inToken,const StringList& inScopes)

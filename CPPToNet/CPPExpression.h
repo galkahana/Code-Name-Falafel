@@ -17,6 +17,8 @@ public:
 		eCPPExpressionOperator,
 		eCPPExpressionOperatorNew,
 		eCPPExpressionInteger,
+		eCPPExpressionFloatingPoint,
+		eCPPExpressionString,
 		eCPPExpressionFunctionCall,
 		eCPPExpressionVariable,
 		eCPPExpressionTypename
