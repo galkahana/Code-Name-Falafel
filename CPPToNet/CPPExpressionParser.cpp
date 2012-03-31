@@ -1349,9 +1349,9 @@ BoolAndCPPExpression CPPExpressionParser::MakeNumber(const string& inToken)
 			if(i < inToken.size())
 			{
 				if(
-					(i < inToken.size() - 3 && inToken.substr(i,3) == "i64") ||	
-					(i < inToken.size() - 2 && inToken.substr(i,2) == "LL") ||	
-					(i < inToken.size() - 2 && inToken.substr(i,2) == "ll") 	
+					(i < inToken.size() - 2 && inToken.substr(i,3) == "i64") ||	
+					(i < inToken.size() - 1 && inToken.substr(i,2) == "LL") ||	
+					(i < inToken.size() - 1 && inToken.substr(i,2) == "ll") 	
 				)
 				{
 					return BoolAndCPPExpression(true,
@@ -1361,8 +1361,8 @@ BoolAndCPPExpression CPPExpressionParser::MakeNumber(const string& inToken)
 													(long long)integerPart));
 				}												 
 				else if(
-					(i < inToken.size() - 1 && inToken.at(i) == 'l') ||	
-					(i < inToken.size() - 1 && inToken.at(i) == 'L')
+					(i < inToken.size() && inToken.at(i) == 'l') ||	
+					(i < inToken.size() && inToken.at(i) == 'L')
 				)
 				{
 					return BoolAndCPPExpression(true,
