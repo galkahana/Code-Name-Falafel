@@ -1,11 +1,20 @@
 #include "CPPExpressionFunctionCall.h"
+#include "CPPElement.h"
 
 CPPExpressionFunctionCall::CPPExpressionFunctionCall(const string& inFunctionName,const StringList& inScopes,const CPPExpressionList& inParameters):CPPExpression(CPPExpression::eCPPExpressionFunctionCall)
 {
 	FunctionName = inFunctionName;
 	Scopes = inScopes;
 	Parameters = inParameters;
+	mFunctionElement = NULL;
 }
+
+CPPExpressionFunctionCall::CPPExpressionFunctionCall(CPPElement* inFunctionElement,const CPPExpressionList& inParameters):CPPExpression(CPPExpression::eCPPExpressionFunctionCall)
+{
+	Parameters = inParameters;
+	mFunctionElement = inFunctionElement;
+}
+
 
 CPPExpressionFunctionCall::~CPPExpressionFunctionCall(void)
 {
@@ -30,6 +39,17 @@ bool CPPExpressionFunctionCall::IsEqual(CPPExpression* inOther)
 	CPPExpressionFunctionCall* otherCall = (CPPExpressionFunctionCall*)inOther;
 	if(FunctionName != otherCall->FunctionName)
 		return false;
+
+
+	if((mFunctionElement == NULL) != (otherCall->mFunctionElement == NULL))
+		return false;
+
+	if(mFunctionElement)
+	{
+		// in the context of an expression, variable name should be enough
+		if(mFunctionElement->Name != otherCall->mFunctionElement->Name)
+			return false;
+	}
 
 	if(Scopes.size() != otherCall->Scopes.size())
 		return false;
@@ -63,6 +83,17 @@ bool CPPExpressionFunctionCall::IsLess(CPPExpression* inOther)
 	CPPExpressionFunctionCall* otherCall = (CPPExpressionFunctionCall*)inOther;
 	if(FunctionName != otherCall->FunctionName)
 		return FunctionName.compare(otherCall->FunctionName) < 0;
+
+	if((mFunctionElement == NULL) != (otherCall->mFunctionElement == NULL))
+		return !mFunctionElement;
+
+	if(mFunctionElement)
+	{
+		// in the context of an expression, variable name should be enough
+		if(mFunctionElement->Name != otherCall->mFunctionElement->Name)
+			return mFunctionElement->Name.compare(otherCall->mFunctionElement->Name) < 0;
+	}
+
 
 	if(Scopes.size() != otherCall->Scopes.size())
 		return Scopes.size() < otherCall->Scopes.size();

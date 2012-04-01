@@ -1,10 +1,18 @@
 #include "CPPExpressionVariable.h"
+#include "CPPElement.h"
 
 CPPExpressionVariable::CPPExpressionVariable(const string& inVariableName,const StringList& inScopes):CPPExpression(CPPExpression::eCPPExpressionVariable)
 {
 	VariableName = inVariableName;
 	Scopes = inScopes;
+	mVariableElement = NULL;
 }
+
+CPPExpressionVariable::CPPExpressionVariable(CPPElement* inVariableElement):CPPExpression(CPPExpression::eCPPExpressionVariable)
+{
+	mVariableElement = inVariableElement;
+}
+
 
 CPPExpressionVariable::~CPPExpressionVariable(void)
 {
@@ -26,6 +34,17 @@ bool CPPExpressionVariable::IsEqual(CPPExpression* inOther)
 	if(VariableName != otherVariable->VariableName)
 		return false;
 
+	if((mVariableElement == NULL) != (otherVariable->mVariableElement == NULL))
+		return false;
+
+	if(mVariableElement)
+	{
+		// in the context of an expression, variable name should be enough
+		if(mVariableElement->Name != otherVariable->mVariableElement->Name)
+			return false;
+	}
+
+
 	if(Scopes.size() != otherVariable->Scopes.size())
 		return false;
 
@@ -34,6 +53,7 @@ bool CPPExpressionVariable::IsEqual(CPPExpression* inOther)
 	StringList::const_iterator itScopesOther = otherVariable->Scopes.begin();
 	for(; itScopes != Scopes.end() && isEqual; ++itScopes, ++itScopesOther)
 		isEqual = (*itScopes == *itScopesOther);
+
 
 	return isEqual;
 }
@@ -47,6 +67,16 @@ bool CPPExpressionVariable::IsLess(CPPExpression* inOther)
 
 	if(VariableName != otherVariable->VariableName)
 		return VariableName.compare(otherVariable->VariableName) < 0;
+
+	if((mVariableElement == NULL) != (otherVariable->mVariableElement == NULL))
+		return !mVariableElement;
+
+	if(mVariableElement)
+	{
+		// in the context of an expression, variable name should be enough
+		if(mVariableElement->Name != otherVariable->mVariableElement->Name)
+			return mVariableElement->Name.compare(otherVariable->mVariableElement->Name) < 0;
+	}
 
 	if(Scopes.size() != otherVariable->Scopes.size())
 		return Scopes.size() < otherVariable->Scopes.size();

@@ -16,6 +16,7 @@
 #include "BracketsConditionalTokenProvider.h"
 #include "CPPExpressionNewOperator.h"
 #include "TypedParameter.h"
+#include "CPPElement.h"
 
 #include <sstream>
 
@@ -455,13 +456,128 @@ BoolAndCPPExpression CPPExpressionParser::ParseOperand(ITokenProvider* inProvide
 			break;
 		}
 
-		// else should be a variable, function, enumerator (including members, . ->). which are all basically the same thing:
-		// XXX[(...)]
-		// [::]YYY[::AAA::ZZZ...]::XXX[(....)]
-		
+		inProvider->PutBackToken(tokenizerResult.second);
+		expressionResult = mTypeParserHelper ?  ParseTypenameWithHelper(inProvider) : ParseTypename(inProvider);
+
+		// k. if not stopped till here, then this must be some kind of syntax error. report
+		TRACE_LOG("CPPExpressionParser::ParseOperand, syntax error, no suitable expression type found");
+		statusOK = false;
+
+	}while(false);
+	
+	if(statusOK)
+	{
+		// consider also postfix operators (subscript, postfix incremenet, postfix decrement...)
+		do
+		{
+			tokenizerResult = inProvider->GetNextToken();
+			if(!tokenizerResult.first)
+				break;
+
+			if(IsPostFixOperator(tokenizerResult.second))
+			{
+				// parse postfix operator, and consider it + the operand as a joint expression
+				expressionResult = ParsePostFixOperatorOperand(inProvider,result,tokenizerResult.second);
+				if(expressionResult.first)
+				{
+					result = expressionResult.second;
+				}		
+				else
+				{
+					TRACE_LOG("CPPExpressionParser::ParseOperand, error in parsing postfix operator");
+					statusOK = false;
+					// no need to release "result" here, ParsePostFixOperatorOperand takes care of this.
+					result = NULL;
+				}
+			}
+			else
+			{
+				inProvider->PutBackToken(tokenizerResult.second);
+			}
+		}while(false);
+	}
+
+
+	if(statusOK)
+	{
+		return BoolAndCPPExpression(true,result);
+	}
+	else
+	{
+		result = NULL;
+		return BoolAndCPPExpression(false,result);
+	}
+}
+
+BoolAndCPPExpression CPPExpressionParser::ParseTypenameWithHelper(ITokenProvider* inProvider)
+{
+	// parse a variable or function call.
+	// use type parsing as default
+
+	// parse the next tokens as a variable/function. then if a function, parse also parameters
+
+	ECPPElementTypeSet types;
+
+	types.insert(CPPElement::eCPPElementFunction);
+	types.insert(CPPElement::eCPPElementEnumeratorValue);
+	types.insert(CPPElement::eCPPElementVariable);
+
+	CPPElement* anElement = mTypeParserHelper->ParseTypename(inProvider,types);
+	if(anElement)
+		return FalseExpression();
+
+	// check if function. if so, and expecting a function call, then make this a function call. otherwise leave as variable (probably function usage as function pointer)
+	if(anElement->Type == CPPElement::eCPPElementFunction)
+	{
+		return BoolAndCPPExpression(true,new CPPExpressionVariable(anElement));
+	}
+	else
+	{
+		BoolAndString token = inProvider->GetNextToken();
+		if(token.first)
+		{
+			if(token.second == "(")
+			{
+				BoolAndCPPExpressionList parameters = ParseFunctionParameters(inProvider);
+				if(!parameters.first)
+				{
+					TRACE_LOG("CPPExpressionParser::ParseTypenameWithHelper, failure in creating function call parametrs");
+					return FalseExpression();
+				}
+				else
+					return BoolAndCPPExpression(true,new CPPExpressionFunctionCall(anElement,parameters.second));
+
+			}
+			else
+			{
+				inProvider->PutBackToken(token.second);
+				return BoolAndCPPExpression(true,new CPPExpressionVariable(anElement));
+			}
+		}
+		else
+			return BoolAndCPPExpression(true,new CPPExpressionVariable(anElement));
+
+	}
+}
+
+BoolAndCPPExpression CPPExpressionParser::ParseTypename(ITokenProvider* inProvider)
+{
+	bool statusOK = true;
+	CPPExpression* result = NULL;
+	BoolAndCPPExpression expressionResult;
+
+	// else should be a variable, function, enumerator (including members, . ->). which are all basically the same thing:
+	// XXX[(...)]
+	// [::]YYY[::AAA::ZZZ...]::XXX[(....)]
+
+	
+
+	do
+	{
 
 		// grab the whole string, including all scoping as the variable name. then identify if this is a function, and create a special kind of operand, which is a function call
 		StringList scopes;
+		BoolAndString tokenizerResult = inProvider->GetNextToken();
 		
 		if(tokenizerResult.second == "::")
 		{
@@ -542,45 +658,8 @@ BoolAndCPPExpression CPPExpressionParser::ParseOperand(ITokenProvider* inProvide
 				break;
 			}		
 		}
-
-		// k. if not stopped till here, then this must be some kind of syntax error. report
-		TRACE_LOG("CPPExpressionParser::ParseOperand, syntax error, no suitable expression type found");
-		statusOK = false;
-
-	}while(false);
-	
-	if(statusOK)
-	{
-		// consider also postfix operators (subscript, postfix incremenet, postfix decrement...)
-		do
-		{
-			tokenizerResult = inProvider->GetNextToken();
-			if(!tokenizerResult.first)
-				break;
-
-			if(IsPostFixOperator(tokenizerResult.second))
-			{
-				// parse postfix operator, and consider it + the operand as a joint expression
-				expressionResult = ParsePostFixOperatorOperand(inProvider,result,tokenizerResult.second);
-				if(expressionResult.first)
-				{
-					result = expressionResult.second;
-				}		
-				else
-				{
-					TRACE_LOG("CPPExpressionParser::ParseOperand, error in parsing postfix operator");
-					statusOK = false;
-					// no need to release "result" here, ParsePostFixOperatorOperand takes care of this.
-					result = NULL;
-				}
-			}
-			else
-			{
-				inProvider->PutBackToken(tokenizerResult.second);
-			}
-		}while(false);
 	}
-
+	while(false);
 
 	if(statusOK)
 	{
@@ -1402,57 +1481,21 @@ BoolAndCPPExpression CPPExpressionParser::MakeVariable(const string& inToken,con
 BoolAndCPPExpression CPPExpressionParser::ParseFunctionCall(const string& inToken,const StringList& inScopes,ITokenProvider* inProvider)
 {
 	// function call is basically a series of expressions separated by a comma, with ending ")"
-	BoolAndString tokenizerResult = inProvider->GetNextToken();
-	BoolAndCPPExpression expressionResult;
-	CPPExpressionList params;
 	bool status = true;
 	CPPExpression* functionCall = NULL;
 	
 	do
 	{
-		if(!tokenizerResult.first)
+		BoolAndCPPExpressionList parameters = ParseFunctionParameters(inProvider);
+		if(!parameters.first)
 		{
-			TRACE_LOG("CPPExpressionParser::ParseFunctionCall, syntax error, unable to read past function start '('");
-			status = false;
-			break;
-		}
-
-		inProvider->PutBackToken(tokenizerResult.second);
-
-		while(tokenizerResult.second != ")") 
-		{
-			
-			// parse expression
-			expressionResult = ParseExpressionInternal(inProvider); // not limiting here by ,...cause i don't want to start checking, i'll trust the parser and hope for the best
-			if(!expressionResult.first)
-			{
-				TRACE_LOG("CPPExpressionParser::ParseFunctionCall, error in parsing function parameter");
-				status = false;
-				break;
-			}
-			params.push_back(expressionResult.second);
-			tokenizerResult = inProvider->GetNextToken();
-			if(!tokenizerResult.first)
-			{
-				TRACE_LOG("CPPExpressionParser::ParseFunctionCall, syntax error, expecting either ',' or ')' to finish/continue function parameters list");
-				status = false;
-				break;
-			}
-			if(tokenizerResult.second != ",")
-				break;
-		}
-		if(!status)
-			break;
-
-		if(tokenizerResult.second != ")")
-		{
-			TRACE_LOG("CPPExpressionParser::ParseFunctionCall, syntax error, expecting ')' to finish function parameters list");
+			TRACE_LOG("CPPExpressionParser::ParseFunctionCall, failure in creating function call parametrs");
 			status = false;
 			break;
 		}
 
 		// k. now we got the params, and the current token is the end of the list..which is cool. can continue to create now the expression
-		expressionResult = MakeFunctionCall(inToken,inScopes,params);
+		BoolAndCPPExpression expressionResult = MakeFunctionCall(inToken,inScopes,parameters.second);
 		if(!expressionResult.first)
 		{
 			TRACE_LOG("CPPExpressionParser::ParseFunctionCall, failure in creating function call expression");
@@ -1465,18 +1508,71 @@ BoolAndCPPExpression CPPExpressionParser::ParseFunctionCall(const string& inToke
 	while(false);
 
 	if(status)
-	{
 		return BoolAndCPPExpression(true,functionCall);		
-	}
 	else
-	{
-		CPPExpressionList::iterator it = params.begin();
-		for(; it != params.end(); ++it)
-			delete *it;
-
 		return FalseExpression();
+}
+
+BoolAndCPPExpressionList CPPExpressionParser::ParseFunctionParameters(ITokenProvider* inProvider)
+{
+	BoolAndCPPExpressionList result(true,CPPExpressionList());
+	BoolAndCPPExpression expressionResult;
+	
+	do
+	{
+		BoolAndString tokenizerResult = inProvider->GetNextToken();
+		if(!tokenizerResult.first)
+		{
+			TRACE_LOG("CPPExpressionParser::ParseFunctionParameters, syntax error, unable to read past function start '('");
+			result.first = false;
+			break;
+		}
+
+		inProvider->PutBackToken(tokenizerResult.second);
+
+		while(tokenizerResult.second != ")") 
+		{
+			
+			// parse expression
+			expressionResult = ParseExpressionInternal(inProvider); // not limiting here by ,...cause i don't want to start checking, i'll trust the parser and hope for the best
+			if(!expressionResult.first)
+			{
+				TRACE_LOG("CPPExpressionParser::ParseFunctionParameters, error in parsing function parameter");
+				result.first = false;
+				break;
+			}
+			result.second.push_back(expressionResult.second);
+			tokenizerResult = inProvider->GetNextToken();
+			if(!tokenizerResult.first)
+			{
+				TRACE_LOG("CPPExpressionParser::ParseFunctionParameters, syntax error, expecting either ',' or ')' to finish/continue function parameters list");
+				result.first = false;
+				break;
+			}
+			if(tokenizerResult.second != ",")
+				break;
+		}
+		if(!result.first)
+			break;
+
+		if(tokenizerResult.second != ")")
+		{
+			TRACE_LOG("CPPExpressionParser::ParseFunctionCall, syntax error, expecting ')' to finish function parameters list");
+			result.first = false;
+			break;
+		}
 
 	}
+	while(false);
+
+	if(!result.first)
+	{
+		CPPExpressionList::iterator it = result.second.begin();
+		for(; it != result.second.end(); ++it)
+			delete *it;
+		result.second.clear();
+	}
+	return result;
 }
 
 BoolAndCPPExpression CPPExpressionParser::MakeFunctionCall(const string& inToken,const StringList& inScopes,const CPPExpressionList& inParameters)

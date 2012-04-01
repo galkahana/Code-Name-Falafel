@@ -64,6 +64,9 @@ public:
 	virtual bool IsAboutToParseType(ITokenProvider* inTokenProvider);
 	virtual TypedParameter* ParseType(ITokenProvider* inTokenProvider,const string& inTypeDelimeter);
 	virtual TypedParameter* ParseTypeForNew(ITokenProvider* inTokenProvider);
+	virtual CPPElement* ParseTypename(ITokenProvider* inTokenProvider);
+	virtual CPPElement* ParseTypename(ITokenProvider* inTokenProvider,ECPPElementTypeSet inOfTypes);
+
 
 
 private:

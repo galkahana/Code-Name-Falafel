@@ -5,6 +5,7 @@
 #include <list>
 
 class CPPExpression;
+class CPPElement;
 
 using namespace std;
 
@@ -15,6 +16,7 @@ class CPPExpressionFunctionCall :  public CPPExpression
 {
 public:
 	CPPExpressionFunctionCall(const string& inFunctionName,const StringList& inScopes,const CPPExpressionList& inParameters);
+	CPPExpressionFunctionCall(CPPElement* inFunctionElement,const CPPExpressionList& inParameters);
 	~CPPExpressionFunctionCall(void);
 
 	virtual BoolAndCPPPrimitiveValue Evaluate(IExpressionEvaluationContext* inContext);
@@ -24,5 +26,6 @@ public:
 	string FunctionName;
 	StringList Scopes;
 	CPPExpressionList Parameters;
+	CPPElement* mFunctionElement;
 
 };

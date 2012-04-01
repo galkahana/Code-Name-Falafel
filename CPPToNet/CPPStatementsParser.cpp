@@ -3202,6 +3202,30 @@ TypedParameter* CPPStatementsParser::ParseType(ITokenProvider* inTokenProvider,c
 
 }
 
+CPPElement* CPPStatementsParser::ParseTypename(ITokenProvider* inTokenProvider)
+{
+	// this simply parses a type from tokens according to types already parsed. will also resolve templates
+
+	CPPElement* anElement = GetElementFromCurrentLocation(inTokenProvider,false);
+
+	if(anElement && (anElement->Type == CPPElement::eCPPElementClass || anElement->Type == CPPElement::eCPPElementStruct) && ((AbstractClassOrStruct*)anElement)->IsTemplate())
+		anElement = FromTemplateToTemplateInstance(inTokenProvider,(AbstractClassOrStruct*)anElement);
+
+	return anElement;
+}
+
+CPPElement* CPPStatementsParser::ParseTypename(ITokenProvider* inTokenProvider,ECPPElementTypeSet inOfTypes)
+{
+	CPPElement* anElement = GetElementFromCurrentLocation(inTokenProvider,inOfTypes);
+
+	if(anElement && (anElement->Type == CPPElement::eCPPElementClass || anElement->Type == CPPElement::eCPPElementStruct) && ((AbstractClassOrStruct*)anElement)->IsTemplate())
+		anElement = FromTemplateToTemplateInstance(inTokenProvider,(AbstractClassOrStruct*)anElement);
+
+	return anElement;
+
+}
+
+
 EStatusCode CPPStatementsParser::SkipStatement()
 {
 	/*

@@ -15,7 +15,10 @@ using namespace std;
 typedef pair<bool,CPPExpression*> BoolAndCPPExpression;
 typedef pair<bool,CPPOperator*> BoolAndCPPOperator;
 typedef list<CPPExpression*> CPPExpressionList;
+typedef pair<bool, CPPExpressionList> BoolAndCPPExpressionList;
 typedef list<string> StringList;
+
+
 
 class CPPExpressionParser
 {
@@ -59,5 +62,14 @@ private:
 	bool IsOperandToParseAType(ITokenProvider* inProvider);
 	BoolAndCPPExpression FalseExpression();
 	BoolAndCPPExpression ParseNewExpression(ITokenProvider* inProvider);
+
+	// parse function parameter, token provider position should be right after function call opeener "("
+	BoolAndCPPExpressionList ParseFunctionParameters(ITokenProvider* inProvider);
+
+	// typename parsing without type helper. normally will be used in preprocessor
+	BoolAndCPPExpression ParseTypename(ITokenProvider* inProvider);
+	// typename parsing with helper. normally will be used in statement parsing 
+	BoolAndCPPExpression ParseTypenameWithHelper(ITokenProvider* inProvider);
+
 
 };
