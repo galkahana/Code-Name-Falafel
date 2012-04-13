@@ -157,5 +157,7 @@ private:
 	CPPElement* FromTemplateToTemplateInstance(ITokenProvider* inTokenProvider,AbstractClassOrStruct* inTemplate);
 	CPPElement* FromTemplateToTemplateSpecialization(ITokenProvider* inTokenProvider,AbstractClassOrStruct* inTemplate);
 	EStatusCode SkipStatement();
+	// skip function call from "(" to ")" (including)
+	EStatusCode SkipFunctionCallParameters(ITokenProvider* inTokenProvider);
 
 };

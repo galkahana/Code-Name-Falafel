@@ -1381,7 +1381,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionDefinition(ITokenProvider* 
 		}
 		functionDeclerator->AppendModifiersForFunctionDefinitionReturnType(inReturnTypeModifiersList);
 
-		token = mTokensSource.GetNextToken();	
+		token = inTokenProvider->GetNextToken();	
 		
 		DecleratorAsParametersContainer parametersContainer(functionDeclerator->GetParametersContainerForFunctionDefinition(),")");
 
@@ -1417,7 +1417,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionDefinition(ITokenProvider* 
 					break;
 
 				parametersContainer.Reset();
-				token = mTokensSource.GetNextToken();
+				token = inTokenProvider->GetNextToken();
 			}
 		}
 
@@ -1432,7 +1432,54 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionDefinition(ITokenProvider* 
 			break;
 		}
 
-		// if continued, then it must be a block start, for an actual function definition or a pure function declaration. skip definition, and note in the function definition object or not purity
+		// next can come either "{" for function definition, "=" for purse virtual, or ":" in case of constructor. check for all
+		if(token.second == ":")
+		{
+			// now will come a series of tokens that appear as function calls. skip them
+
+			// first will be the member name
+			token = inTokenProvider->GetNextToken();
+			if(!token.first)
+			{
+				result.first = eFailure;
+				TRACE_LOG("CPPStatementsParser::ParseFunctionDefinition, constructor initializer ends before member designation");
+				break;
+			}
+
+			do
+			{
+				result.first = SkipFunctionCallParameters(inTokenProvider);
+				if(result.first != eSuccess)
+					break;
+
+				token = inTokenProvider->GetNextToken();
+				if(!token.first)
+				{
+					result.first = eFailure;
+					TRACE_LOG("CPPStatementsParser::ParseFunctionDefinition, constructor intializer must be followed by constructor definition, but found no token");
+					break;
+				}
+
+				if(token.second != ",")
+					break;
+
+				token = inTokenProvider->GetNextToken();
+				if(!token.first)
+				{
+					result.first = eFailure;
+					TRACE_LOG("CPPStatementsParser::ParseFunctionDefinition, in cosntructor initializer, next member token not found");
+					break;
+				}
+			}
+			while(result.first == eSuccess);
+
+			if(result.first != eSuccess)
+				break;
+
+		}
+
+		// check result from loop
+
 		if(token.second == "{")
 		{
 			result.first = SkipBlock(inTokenProvider);
@@ -1482,6 +1529,40 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionDefinition(ITokenProvider* 
 	}while(false);
 
 	return result;
+}
+
+EStatusCode CPPStatementsParser::SkipFunctionCallParameters(ITokenProvider* inTokenProvider)
+{
+	EStatusCode status = eSuccess;
+
+	do
+	{
+		BoolAndString token = inTokenProvider->GetNextToken();
+
+		if(!token.first || token.second != "(")
+		{
+			TRACE_LOG("CPPStatementsParser::SkipFunctionCallParameters, unexpected end of tokens parsing function call start, or not equal to '('");
+			status = eFailure;
+			break;
+		}
+
+		while(token.second != ")")
+		{
+			status = SkipExpression(inTokenProvider);
+			if(status != eSuccess)
+				break;
+
+			token = inTokenProvider->GetNextToken();
+			if(!token.first ||(token.second != ")" && token.second != ","))
+			{
+				TRACE_LOG("CPPStatementsParser::SkipFunctionCallParameters, unexpected end of parameter. should be followed by ')' or ','");
+				status = eFailure;
+				break;
+			}
+		}
+	}while(false);
+
+	return status;
 }
 
 EStatusCode CPPStatementsParser::FinalizeFunction(ICPPFunctionDefinitionDeclerator* inFunctionDecleratorDriver,
