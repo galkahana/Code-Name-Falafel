@@ -84,6 +84,12 @@ ICPPParametersContainer* DecleratorAsVariableContainer::GetParametersContainerFo
 	return this;
 }
 
+void DecleratorAsVariableContainer::AppendModifiersForFunctionDefinitionReturnType(const DeclaratorModifierList& inModifiers)
+{
+	mReturnTypeModifiers = inModifiers;
+}
+
+
 ICPPFunctionDefinitionDeclerator* DecleratorAsVariableContainer::AddFunctionDefinition(const string& inFunctionName)
 {
 	mFunctionName = inFunctionName;
@@ -124,7 +130,10 @@ EStatusCode DecleratorAsVariableContainer::FinalizeFunctionDefinition(const Used
 																	bool inIsDefinition)
 {
 	if(!mReturnType) // return type may have been set, in the case of function pointer return type
+	{
 		mReturnType = new UsedTypeDescriptor(mType,mIsAuto,mIsRegister,mIsExtern,mIsConst,mIsVolatile,false);
+		mReturnType->GetFieldDescriptor()->AppendModifiers(mReturnTypeModifiers);
+	}
 
 	CPPFunction* aFunction = mStorage->CreateFunction(mFunctionName,
 														mIsVirtual,
@@ -162,7 +171,10 @@ void DecleratorAsVariableContainer::CleanupFunction()
 EStatusCode DecleratorAsVariableContainer::FinalizeFunctionTemplateDefinition(const CPPElementList& inTemplateParameters,const UsedTypeOrExpressionList& inTemplateSpecializationList,bool inIsDefinition)
 {
 	if(!mReturnType) // return type may have been set, in the case of function pointer return type
+	{
 		mReturnType = new UsedTypeDescriptor(mType,mIsAuto,mIsRegister,mIsExtern,mIsConst,mIsVolatile,false);
+		mReturnType->GetFieldDescriptor()->AppendModifiers(mReturnTypeModifiers);
+	}
 
 	CPPFunction* aFunction = mStorage->CreateFunctionTemplate(mFunctionName,
 															 mIsVirtual,

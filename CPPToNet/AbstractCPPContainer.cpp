@@ -63,7 +63,7 @@ AbstractCPPContainer::~AbstractCPPContainer(void)
 	}
 
 	itFunctionLists = mFunctionTemplateInstances.begin();
-	for(; itFunctionLists != mFunctionTemplates.end(); ++itFunctionLists)
+	for(; itFunctionLists != mFunctionTemplateInstances.end(); ++itFunctionLists)
 	{
 		CPPFunctionList::iterator itFunctions = itFunctionLists->second.begin();
 		for(; itFunctions != itFunctionLists->second.end(); ++itFunctions)

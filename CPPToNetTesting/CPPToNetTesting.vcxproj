@@ -177,6 +177,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CPPToNetTesting.cpp" />
+    <ClCompile Include="EmptyTest.cpp" />
     <ClCompile Include="TestsRunner.cpp" />
     <ClCompile Include="SimpleFileComparer.cpp" />
     <ClCompile Include="WindowsFileSystemTest.cpp" />
@@ -186,6 +187,7 @@
     <ClCompile Include="TokenizerTest.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="EmptyTest.h" />
     <ClInclude Include="ITestUnit.h" />
     <ClInclude Include="TestsRunner.h" />
     <ClInclude Include="SimpleFileComparer.h" />

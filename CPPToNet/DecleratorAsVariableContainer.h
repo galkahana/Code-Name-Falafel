@@ -68,6 +68,7 @@ private:
 	UsedTypeDescriptor* mReturnType;
 	bool mHasElipsis;
 	TypedParameterList mDeclaredParameters;
+	DeclaratorModifierList mReturnTypeModifiers;
 
 	// field && function pointer declaration functionality
 	string mFieldName;

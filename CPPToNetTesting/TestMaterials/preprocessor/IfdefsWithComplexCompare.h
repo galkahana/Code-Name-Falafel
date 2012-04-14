@@ -16,7 +16,7 @@ class MyClass
 public:
 	MyClass()
 	{
-#if 1 << 1 + 2 * 3 <> 128
+#if 1 << 1 + 2 * 3 != 128
 		mA = 2;
 #elif 1 + -2 == -1
 		mA = SYMBOL1;

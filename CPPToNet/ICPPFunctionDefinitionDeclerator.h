@@ -29,7 +29,7 @@ public:
 	
 	// setup an external object with the return type definitions (which actually are meant to be its return type)
 	// and reset them for this object
-	virtual void SetupFunctionPointerReturnTypeDeclerator(FunctionPointerReturnTypeDeclerator* inReturnTypeDeclerator);
+	virtual void SetupFunctionPointerReturnTypeDeclerator(FunctionPointerReturnTypeDeclerator* inReturnTypeDeclerator) = 0;
 
 	// externally setup the return type of the function [to functin pointer type, for instance]
 	virtual void SetReturnType(UsedTypeDescriptor* inSetReturnType) = 0;

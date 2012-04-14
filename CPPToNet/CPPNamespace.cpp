@@ -110,7 +110,7 @@ CPPElementList CPPNamespace::FindElements(const string& inElementName)
 		result.push_back(itNamespacesAliases->second);
 
 
-	StringToCPPPrimitiveMap::iterator itPrimitives = mPrimitives.begin();
+	StringToCPPPrimitiveMap::iterator itPrimitives = mPrimitives.find(inElementName);
 	if(itPrimitives != mPrimitives.end())
 		result.push_back(itPrimitives->second);
 

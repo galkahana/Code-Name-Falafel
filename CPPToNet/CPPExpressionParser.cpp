@@ -458,6 +458,11 @@ BoolAndCPPExpression CPPExpressionParser::ParseOperand(ITokenProvider* inProvide
 
 		inProvider->PutBackToken(tokenizerResult.second);
 		expressionResult = mTypeParserHelper ?  ParseTypenameWithHelper(inProvider) : ParseTypename(inProvider);
+		if(expressionResult.first)
+		{
+			result = expressionResult.second;
+			break;
+		}
 
 		// k. if not stopped till here, then this must be some kind of syntax error. report
 		TRACE_LOG("CPPExpressionParser::ParseOperand, syntax error, no suitable expression type found");
