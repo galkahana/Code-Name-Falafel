@@ -159,5 +159,5 @@ private:
 	EStatusCode SkipStatement();
 	// skip function call from "(" to ")" (including)
 	EStatusCode SkipFunctionCallParameters(ITokenProvider* inTokenProvider);
-
+	string ComputeOperatorOverloadName(ITokenProvider* inTokenProvider);
 };

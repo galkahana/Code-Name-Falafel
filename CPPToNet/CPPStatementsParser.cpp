@@ -977,12 +977,16 @@ EStatusCodeAndBool CPPStatementsParser::ParseFieldOrFunction(ITokenProvider* inT
 		token = inTokenProvider->GetNextToken();	
 		if(!token.first)
 		{
-			TRACE_LOG("CPPStatementsParser::ParseFunctionPointerOrFunction, no token when trying to parse for function pointer name");
+			TRACE_LOG("CPPStatementsParser::ParseFieldOrFunction, no token when trying to parse for identifier name name");
 			result.first = eFailure;
 			break;
 		}
 
 		string decleratorName = token.second;
+
+		// check for operator overload. if so, concatenate with next token which will be the operator
+		if(decleratorName == "operator")
+			decleratorName = ComputeOperatorOverloadName(inTokenProvider);
 		
 
 		token = inTokenProvider->GetNextToken();
@@ -1109,6 +1113,25 @@ void CPPStatementsParser::CleanupTemplateParametersForOutOfLineDefinition()
 		mTemplateParametersStack.pop_back();
 	}
 
+}
+
+string CPPStatementsParser::ComputeOperatorOverloadName(ITokenProvider* inTokenProvider)
+{
+	// for most operators, the next token is simply the operator to have as name, but for subscript and casting/function call
+	BoolAndString token = inTokenProvider->GetNextToken();
+
+	if(!token.first)
+		return "";
+
+	if(token.second == "[" || token.second == "]")
+	{
+		BoolAndString nextToken = inTokenProvider->GetNextToken();
+		if(!nextToken.first)
+			return "";
+		else return token.second + nextToken.second;
+	}
+	else
+		return token.second;
 }
 
 class AssignmentParameterCreator : public ICPPParametersContainer
@@ -1678,6 +1701,10 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointerOrFunction(ITokenPro
 		}
 
 		decleratorName = token.second;
+		
+		// check for operator overload. if so, concatenate with next token which will be the operator [fat chance here...but check]
+		if(decleratorName == "operator")
+			decleratorName = ComputeOperatorOverloadName(inTokenProvider);
 
 		token = inTokenProvider->GetNextToken();	
 		if(!token.first)
@@ -3287,7 +3314,7 @@ CPPElement* CPPStatementsParser::ParseTypename(ITokenProvider* inTokenProvider)
 {
 	// this simply parses a type from tokens according to types already parsed. will also resolve templates
 
-	CPPElement* anElement = GetElementFromCurrentLocation(inTokenProvider,false);
+	CPPElement* anElement = GetElementFromCurrentLocation(inTokenProvider,true);
 
 	if(anElement && (anElement->Type == CPPElement::eCPPElementClass || anElement->Type == CPPElement::eCPPElementStruct) && ((AbstractClassOrStruct*)anElement)->IsTemplate())
 		anElement = FromTemplateToTemplateInstance(inTokenProvider,(AbstractClassOrStruct*)anElement);
