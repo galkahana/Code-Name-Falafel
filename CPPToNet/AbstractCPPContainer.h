@@ -143,6 +143,10 @@ protected:
 									bool inIsDefinition,
 									CPPStruct* inStruct);
 
+protected:
+	// for function parameters (and can handle template function parameters as well)
+	bool IsEquivalentParametersList(const TypedParameterList& inParametersListLeft,const TypedParameterList& inParametersListRight);
+
 private:
 
 	// enumerators
@@ -189,8 +193,6 @@ private:
 	// hence the returned type is "accumulated".
 	UsedTypeDescriptor* CreateRealTypeDescriptor(UsedTypeDescriptor* inTypeDescriptor);
 
-	// for function parameters (and can handle template function parameters as well)
-	bool IsEquivalentParametersList(const TypedParameterList& inParametersListLeft,const TypedParameterList& inParametersListRight);
 	// for templates
 	bool IsEquivalentParametersList(const TypedParameterList& inParametersListLeft,
 										const CPPElementList& inTemplateParametersListLeft,

@@ -311,19 +311,71 @@ UsedTypeOrExpressionList& AbstractClassOrStruct::GetTemplateParameterAssignments
 
 CPPElementList AbstractClassOrStruct::FindElements(const string& inElementName)
 {
+	CPPElementList result = AbstractCPPContainer::FindElements(inElementName);
 	if(mIsTemplate)
 	{
-		CPPElementList result = AbstractCPPContainer::FindElements(inElementName);
-
 		CPPElementList::iterator it = mTemplateParameters.begin();
 		for(; it != mTemplateParameters.end(); ++it)
 			if((*it)->Name == inElementName)
 				result.push_back(*it);
-		return result;
 	}
-	else 	
-		return AbstractCPPContainer::FindElements(inElementName);
 
+	if(mBaseClasses.size() != 0)
+	{
+		// get elements from base classes, and merge with the result from this base class, giving priority to elements from this class
+		CPPElementList baseClassItems;
+
+		CPPElementToEAbstractClassOrStructAccessLevelMap::iterator itBaseClasses = mBaseClasses.begin();
+
+		for(; itBaseClasses != mBaseClasses.end(); ++itBaseClasses)
+		{
+			// get elements
+			CPPElementList baseResult = ((ICPPElementsContainer*)(itBaseClasses->first))->FindElements(inElementName);
+
+			// loop and add what has no "override" in the derived class
+			CPPElementList::iterator itBaseElements = baseResult.begin();
+			for(; itBaseElements != baseClassItems.end(); ++itBaseElements)
+			{
+				CPPElementList::iterator itResult = result.begin();
+				bool foundEquivelent = false;
+
+				for(; itResult != result.end() && !foundEquivelent; ++itResult)
+				{
+					if((*itResult)->Type == (*itBaseElements)->Type)
+					{
+						if((*itResult)->Type == CPPElement::eCPPElementFunction)
+							foundEquivelent = AreFunctionsOverloads((CPPFunction*)(*itResult),(CPPFunction*)(*itBaseElements));
+						else
+							foundEquivelent = true;
+					}
+				}
+
+				if(!foundEquivelent)
+					result.push_back(*itBaseElements);
+			}
+		}
+
+		
+	}
+
+	return result;
+}
+
+bool AbstractClassOrStruct::AreFunctionsOverloads(CPPFunction* inFunctionA,CPPFunction* inFunctionB)
+{
+	// checks function equivalence like the insertion function...slightly more lenient towards function templates or function template instances...
+	if(inFunctionA->IsFunctionTemplate() || inFunctionA->IsFunctionTemplate() || 
+		inFunctionA->GetFunctionTemplateSpecializationParametrs().size() > 0 ||
+		inFunctionB->GetFunctionTemplateSpecializationParametrs().size() > 0)
+		return false;
+
+	// this means that these are two regular functions...continue to checking overload by vising parameters
+	if(inFunctionA->GetDeclaredParameterList().size() != inFunctionB->GetDeclaredParameterList().size() ||
+		(inFunctionA->HasElipsis() != inFunctionB->HasElipsis()))
+		return false;
+
+
+	return IsEquivalentParametersList(inFunctionA->GetDeclaredParameterList(),inFunctionB->GetDeclaredParameterList());
 }
 
 AbstractClassOrStructAndBool AbstractClassOrStruct::AddSpecialization(

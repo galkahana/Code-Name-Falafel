@@ -153,6 +153,7 @@ private:
 
 
 	void  SetCommonItems(bool inIsDefinition,EAbstractClassOrStructAccessLevel inDefaultAccessLevel);
+	bool AreFunctionsOverloads(CPPFunction* inFunctionA,CPPFunction* inFunctionB);
 
 
 
