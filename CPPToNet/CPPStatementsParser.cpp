@@ -90,6 +90,7 @@ EStatusCodeAndHeaderUnit CPPStatementsParser::ParseUnit()
 	}
 	else
 	{
+		TRACE_LOG2("CPPStatementsParser::ParseUnit, Error in file %s, Line %s",mTokensSource.GetFileMacroToken().second.c_str(),mTokensSource.GetLineMacroToken().second.c_str());
 		delete result;
 		result = NULL;
 		return EStatusCodeAndHeaderUnit(eFailure,result);
@@ -507,7 +508,7 @@ CPPElement* CPPStatementsParser::FindQualifiedElement(ICPPElementsContainer* inC
 	CPPElementList elementsList = inContainer->FindElements(inElementName);
 	CPPElementList::iterator it = elementsList.begin();
 	CPPElement* foundElement = NULL;
-	
+
 	for(; it != elementsList.end(); ++it)
 	{
 		if(inOfTypes.find((*it)->Type) != inOfTypes.end())
@@ -525,8 +526,6 @@ CPPElement* CPPStatementsParser::FindQualifiedElement(ICPPElementsContainer* inC
 		}
 	}
 
-	if(!foundElement)
-		TRACE_LOG1("CPPStatementsParser::FindQualifiedElement,unable to find a compatible element with the name %s",inElementName.c_str());
 	return foundElement;
 }
 
@@ -573,7 +572,7 @@ CPPElement* CPPStatementsParser::GetElementFromCurrentLocation(ITokenProvider* i
 		if(scopingElement)
 			elementName = token.second;
 		else
-			elementName = ComputeUnqualifiedNameFromCurrentLocation(token.second,inTokenProvider->GetNextToken());
+			elementName = ComputeUnqualifiedNameFromCurrentLocation(inTokenProvider,token.second,inTokenProvider->GetNextToken());
 
 		if(inTypeSet.size() > 0)
 			anElement = scopingElement ? FindQualifiedElement(scopingElement,elementName,inTypeSet) : FindUnqualifiedElement(elementName,inTypeSet);
@@ -2624,7 +2623,7 @@ CPPElement* CPPStatementsParser::FromTemplateToTemplateSpecialization(ITokenProv
 	return result;
 }
 
-string CPPStatementsParser::ComputeUnqualifiedNameFromCurrentLocation(string inTypeName,const BoolAndString& inNextToken)
+string CPPStatementsParser::ComputeUnqualifiedNameFromCurrentLocation(ITokenProvider* inTokenProvider,string inTypeName,const BoolAndString& inNextToken)
 {
 	string result = inTypeName;
 	if(inNextToken.first)
@@ -2638,36 +2637,36 @@ string CPPStatementsParser::ComputeUnqualifiedNameFromCurrentLocation(string inT
 			// unsigned long, unsigned long long
 			if("long" == inNextToken.second)
 			{
-				BoolAndString thirdToken = mTokensSource.GetNextToken();
+				BoolAndString thirdToken = inTokenProvider->GetNextToken();
 				// unsigned long long
 				if(thirdToken.first && "long" == thirdToken.second)
 				{
-					result = "unsigend long long";
+					result = "unsigned long long";
 				}
 				else
 				{
-					result = "unsigend long";
+					result = "unsigned long";
 					// unsigned long
 					if(thirdToken.first)
-						mTokensSource.PutBackToken(thirdToken.second);
+						 inTokenProvider->PutBackToken(thirdToken.second);
 				}
 			} // unsigned int
 			else if("int" == inNextToken.second)
 			{
-				result = "unsigend";
+				result = "unsigned";
 			} // unsigned char
 			else if("char" == inNextToken.second)
 			{
-				result = "unsigend char";
+				result = "unsigned char";
 			} // unsigned short
 			else if("short" == inNextToken.second)
 			{
-				result = "unsigend short";
+				result = "unsigned short";
 			}
 			else
 			{
 				// unsigned
-				mTokensSource.PutBackToken(inNextToken.second);
+				inTokenProvider->PutBackToken(inNextToken.second);
 			}
 
 		}
@@ -2689,7 +2688,7 @@ string CPPStatementsParser::ComputeUnqualifiedNameFromCurrentLocation(string inT
 			else
 			{
 				// long
-				mTokensSource.PutBackToken(inNextToken.second);
+				inTokenProvider->PutBackToken(inNextToken.second);
 			}
 
 		}
@@ -2703,12 +2702,12 @@ string CPPStatementsParser::ComputeUnqualifiedNameFromCurrentLocation(string inT
 			else
 			{
 				// short
-				mTokensSource.PutBackToken(inNextToken.second);
+				inTokenProvider->PutBackToken(inNextToken.second);
 			}
 		}
 		else
 		{
-			mTokensSource.PutBackToken(inNextToken.second);
+			inTokenProvider->PutBackToken(inNextToken.second);
 		}
 	}
 	return result;

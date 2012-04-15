@@ -96,6 +96,12 @@ public:
 
 	void AddListener(IPreprocessorListener* inListener);
 	void RemoveListener(IPreprocessorListener* inListener);
+
+
+	// can use externally for logging purposes
+	BoolAndString GetFileMacroToken();
+	BoolAndString GetLineMacroToken();
+
 private:
 	CPPTokenizer mTokenizer;
 	PreTokenizerDecoder mPreTokenizationDecoder;
@@ -124,8 +130,6 @@ private:
 	bool UndefIdentifierReplacement();
 	bool DetermineIfHasActiveSubcontructor();
 	BoolAndString GetDateMacroToken();
-	BoolAndString GetFileMacroToken();
-	BoolAndString GetLineMacroToken();
 	BoolAndString GetSTDCMacroToken();
 	BoolAndString GetTimeMacroToken();
 	BoolAndString GetTimeStampMacroToken();

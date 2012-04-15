@@ -2,6 +2,7 @@
 
 #include "ICPPDefinitionsContainerElement.h"
 #include "UsedTypeOrExpression.h"
+#include "MapIterator.h"
 
 #include <string>
 #include <map>
@@ -87,6 +88,11 @@ public:
 	virtual CPPStruct* CreateStructTemplate(const string& inStructName,
 								  const CPPElementList& inTemplateParameters,
 								  bool inIsDefinition);
+
+
+	// Variables
+	CPPVariable* GetVariable(const string& inVariableName);
+	Hummus::MapIterator<StringToCPPVariableMap> GetVariablesIterator();
 
 protected:
 

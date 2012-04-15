@@ -1239,3 +1239,14 @@ CPPStruct* AbstractCPPContainer::AppendStructTemplate(
 								inStruct:new CPPStruct(inStructName,inTemplateParameters,inIsDefinition))).first->second;
 
 }
+
+CPPVariable* AbstractCPPContainer::GetVariable(const string& inVariableName)
+{
+	StringToCPPVariableMap::iterator it = mVariables.find(inVariableName);
+	return (it == mVariables.end() ? NULL:it->second);
+}
+
+MapIterator<StringToCPPVariableMap> AbstractCPPContainer::GetVariablesIterator()
+{
+	return MapIterator<StringToCPPVariableMap>(mVariables);
+}

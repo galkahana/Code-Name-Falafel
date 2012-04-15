@@ -146,7 +146,12 @@ EStatusCode DecleratorAsVariableContainer::FinalizeFunctionDefinition(const Used
 														inIsDefinition);
 	
 	if(aFunction)
+	{
+		// detach used parameters
+		mReturnType = NULL;
+		mDeclaredParameters.clear();
 		return eSuccess;
+	}
 
 	// if failed - move to cleanup
 	CleanupFunction();
@@ -188,7 +193,12 @@ EStatusCode DecleratorAsVariableContainer::FinalizeFunctionTemplateDefinition(co
 															 inIsDefinition);
 	
 	if(aFunction)
+	{
+		// detach used parameters
+		mReturnType = NULL;
+		mDeclaredParameters.clear();
 		return eSuccess;
+	}
 
 	// if failed - move to cleanup
 	CleanupFunction();
@@ -211,7 +221,11 @@ EStatusCode DecleratorAsVariableContainer::FinalizeFieldDefinition()
 	CPPVariable* aVariable = mStorage->CreateVariable(mFieldName,mFieldType);
 
 	if(aVariable)
+	{
+		// detach elements used by definition
+		mFieldType = NULL;
 		return eSuccess;
+	}
 
 	// if failed - move to cleanup
 
@@ -247,7 +261,11 @@ EStatusCode DecleratorAsVariableContainer::FinalizeFunctionPointerDefinition()
 {
 	CPPVariable* aFunctionPointer = mStorage->CreateVariable(mFieldName,mFieldType);
 	if(aFunctionPointer)
+	{
+		// detach used parameters
+		mFieldType = NULL;
 		return eSuccess;
+	}
 
 	// if failed - move to cleanup
 

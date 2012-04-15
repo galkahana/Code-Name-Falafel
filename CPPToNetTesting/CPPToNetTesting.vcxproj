@@ -180,6 +180,7 @@
     <ClCompile Include="EmptyTest.cpp" />
     <ClCompile Include="TestsRunner.cpp" />
     <ClCompile Include="SimpleFileComparer.cpp" />
+    <ClCompile Include="VariablesTest.cpp" />
     <ClCompile Include="WindowsFileSystemTest.cpp" />
     <ClCompile Include="WindowsPathTest.cpp" />
     <ClCompile Include="PreprocessorTest.cpp" />
@@ -191,6 +192,7 @@
     <ClInclude Include="ITestUnit.h" />
     <ClInclude Include="TestsRunner.h" />
     <ClInclude Include="SimpleFileComparer.h" />
+    <ClInclude Include="VariablesTest.h" />
     <ClInclude Include="WindowsFileSystemTest.h" />
     <ClInclude Include="WindowsPathTest.h" />
     <ClInclude Include="PreprocessorTest.h" />

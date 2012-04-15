@@ -14,7 +14,7 @@ FieldTypeDescriptor::FieldTypeDescriptor(CPPElement* inType,
 										bool inIsExtern,
 										bool inIsConst,
 										bool inIsVolatile,
-										bool inIsStatic)
+										bool inIsStatic):mModifiers()
 {
 	mType = inType;
 	mSubscriptCount = 0;
@@ -48,7 +48,8 @@ void FieldTypeDescriptor::AppendModifier(const DeclaratorModifier& inModifier)
 
 void FieldTypeDescriptor::AppendModifiers(const DeclaratorModifierList& inModifiers)
 {
-	mModifiers.insert(mModifiers.end(),inModifiers.begin(),inModifiers.end());
+	if(inModifiers.size() > 0)
+		mModifiers.insert(mModifiers.end(),inModifiers.begin(),inModifiers.end());
 }
 
 void FieldTypeDescriptor::AddSubscript()

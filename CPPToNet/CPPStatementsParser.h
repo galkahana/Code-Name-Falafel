@@ -142,7 +142,7 @@ private:
 	Hummus::EStatusCode SkipInitializer(ITokenProvider* inTokenProvider);
 	Hummus::EStatusCode SkipBlock(ITokenProvider* inTokenProvider);
 
-	string ComputeUnqualifiedNameFromCurrentLocation(string inTypeName,const BoolAndString& inNextToken);
+	string ComputeUnqualifiedNameFromCurrentLocation(ITokenProvider* inTokenProvider,string inTypeName,const BoolAndString& inNextToken);
 	// The passed parameter "inInDefinitionContext" differs cases of looking for scoping element to scope an out-of-class definition or
 	// just specification of a used type. the cases determine how template usages are intepreted - instances or specialization/main template
 	CPPElement* GetScopingElementFromCurrentLocation(ITokenProvider* inTokenProvider,bool inInDefinitionContext);
