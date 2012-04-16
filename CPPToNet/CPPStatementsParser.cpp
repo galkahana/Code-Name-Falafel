@@ -123,8 +123,12 @@ EStatusCodeAndBool CPPStatementsParser::ParseStatement(HeaderUnit* inUnitModel)
 
 	do
 	{
-
-		if(tokenizerResult.second == "namespace")
+		if(tokenizerResult.second.compare(0,2,"/*") == 0 || tokenizerResult.second.compare(0,2,"//") == 0)
+		{
+			// skip comments
+			status = eSuccess;
+		}
+		else if(tokenizerResult.second == "namespace")
 		{
 			status = ParseNamespaceDeclaration();
 		}
@@ -1347,7 +1351,10 @@ EStatusCode CPPStatementsParser::SkipInitializer(ITokenProvider* inTokenProvider
 		if(token.second == "{")
 			status = SkipBlock(inTokenProvider);
 		else
+		{
+			inTokenProvider->PutBackToken(token.second);
 			status = SkipExpression(inTokenProvider);
+		}
 	}while(false);
 
 	return status;

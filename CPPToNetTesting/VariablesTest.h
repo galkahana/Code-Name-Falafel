@@ -20,7 +20,16 @@ public:
 private:
 	Hummus::EStatusCode VerifySimplePrimitiveVariables(CPPNamespace* inVariablesContainer);
 	Hummus::EStatusCode VerifySimpleVariableExistance(CPPNamespace* inVariablesContainer,
-													  ECPPPrimitiveType inPrimitiveType,
-													  string inVariableName);
+													  string inVariableName,
+													  ECPPPrimitiveType inPrimitiveType);
+	Hummus::EStatusCode VerifyStorageVariableExistance(CPPNamespace* inVariablesContainer,
+												string inVariableName,
+												ECPPPrimitiveType inPrimitiveType,
+												bool inAuto,
+												bool inStatic,
+												bool inConst,
+												bool inVolatile,
+												bool inRegister,
+												bool inExtern);
 };
 

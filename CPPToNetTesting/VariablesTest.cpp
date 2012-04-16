@@ -46,7 +46,7 @@ EStatusCode VariablesTest::Run()
 
 	if(result.first != eSuccess)
 	{
-		cout<<"VariablesTest::Run, failed to parse empty source\n";
+		cout<<"VariablesTest::Run, failed to parse source\n";
 		return eFailure;
 	}
 
@@ -75,55 +75,70 @@ EStatusCode VariablesTest::VerifySimplePrimitiveVariables(CPPNamespace* inVariab
 	EStatusCode status = eSuccess;
 	do
 	{
-		status = VerifySimpleVariableExistance(inVariablesContainer,eCPPBool,"aBool");
+		status = VerifySimpleVariableExistance(inVariablesContainer,"aBool",eCPPBool);
 		if(status != eSuccess)
 			break;
-		status = VerifySimpleVariableExistance(inVariablesContainer,eCPPChar,"aChar");
+		status = VerifySimpleVariableExistance(inVariablesContainer,"aChar",eCPPChar);
 		if(status != eSuccess)
 			break;
-		status = VerifySimpleVariableExistance(inVariablesContainer,eCPPUnsignedChar,"aUChar");
+		status = VerifySimpleVariableExistance(inVariablesContainer,"aUChar",eCPPUnsignedChar);
 		if(status != eSuccess)
 			break;
-		status = VerifySimpleVariableExistance(inVariablesContainer,eCPPShort,"aShort");
+		status = VerifySimpleVariableExistance(inVariablesContainer,"aShort",eCPPShort);
 		if(status != eSuccess)
 			break;
-		status = VerifySimpleVariableExistance(inVariablesContainer,eCPPUnsignedShort,"aUShort");
+		status = VerifySimpleVariableExistance(inVariablesContainer,"aUShort",eCPPUnsignedShort);
 		if(status != eSuccess)
 			break;
-		status = VerifySimpleVariableExistance(inVariablesContainer,eCPPUnsignedShort,"aUShort");
+		status = VerifySimpleVariableExistance(inVariablesContainer,"aUShort",eCPPUnsignedShort);
 		if(status != eSuccess)
 			break;
-		status = VerifySimpleVariableExistance(inVariablesContainer,eCPPInt,"anInt");
+		status = VerifySimpleVariableExistance(inVariablesContainer,"anInt",eCPPInt);
 		if(status != eSuccess)
 			break;
-		status = VerifySimpleVariableExistance(inVariablesContainer,eCPPUnsigned,"anUnsigned");
+		status = VerifySimpleVariableExistance(inVariablesContainer,"anUnsigned",eCPPUnsigned);
 		if(status != eSuccess)
 			break;
-		status = VerifySimpleVariableExistance(inVariablesContainer,eCPPWChar,"aWChar_t");
+		status = VerifySimpleVariableExistance(inVariablesContainer,"aWChar_t",eCPPWChar);
 		if(status != eSuccess)
 			break;
-		status = VerifySimpleVariableExistance(inVariablesContainer,eCPPLong,"aLong");
+		status = VerifySimpleVariableExistance(inVariablesContainer,"aLong",eCPPLong);
 		if(status != eSuccess)
 			break;
-		status = VerifySimpleVariableExistance(inVariablesContainer,eCPPUnsignedLong,"aULong");
+		status = VerifySimpleVariableExistance(inVariablesContainer,"aULong",eCPPUnsignedLong);
 		if(status != eSuccess)
 			break;
-		status = VerifySimpleVariableExistance(inVariablesContainer,eCPPLongLong,"aLongLong");
+		status = VerifySimpleVariableExistance(inVariablesContainer,"aLongLong",eCPPLongLong);
 		if(status != eSuccess)
 			break;
-		status = VerifySimpleVariableExistance(inVariablesContainer,eCPPUnsignedLongLong,"aULongLong");
+		status = VerifySimpleVariableExistance(inVariablesContainer,"aULongLong",eCPPUnsignedLongLong);
 		if(status != eSuccess)
 			break;
-		status = VerifySimpleVariableExistance(inVariablesContainer,eCPPVoid,"aPVoid");
+		status = VerifySimpleVariableExistance(inVariablesContainer,"aPVoid",eCPPVoid);
 		if(status != eSuccess)
 			break;
-		status = VerifySimpleVariableExistance(inVariablesContainer,eCPPFloat,"aFloat");
+		status = VerifySimpleVariableExistance(inVariablesContainer,"aFloat",eCPPFloat);
 		if(status != eSuccess)
 			break;
-		status = VerifySimpleVariableExistance(inVariablesContainer,eCPPDouble,"aDouble");
+		status = VerifySimpleVariableExistance(inVariablesContainer,"aDouble",eCPPDouble);
 		if(status != eSuccess)
 			break;
-		status = VerifySimpleVariableExistance(inVariablesContainer,eCPPLongDouble,"aLongDouble");
+		status = VerifySimpleVariableExistance(inVariablesContainer,"aLongDouble",eCPPLongDouble);
+		if(status != eSuccess)
+			break;
+		status = VerifyStorageVariableExistance(inVariablesContainer,"aStaticConstInt",eCPPInt,false,true,true,false,false,false);
+		if(status != eSuccess)
+			break;
+		status = VerifyStorageVariableExistance(inVariablesContainer,"aStaticInt",eCPPInt,false,true,false,false,false,false);
+		if(status != eSuccess)
+			break;
+		status = VerifyStorageVariableExistance(inVariablesContainer,"aConstIntPointer",eCPPInt,false,false,true,false,false,false);
+		if(status != eSuccess)
+			break;
+		status = VerifyStorageVariableExistance(inVariablesContainer,"aVolatileFloat",eCPPFloat,false,false,false,true,false,false);
+		if(status != eSuccess)
+			break;
+		status = VerifyStorageVariableExistance(inVariablesContainer,"anExternUShort",eCPPUnsignedShort,false,false,false,false,false,true);
 		if(status != eSuccess)
 			break;
 	}while(false);
@@ -132,8 +147,21 @@ EStatusCode VariablesTest::VerifySimplePrimitiveVariables(CPPNamespace* inVariab
 }
 
 EStatusCode VariablesTest::VerifySimpleVariableExistance(CPPNamespace* inVariablesContainer,
-										  ECPPPrimitiveType inPrimitiveType,
-										  string inVariableName)
+										  string inVariableName,
+										  ECPPPrimitiveType inPrimitiveType)
+{
+	return VerifyStorageVariableExistance(inVariablesContainer,inVariableName,inPrimitiveType,false,false,false,false,false,false);
+}
+
+Hummus::EStatusCode VariablesTest::VerifyStorageVariableExistance(CPPNamespace* inVariablesContainer,
+											string inVariableName,
+											ECPPPrimitiveType inPrimitiveType,
+											bool inAuto,
+											bool inStatic,
+											bool inConst,
+											bool inVolatile,
+											bool inRegister,
+											bool inExtern)
 {
 	CPPVariable* aVariable = inVariablesContainer->GetVariable(inVariableName);
 	if(!aVariable ||
@@ -144,7 +172,9 @@ EStatusCode VariablesTest::VerifySimpleVariableExistance(CPPNamespace* inVariabl
 		return eFailure;
 	}
 
-	CPPPrimitive* aPrimitive = (CPPPrimitive*)(aVariable->GetTypeDescriptor()->GetFieldDescriptor()->GetType());
+	FieldTypeDescriptor* fieldTypeDescriptor = aVariable->GetTypeDescriptor()->GetFieldDescriptor();
+
+	CPPPrimitive* aPrimitive = (CPPPrimitive*)(fieldTypeDescriptor->GetType());
 
 	if(aPrimitive->PrimitiveType != inPrimitiveType)
 	{
@@ -154,8 +184,42 @@ EStatusCode VariablesTest::VerifySimpleVariableExistance(CPPNamespace* inVariabl
 		return eFailure;
 	}
 
+	if(fieldTypeDescriptor->IsAuto != inAuto)
+	{
+		cout<<"VariablesTest::VerifySimpleVariableExistance, Auto supposed to be "<<inAuto<<" but is "<<fieldTypeDescriptor->IsAuto<<"\n";
+		return eFailure;
+	}
+
+	if(fieldTypeDescriptor->IsStatic != inStatic)
+	{
+		cout<<"VariablesTest::VerifySimpleVariableExistance, Static supposed to be "<<inStatic<<" but is "<<fieldTypeDescriptor->IsStatic<<"\n";
+		return eFailure;
+	}
+
+	if(fieldTypeDescriptor->IsConst != inConst)
+	{
+		cout<<"VariablesTest::VerifySimpleVariableExistance, Const supposed to be "<<inConst<<" but is "<<fieldTypeDescriptor->IsConst<<"\n";
+		return eFailure;
+	}
+
+	if(fieldTypeDescriptor->IsVolatile != inVolatile)
+	{
+		cout<<"VariablesTest::VerifySimpleVariableExistance, Volatile supposed to be "<<inVolatile<<" but is "<<fieldTypeDescriptor->IsVolatile<<"\n";
+		return eFailure;
+	}
+
+	if(fieldTypeDescriptor->IsRegister != inRegister)
+	{
+		cout<<"VariablesTest::VerifySimpleVariableExistance, Register supposed to be "<<inRegister<<" but is "<<fieldTypeDescriptor->IsRegister<<"\n";
+		return eFailure;
+	}
+
+	if(fieldTypeDescriptor->IsExtern != inExtern)
+	{
+		cout<<"VariablesTest::VerifySimpleVariableExistance, Extern supposed to be "<<inExtern<<" but is "<<fieldTypeDescriptor->IsExtern<<"\n";
+		return eFailure;
+	}
 	return eSuccess;
 }
-
 
 ADD_CATEGORIZED_TEST(VariablesTest,"Parser")

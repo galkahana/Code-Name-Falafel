@@ -528,7 +528,7 @@ BoolAndCPPExpression CPPExpressionParser::ParseTypenameWithHelper(ITokenProvider
 	types.insert(CPPElement::eCPPElementVariable);
 
 	CPPElement* anElement = mTypeParserHelper->ParseTypename(inProvider,types);
-	if(anElement)
+	if(!anElement)
 		return FalseExpression();
 
 	// check if function. if so, and expecting a function call, then make this a function call. otherwise leave as variable (probably function usage as function pointer)
