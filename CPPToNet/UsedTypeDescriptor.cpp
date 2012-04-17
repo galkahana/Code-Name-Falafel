@@ -67,7 +67,7 @@ size_t FieldTypeDescriptor::GetModifiersCount()
 	return mModifiers.size();
 }
 
-bool FieldTypeDescriptor::IsEqual(FieldTypeDescriptor* inOtherDescriptor)
+bool FieldTypeDescriptor::IsEqual(FieldTypeDescriptor* inOtherDescriptor) const
 {
 	if(IsAuto != inOtherDescriptor->IsAuto)
 		return false;
@@ -90,8 +90,8 @@ bool FieldTypeDescriptor::IsEqual(FieldTypeDescriptor* inOtherDescriptor)
 	if(mModifiers.size() != inOtherDescriptor->mModifiers.size())
 		return false;
 
-	DeclaratorModifierList::iterator itThis = mModifiers.begin();
-	DeclaratorModifierList::iterator itOther = inOtherDescriptor->mModifiers.begin();
+	DeclaratorModifierList::const_iterator itThis = mModifiers.begin();
+	DeclaratorModifierList::const_iterator itOther = inOtherDescriptor->mModifiers.begin();
 
 	bool isEqual = true;
 	for(; itThis != mModifiers.end() && isEqual; ++itThis,++itOther)

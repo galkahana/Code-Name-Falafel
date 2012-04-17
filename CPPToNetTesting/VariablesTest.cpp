@@ -55,11 +55,17 @@ EStatusCode VariablesTest::Run()
 
 	do
 	{
-		status = VerifySimplePrimitiveVariables(globalNamespace);
+		status = (VerifySimplePrimitiveVariables(globalNamespace) == eSuccess ? status:eFailure);
 		if(status != eSuccess)
-		{
 			cout<<"VariablesTest::Run, failed simple variables definition\n";
-		}
+
+		status = (VerifySpecialStorageVariables(globalNamespace) == eSuccess ? status:eFailure);
+		if(status != eSuccess)
+			cout<<"VariablesTest::Run, failed special storage variables definition\n";
+
+		status = (VerifyPointerArraysAndInitializers(globalNamespace) == eSuccess ? status:eFailure);
+		if(status != eSuccess)
+			cout<<"VariablesTest::Run, failed pointers and arrays and initializers definition\n";
 	}
 	while(false);
 	
@@ -126,6 +132,24 @@ EStatusCode VariablesTest::VerifySimplePrimitiveVariables(CPPNamespace* inVariab
 		status = VerifySimpleVariableExistance(inVariablesContainer,"aLongDouble",eCPPLongDouble);
 		if(status != eSuccess)
 			break;
+
+	}while(false);
+
+	return status;
+}
+
+EStatusCode VariablesTest::VerifySimpleVariableExistance(CPPNamespace* inVariablesContainer,
+										  const string& inVariableName,
+										  ECPPPrimitiveType inPrimitiveType)
+{
+	return VerifyStorageVariableExistance(inVariablesContainer,inVariableName,inPrimitiveType,false,false,false,false,false,false);
+}
+
+EStatusCode VariablesTest::VerifySpecialStorageVariables(CPPNamespace* inVariablesContainer)
+{
+	EStatusCode status = eSuccess;
+	do
+	{
 		status = VerifyStorageVariableExistance(inVariablesContainer,"aStaticConstInt",eCPPInt,false,true,true,false,false,false);
 		if(status != eSuccess)
 			break;
@@ -146,15 +170,9 @@ EStatusCode VariablesTest::VerifySimplePrimitiveVariables(CPPNamespace* inVariab
 	return status;
 }
 
-EStatusCode VariablesTest::VerifySimpleVariableExistance(CPPNamespace* inVariablesContainer,
-										  string inVariableName,
-										  ECPPPrimitiveType inPrimitiveType)
-{
-	return VerifyStorageVariableExistance(inVariablesContainer,inVariableName,inPrimitiveType,false,false,false,false,false,false);
-}
 
-Hummus::EStatusCode VariablesTest::VerifyStorageVariableExistance(CPPNamespace* inVariablesContainer,
-											string inVariableName,
+EStatusCode VariablesTest::VerifyStorageVariableExistance(CPPNamespace* inVariablesContainer,
+											const string& inVariableName,
 											ECPPPrimitiveType inPrimitiveType,
 											bool inAuto,
 											bool inStatic,
@@ -220,6 +238,194 @@ Hummus::EStatusCode VariablesTest::VerifyStorageVariableExistance(CPPNamespace* 
 		return eFailure;
 	}
 	return eSuccess;
+}
+
+Hummus::EStatusCode VariablesTest::VerifyPointerArraysAndInitializers(CPPNamespace* inVariablesContainer)
+{
+	CPPElement* intElement = inVariablesContainer->FindElements("int").front();
+	CPPElement* charElement = inVariablesContainer->FindElements("char").front();
+
+	{
+		FieldTypeDescriptor anIntArrayfd(intElement,false,false,false,false,false,false);
+		anIntArrayfd.AddSubscript();
+
+		if(!IsEqualFieldType(inVariablesContainer,"anIntArray",anIntArrayfd))
+		{
+			cout<<"VariablesTest::VerifyPointerArraysAndInitializers, wrong parsing for anIntArray\n";
+			return eFailure;
+		}
+	}
+
+	{
+		FieldTypeDescriptor anIntDoubleArrayfd(intElement,false,false,false,false,false,false);
+		anIntDoubleArrayfd.AddSubscript();
+		anIntDoubleArrayfd.AddSubscript();
+
+		if(!IsEqualFieldType(inVariablesContainer,"anIntDoubleArray",anIntDoubleArrayfd))
+		{
+			cout<<"VariablesTest::VerifyPointerArraysAndInitializers, wrong parsing for anIntDoubleArray\n";
+			return eFailure;
+		}
+	}
+
+	{
+		FieldTypeDescriptor anIntPointerArrayfd(intElement,false,false,false,false,false,false);
+		anIntPointerArrayfd.AddSubscript();
+		anIntPointerArrayfd.AppendModifier(
+			DeclaratorModifier(DeclaratorModifier::eDeclaratorModifierPointer,false,false));
+
+		if(!IsEqualFieldType(inVariablesContainer,"anIntPointerArray",anIntPointerArrayfd))
+		{
+			cout<<"VariablesTest::VerifyPointerArraysAndInitializers, wrong parsing for anIntPointerArrayfd\n";
+			return eFailure;
+		}
+	}
+
+	{
+		FieldTypeDescriptor anIntReferencefd(intElement,false,false,false,false,false,true);
+		anIntReferencefd.AppendModifier(
+			DeclaratorModifier(DeclaratorModifier::eDeclaratorModifierReference,false,false));
+
+		if(!IsEqualFieldType(inVariablesContainer,"anIntReference",anIntReferencefd))
+		{
+			cout<<"VariablesTest::VerifyPointerArraysAndInitializers, wrong parsing for anIntReference\n";
+			return eFailure;
+		}
+	}
+
+	{
+		FieldTypeDescriptor anIntPointerToPointerfd(intElement,false,false,false,false,false,false);
+		anIntPointerToPointerfd.AppendModifier(
+			DeclaratorModifier(DeclaratorModifier::eDeclaratorModifierPointer,false,false));
+		anIntPointerToPointerfd.AppendModifier(
+			DeclaratorModifier(DeclaratorModifier::eDeclaratorModifierPointer,false,false));
+
+		if(!IsEqualFieldType(inVariablesContainer,"anIntPointerToPointer",anIntPointerToPointerfd))
+		{
+			cout<<"VariablesTest::VerifyPointerArraysAndInitializers, wrong parsing for anIntPointerToPointer\n";
+			return eFailure;
+		}
+	}
+
+	{
+		FieldTypeDescriptor aConstCharPointerfd(charElement,false,false,false,false,false,false);
+		aConstCharPointerfd.AppendModifier(
+			DeclaratorModifier(DeclaratorModifier::eDeclaratorModifierPointer,true,false));
+
+		if(!IsEqualFieldType(inVariablesContainer,"aConstCharPointer",aConstCharPointerfd))
+		{
+			cout<<"VariablesTest::VerifyPointerArraysAndInitializers, wrong parsing for aConstCharPointer\n";
+			return eFailure;
+		}
+	}
+
+	{
+		FieldTypeDescriptor aVolatileCharPointerfd(charElement,false,false,false,false,false,false);
+		aVolatileCharPointerfd.AppendModifier(
+			DeclaratorModifier(DeclaratorModifier::eDeclaratorModifierPointer,false,true));
+
+		if(!IsEqualFieldType(inVariablesContainer,"aVolatileCharPointer",aVolatileCharPointerfd))
+		{
+			cout<<"VariablesTest::VerifyPointerArraysAndInitializers, wrong parsing for aVolatileCharPointer\n";
+			return eFailure;
+		}
+	}
+
+	{
+		FieldTypeDescriptor anIntArrayWithInitializationfd(intElement,false,false,false,false,false,false);
+		anIntArrayWithInitializationfd.AddSubscript();
+
+		if(!IsEqualFieldType(inVariablesContainer,"anIntArrayWithInitialization",anIntArrayWithInitializationfd))
+		{
+			cout<<"VariablesTest::VerifyPointerArraysAndInitializers, wrong parsing for anIntArrayWithInitialization\n";
+			return eFailure;
+		}
+	}
+
+
+	{
+		FieldTypeDescriptor anIntTwoDepthArrayfd(intElement,false,false,false,false,false,false);
+		anIntTwoDepthArrayfd.AddSubscript();
+		anIntTwoDepthArrayfd.AddSubscript();
+
+		if(!IsEqualFieldType(inVariablesContainer,"anIntTwoDepthArray",anIntTwoDepthArrayfd))
+		{
+			cout<<"VariablesTest::VerifyPointerArraysAndInitializers, wrong parsing for anIntTwoDepthArray\n";
+			return eFailure;
+		}
+	}
+
+	{
+		FieldTypeDescriptor aStringfd(charElement,false,false,false,false,false,false);
+		aStringfd.AddSubscript();
+
+		if(!IsEqualFieldType(inVariablesContainer,"aString",aStringfd))
+		{
+			cout<<"VariablesTest::VerifyPointerArraysAndInitializers, wrong parsing for aString\n";
+			return eFailure;
+		}
+	}
+
+	{
+		FieldTypeDescriptor anotherStringfd(charElement,false,false,false,false,false,false);
+		anotherStringfd.AddSubscript();
+
+		if(!IsEqualFieldType(inVariablesContainer,"anotherString",anotherStringfd))
+		{
+			cout<<"VariablesTest::VerifyPointerArraysAndInitializers, wrong parsing for anotherString\n";
+			return eFailure;
+		}
+	}
+
+	{
+		FieldTypeDescriptor moarStringfd(charElement,false,false,false,false,false,false);
+		moarStringfd.AddSubscript();
+
+		if(!IsEqualFieldType(inVariablesContainer,"moarString",moarStringfd))
+		{
+			cout<<"VariablesTest::VerifyPointerArraysAndInitializers, wrong parsing for moarString\n";
+			return eFailure;
+		}
+	}
+
+	{
+		FieldTypeDescriptor anIntInitializeSpecialfd(intElement,false,false,false,false,false,false);
+
+		if(!IsEqualFieldType(inVariablesContainer,"anIntInitializeSpecial",anIntInitializeSpecialfd))
+		{
+			cout<<"VariablesTest::VerifyPointerArraysAndInitializers, wrong parsing for anIntInitializeSpecial\n";
+			return eFailure;
+		}
+	}
+
+	{
+		FieldTypeDescriptor aComplexInitializerfd(intElement,false,false,false,false,false,false);
+
+		if(!IsEqualFieldType(inVariablesContainer,"aComplexInitializer",aComplexInitializerfd))
+		{
+			cout<<"VariablesTest::VerifyPointerArraysAndInitializers, wrong parsing for aComplexInitializer\n";
+			return eFailure;
+		}
+	}
+
+	return eSuccess;
+}
+
+bool VariablesTest::IsEqualFieldType(CPPNamespace* inVariablesContainer,
+									  const string& inVariableName,
+									  const FieldTypeDescriptor& inCompareType)
+{
+	CPPVariable* aVariable = inVariablesContainer->GetVariable(inVariableName);
+	if(!aVariable ||
+		!aVariable->GetTypeDescriptor()->GetFieldDescriptor() ||
+		aVariable->GetTypeDescriptor()->GetFieldDescriptor()->GetType()->Type != CPPElement::eCPPElementPrimitive)
+	{
+		cout<<"VariablesTest::IsEqualFieldType, could not find variable of appropriate type for "<<inVariableName<<"\n";
+		return false;
+	}
+
+	FieldTypeDescriptor* fieldTypeDescriptor = aVariable->GetTypeDescriptor()->GetFieldDescriptor();
+	return inCompareType.IsEqual(fieldTypeDescriptor);
 }
 
 ADD_CATEGORIZED_TEST(VariablesTest,"Parser")

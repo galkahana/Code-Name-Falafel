@@ -45,7 +45,7 @@ public:
 	unsigned long GetSubscriptCount();
 	CPPElement* GetType();
 
-	bool IsEqual(FieldTypeDescriptor* inOtherDescriptor);
+	bool IsEqual(FieldTypeDescriptor* inOtherDescriptor) const;
 	bool IsLess(FieldTypeDescriptor* inOtherDescriptor);
 	FieldTypeDescriptor* Clone();
 

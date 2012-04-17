@@ -1077,7 +1077,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFieldOrFunction(ITokenProvider* inT
 					break;
 				}
 				aDeclarator->AppendModifiers(inFieldModifiersList);
-				mTokensSource.PutBackToken(token.second);
+				inTokenProvider->PutBackToken("(");
 				result = ParseFieldDefinition(inTokenProvider,aDeclarator,aScopingElement != NULL);
 			}
 		}

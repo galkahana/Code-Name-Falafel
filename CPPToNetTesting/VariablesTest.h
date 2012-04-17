@@ -2,6 +2,7 @@
 
 #include "ITestUnit.h"
 #include "CPPPrimitiveTypes.h"
+#include "UsedTypeDescriptor.h"
 #include <string>
 
 class CPPNamespace;
@@ -20,10 +21,11 @@ public:
 private:
 	Hummus::EStatusCode VerifySimplePrimitiveVariables(CPPNamespace* inVariablesContainer);
 	Hummus::EStatusCode VerifySimpleVariableExistance(CPPNamespace* inVariablesContainer,
-													  string inVariableName,
+													  const string& inVariableName,
 													  ECPPPrimitiveType inPrimitiveType);
+	Hummus::EStatusCode VerifySpecialStorageVariables(CPPNamespace* inVariablesContainer);
 	Hummus::EStatusCode VerifyStorageVariableExistance(CPPNamespace* inVariablesContainer,
-												string inVariableName,
+												const string& inVariableName,
 												ECPPPrimitiveType inPrimitiveType,
 												bool inAuto,
 												bool inStatic,
@@ -31,5 +33,9 @@ private:
 												bool inVolatile,
 												bool inRegister,
 												bool inExtern);
+	Hummus::EStatusCode VerifyPointerArraysAndInitializers(CPPNamespace* inVariablesContainer);
+	bool IsEqualFieldType(CPPNamespace* inVariablesContainer,
+						  const string& inVariableName,
+						  const FieldTypeDescriptor& inCompareType);
 };
 
