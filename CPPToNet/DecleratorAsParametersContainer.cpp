@@ -7,7 +7,7 @@ using namespace Hummus;
 DecleratorAsParametersContainer::DecleratorAsParametersContainer()
 {
 	mFoundStop = false;
-	mAlreadyDefinedOne = true;
+	mAlreadyDefinedOne = false;
 	mFieldType = NULL;
 }
 
@@ -15,7 +15,7 @@ DecleratorAsParametersContainer::DecleratorAsParametersContainer(ICPPParametersC
 {
 	mFoundStop = false;
 	mParametersContainer = inParametersContainer;
-	mAlreadyDefinedOne = true;
+	mAlreadyDefinedOne = false;
 	mFieldType = NULL;
 	mStopperToken = inStopperToken;
 }
@@ -139,7 +139,11 @@ EStatusCode DecleratorAsParametersContainer::FinalizeFieldDefinition()
 	EStatusCode status  = mParametersContainer->CreateParameter(mFieldName,mFieldType);
 
 	if(eSuccess == status)
+	{
+		// detach parameter field type
+		mFieldType = NULL;
 		return eSuccess;
+	}
 
 	// if failed - move to cleanup
 
@@ -180,7 +184,11 @@ EStatusCode DecleratorAsParametersContainer::FinalizeFunctionPointerDefinition()
 	EStatusCode status = mParametersContainer->CreateParameter(mFieldName,mFieldType);
 
 	if(eSuccess == status)
+	{
+		// detach parameter field type
+		mFieldType = NULL;
 		return eSuccess;
+	}
 
 	// if failed - move to cleanup
 

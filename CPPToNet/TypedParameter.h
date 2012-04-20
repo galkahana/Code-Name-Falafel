@@ -11,6 +11,7 @@ struct TypedParameter
 {
 	TypedParameter();
 	TypedParameter(UsedTypeDescriptor* inType);
+	TypedParameter(const string& inName,UsedTypeDescriptor* inType);
 	~TypedParameter();
 
 	string Name;

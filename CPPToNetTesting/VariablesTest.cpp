@@ -55,17 +55,29 @@ EStatusCode VariablesTest::Run()
 
 	do
 	{
-		status = (VerifySimplePrimitiveVariables(globalNamespace) == eSuccess ? status:eFailure);
-		if(status != eSuccess)
+		if(VerifySimplePrimitiveVariables(globalNamespace) != eSuccess)
+		{
 			cout<<"VariablesTest::Run, failed simple variables definition\n";
+			status = eFailure;
+		}
 
-		status = (VerifySpecialStorageVariables(globalNamespace) == eSuccess ? status:eFailure);
-		if(status != eSuccess)
+		if(VerifySpecialStorageVariables(globalNamespace) != eSuccess)
+		{
 			cout<<"VariablesTest::Run, failed special storage variables definition\n";
+			status = eFailure;
+		}
 
-		status = (VerifyPointerArraysAndInitializers(globalNamespace) == eSuccess ? status:eFailure);
-		if(status != eSuccess)
+		if(VerifyPointerArraysAndInitializers(globalNamespace) != eSuccess)
+		{
 			cout<<"VariablesTest::Run, failed pointers and arrays and initializers definition\n";
+			status = eFailure;
+		}
+
+		if(VerifyFunctionPointers(globalNamespace) != eSuccess)
+		{
+			cout<<"VariablesTest::Run, failed function pointers definition\n";
+			status = eFailure;
+		}
 	}
 	while(false);
 	
@@ -426,6 +438,89 @@ bool VariablesTest::IsEqualFieldType(CPPNamespace* inVariablesContainer,
 
 	FieldTypeDescriptor* fieldTypeDescriptor = aVariable->GetTypeDescriptor()->GetFieldDescriptor();
 	return inCompareType.IsEqual(fieldTypeDescriptor);
+}
+
+EStatusCode VariablesTest::VerifyFunctionPointers(CPPNamespace* inVariablesContainer)
+{
+	CPPElement* intElement = inVariablesContainer->FindElements("int").front();
+	CPPElement* boolElement = inVariablesContainer->FindElements("bool").front();
+	CPPElement* doubleElement = inVariablesContainer->FindElements("double").front();
+
+	{
+		FunctionPointerTypeDescriptor isValidFfpd(new UsedTypeDescriptor(boolElement,false,false,false,false,false,false));
+		isValidFfpd.SetFunctionPointerType(ICPPFunctionPointerDeclerator::eFunctionPointerTypePointer);
+		isValidFfpd.AppendParameter(
+			new TypedParameter("inArga",new UsedTypeDescriptor(intElement,false,false,false,false,false,false)));
+		TypedParameter* secondParameter = 
+			new TypedParameter("inArgb",new UsedTypeDescriptor(intElement,false,false,false,true,false,false));
+		secondParameter->Type->GetFieldDescriptor()->AppendModifier(
+			DeclaratorModifier(DeclaratorModifier::eDeclaratorModifierReference,false,false));
+		isValidFfpd.AppendParameter(secondParameter);
+		if(!IsEqualFunctionPointerType(inVariablesContainer,"isValidFP",isValidFfpd))
+		{
+			cout<<"VariablesTest::VerifyFunctionPointers, wrong parsing for isValidFP\n";
+			return eFailure;
+		}
+	}
+
+	{
+		FunctionPointerTypeDescriptor someAnonymusFPfpd(new UsedTypeDescriptor(boolElement,false,false,false,false,false,false));
+		someAnonymusFPfpd.SetFunctionPointerType(ICPPFunctionPointerDeclerator::eFunctionPointerTypePointer);
+		TypedParameter* firstParameter = 
+			new TypedParameter("",new UsedTypeDescriptor(intElement,false,false,false,false,false,false));
+		firstParameter->Type->GetFieldDescriptor()->AppendModifier(DeclaratorModifier(DeclaratorModifier::eDeclaratorModifierPointer,false,false));
+		someAnonymusFPfpd.AppendParameter(firstParameter);
+
+		TypedParameter* secondParameter = 
+			new TypedParameter("",new UsedTypeDescriptor(doubleElement,false,false,false,true,false,false));
+		secondParameter->Type->GetFieldDescriptor()->AppendModifier(DeclaratorModifier(DeclaratorModifier::eDeclaratorModifierReference,false,false));
+		someAnonymusFPfpd.AppendParameter(secondParameter);
+
+		if(!IsEqualFunctionPointerType(inVariablesContainer,"someAnonymusFP",someAnonymusFPfpd))
+		{
+			cout<<"VariablesTest::VerifyFunctionPointers, wrong parsing for someAnonymusFP\n";
+			return eFailure;
+		}
+	}
+
+
+	{
+		FunctionPointerTypeDescriptor someReferenceFPfpd(new UsedTypeDescriptor(boolElement,false,false,false,false,false,false));
+		someReferenceFPfpd.SetFunctionPointerType(ICPPFunctionPointerDeclerator::eFunctionPointerTypeReference);
+		TypedParameter* firstParameter = 
+			new TypedParameter("",new UsedTypeDescriptor(intElement,false,false,false,false,false,false));
+		firstParameter->Type->GetFieldDescriptor()->AppendModifier(DeclaratorModifier(DeclaratorModifier::eDeclaratorModifierPointer,false,false));
+		someReferenceFPfpd.AppendParameter(firstParameter);
+
+		TypedParameter* secondParameter = 
+			new TypedParameter("",new UsedTypeDescriptor(doubleElement,false,false,false,true,false,false));
+		secondParameter->Type->GetFieldDescriptor()->AppendModifier(DeclaratorModifier(DeclaratorModifier::eDeclaratorModifierReference,false,false));
+		someReferenceFPfpd.AppendParameter(secondParameter);
+
+		if(!IsEqualFunctionPointerType(inVariablesContainer,"someReferenceFP",someReferenceFPfpd))
+		{
+			cout<<"VariablesTest::VerifyFunctionPointers, wrong parsing for someReferenceFP\n";
+			return eFailure;
+		}
+	}
+
+	return eSuccess;
+}
+
+bool VariablesTest::IsEqualFunctionPointerType(CPPNamespace* inVariablesContainer,
+						const string& inVariableName,
+						const FunctionPointerTypeDescriptor& inCompareType)
+{
+	CPPVariable* aVariable = inVariablesContainer->GetVariable(inVariableName);
+	if(!aVariable ||
+		!aVariable->GetTypeDescriptor()->GetFunctionPointerDescriptor())
+	{
+		cout<<"VariablesTest::IsEqualFieldType, could not find variable of appropriate type for "<<inVariableName<<"\n";
+		return false;
+	}
+
+	FunctionPointerTypeDescriptor* functionTypeDescriptor = aVariable->GetTypeDescriptor()->GetFunctionPointerDescriptor();
+	return inCompareType.IsEqual(functionTypeDescriptor);
 }
 
 ADD_CATEGORIZED_TEST(VariablesTest,"Parser")

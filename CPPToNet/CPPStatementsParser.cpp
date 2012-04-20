@@ -1435,6 +1435,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionDefinition(ITokenProvider* 
 			}
 			else
 			{
+				inTokenProvider->PutBackToken(token.second);
 				result.first = ParseGenericDeclerationStatement(inTokenProvider,&parametersContainer);
 				if(result.first != eSuccess)
 				{
@@ -1453,9 +1454,16 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionDefinition(ITokenProvider* 
 		if(!token.first || result.first != eSuccess)
 			break;
 
-		result.second = inContainer->VerifyDeclaratorStopper(token.second);
-		if(result.second)
+		token = inTokenProvider->GetNextToken();
+		if(!token.first)
 		{
+			TRACE_LOG("CPPStatementsParser::ParseFunctionDefinition, unexpected end of expression after parameters parsed");
+			break;
+		}
+		
+		if(inContainer->VerifyDeclaratorStopper(token.second))
+		{
+			result.second = true;
 			// done here. expression not continued.
 			result.first = FinalizeFunction(functionDeclerator,inTemplateAssignmentList,false,inIsOutOfLineDefinition);
 			break;
@@ -1857,6 +1865,7 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointerOrFunction(ITokenPro
 			}
 			else
 			{
+				inTokenProvider->PutBackToken(token.second);
 				result.first = ParseGenericDeclerationStatement(inTokenProvider,&parametersContainer);
 				if(result.first != eSuccess)
 				{
@@ -1882,6 +1891,17 @@ EStatusCodeAndBool CPPStatementsParser::ParseFunctionPointerOrFunction(ITokenPro
 		// if function pointer declerator stop here and return, with function we need to continue a bit, to see if this is a definition
 		if(!functionDeclerator)
 		{
+			// skip initializer if necessary
+			token = inTokenProvider->GetNextToken();
+			if(token.first && token.second == "=")
+			{
+				result.first = SkipInitializer(inTokenProvider);
+				if(result.first != eSuccess)
+					break;
+			}
+			else
+				inTokenProvider->PutBackToken(token.second);
+
 			if(aScopingElement)
 				CleanupTemplateParametersForOutOfLineDefinition();
 			break;
@@ -2325,7 +2345,7 @@ EStatusCode CPPStatementsParser::ParseGenericDeclerationStatement(ITokenProvider
 
 			if(token.second == "(")
 			{
-				// Aha! constructor/desctructor definition. continue to parse as a regular function
+				// Aha! maybe constructor/desctructor definition. continue to parse as a regular function
 				// assert that the typename is like a current class name
 				CPPElement* classElement = aScopingElement ? aScopingElement : (CPPElement*)mDefinitionContextStack.back();
 				if((classElement->Type != CPPElement::eCPPElementClass &&
@@ -2333,57 +2353,58 @@ EStatusCode CPPStatementsParser::ParseGenericDeclerationStatement(ITokenProvider
 					||
 					classElement->Name != className)
 				{
-					TRACE_LOG("CPPStatementsParser::ParseGenericDeclerationStatement, unexpected constructor/destructor syntax. either not in class/struct scope, or constructor/desctructor name differs from container class");
-					status = eFailure;
-					break;
+					// ok...it's not
+					isConstructorOrDesctructor = false;
 				}
-			
-				if(isDestructor)
-					className.insert(className.begin(),'~');
-
-
-				// if aScopingElement is not null, this means that the constructor/desctructor definition (and it will be an actual definition for sure, so this is a very particular state)
-				// is not on the current top element, but rather on the scoped element
-				if(aScopingElement && !inContainer->ResetVariablesContainer((ICPPVariablesContainerElement*)aScopingElement))
+				else
 				{
-					TRACE_LOG("CPPStatementsParser::ParseGenericDeclerationStatement, scoped definitonn of constructor/destructor is unsuitable in the current state");
-					status = eFailure;
-					break;
-				}
+					if(isDestructor)
+						className.insert(className.begin(),'~');
 
-				// now continue as regular function parsing, just with some defaults
-				if(inContainer->SetFlags(NULL,isAuto,isRegister,isExtern,isConst,isVolatile,isStatic,isVirtual) != eSuccess)
-				{
-					status = eFailure;
-					break;
-				}
 
-				EStatusCodeAndBool functionParseResult = ParseFunctionDefinition(&recoverableTokenProvider,inContainer,DeclaratorModifierList(),UsedTypeOrExpressionList(),className,aScopingElement != NULL);
-				if(functionParseResult.first != eSuccess)
-				{
-					TRACE_LOG("CPPStatementsParser::ParseGenericDeclarationStatement, failed to parse a function. fail");
-					status = eFailure;
-					break;
-				}
+					// if aScopingElement is not null, this means that the constructor/desctructor definition (and it will be an actual definition for sure, so this is a very particular state)
+					// is not on the current top element, but rather on the scoped element
+					if(aScopingElement && !inContainer->ResetVariablesContainer((ICPPVariablesContainerElement*)aScopingElement))
+					{
+						TRACE_LOG("CPPStatementsParser::ParseGenericDeclerationStatement, scoped definitonn of constructor/destructor is unsuitable in the current state");
+						status = eFailure;
+						break;
+					}
 
-				// if not consumed declarator stopper, do so now
-				if(functionParseResult.second)
-					break;
+					// now continue as regular function parsing, just with some defaults
+					if(inContainer->SetFlags(NULL,isAuto,isRegister,isExtern,isConst,isVolatile,isStatic,isVirtual) != eSuccess)
+					{
+						status = eFailure;
+						break;
+					}
 
-				token = recoverableTokenProvider.GetNextToken();
-				if(!token.first)
-				{
-					TRACE_LOG("CPPStatementsParser::ParseGenericDeclarationStatement, unexpected end, expecting a semicolon");
-					status = eFailure;
-					break;
-				}
+					EStatusCodeAndBool functionParseResult = ParseFunctionDefinition(&recoverableTokenProvider,inContainer,DeclaratorModifierList(),UsedTypeOrExpressionList(),className,aScopingElement != NULL);
+					if(functionParseResult.first != eSuccess)
+					{
+						TRACE_LOG("CPPStatementsParser::ParseGenericDeclarationStatement, failed to parse a function. fail");
+						status = eFailure;
+						break;
+					}
 
-				// k. now expecting either a stopper (semicolon for regulaer declarators, comma for parameters)
-				if(!inContainer->VerifyDeclaratorStopper(token.second))
-				{
-					TRACE_LOG1("CPPStatementsParser::ParseGenericDeclarationStatement, unexpected token, expecting a semicolon, found %s",token.second);
-					status = eFailure;
-					break;
+					// if not consumed declarator stopper, do so now
+					if(functionParseResult.second)
+						break;
+
+					token = recoverableTokenProvider.GetNextToken();
+					if(!token.first)
+					{
+						TRACE_LOG("CPPStatementsParser::ParseGenericDeclarationStatement, unexpected end, expecting a semicolon");
+						status = eFailure;
+						break;
+					}
+
+					// k. now expecting either a stopper (semicolon for regulaer declarators, comma for parameters)
+					if(!inContainer->VerifyDeclaratorStopper(token.second))
+					{
+						TRACE_LOG1("CPPStatementsParser::ParseGenericDeclarationStatement, unexpected token, expecting a semicolon, found %s",token.second);
+						status = eFailure;
+						break;
+					}
 				}
 			}
 			else

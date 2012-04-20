@@ -77,7 +77,7 @@ public:
 	unsigned long GetSubscriptCount();
 	
 	
-	bool IsEqual(FunctionPointerTypeDescriptor* inOther);
+	bool IsEqual(FunctionPointerTypeDescriptor* inOther) const;
 	bool IsLess(FunctionPointerTypeDescriptor* inOtherDescriptor);
 	FunctionPointerTypeDescriptor* Clone();
 

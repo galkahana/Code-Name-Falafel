@@ -37,5 +37,10 @@ private:
 	bool IsEqualFieldType(CPPNamespace* inVariablesContainer,
 						  const string& inVariableName,
 						  const FieldTypeDescriptor& inCompareType);
+	Hummus::EStatusCode VerifyFunctionPointers(CPPNamespace* inVariablesContainer);
+	bool IsEqualFunctionPointerType(CPPNamespace* inVariablesContainer,
+						  const string& inVariableName,
+						  const FunctionPointerTypeDescriptor& inCompareType);
+
 };
 

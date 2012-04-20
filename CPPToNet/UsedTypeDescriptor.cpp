@@ -280,7 +280,7 @@ bool FunctionPointerTypeDescriptor::HasElipsis()
 	return mHasElipsis;
 }
 
-bool FunctionPointerTypeDescriptor::IsEqual(FunctionPointerTypeDescriptor* inOther)
+bool FunctionPointerTypeDescriptor::IsEqual(FunctionPointerTypeDescriptor* inOther) const
 {
 	if(mPointerType != inOther->GetPointerType())
 		return false;
@@ -295,7 +295,7 @@ bool FunctionPointerTypeDescriptor::IsEqual(FunctionPointerTypeDescriptor* inOth
 	if(mDeclaredParameters.size() != mDeclaredParameters.size())
 		return false;
 
-	TypedParameterList::iterator itThis,itOther;
+	TypedParameterList::const_iterator itThis,itOther;
 	itThis = mDeclaredParameters.begin();
 	itOther = inOther->mDeclaredParameters.begin();
 	bool isEqual = true;
